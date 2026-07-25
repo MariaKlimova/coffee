@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "apps.users",
+    "apps.catalog",
 ]
 
 MIDDLEWARE = [
@@ -93,6 +94,11 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# User-uploaded files (product images). Not the same as STATIC_*:
+# static = CSS/JS we ship; media = files admins/users upload at runtime.
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
