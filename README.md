@@ -23,7 +23,7 @@ coffee/
 │   ├── architecture.md
 │   ├── design/   # референсы и токены
 │   └── api/      # OpenAPI-контракты
-├── infra/        # Docker Compose и пр. (TODO: COFFEE-6)
+├── infra/        # Docker Compose
 ├── .github/workflows/  # CI на каждый PR
 ├── CONTRIBUTING.md
 └── README.md
@@ -31,24 +31,41 @@ coffee/
 
 ## Локальный запуск
 
-### Backend
+### Docker Compose (рекомендуется)
 
-Нужен PostgreSQL (локально или позже через COFFEE-6). Пример URL — в `backend/.env.example`.
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+docker compose -f infra/docker-compose.yml up --build
+```
+
+| Сервис | URL |
+|--------|-----|
+| Frontend | http://localhost:5173 |
+| Backend API | http://127.0.0.1:8000 |
+| Health | http://127.0.0.1:8000/api/health/ |
+| OpenAPI | http://127.0.0.1:8000/api/docs/ |
+| Postgres | localhost:5432 |
+
+Код монтируется volume'ами: правки в `backend/` и `frontend/` подхватываются без пересборки образа.
+
+В `backend/.env` для Docker хост БД — `db`. Для нативного запуска backend замените на `localhost`.
+
+### Backend (без Docker)
+
+Нужен PostgreSQL. В `.env` укажите `DATABASE_URL=postgres://coffee:coffee@localhost:5432/coffee`.
 
 ```bash
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements/dev.txt
-cp .env.example .env   # при необходимости поправьте DATABASE_URL
+cp .env.example .env   # поправьте DATABASE_URL на localhost
 python manage.py migrate
 python manage.py runserver
 ```
 
-Проверка: `GET http://127.0.0.1:8000/api/health/` → `{"status": "ok"}`.  
-OpenAPI: `http://127.0.0.1:8000/api/docs/`.
-
-### Frontend
+### Frontend (без Docker)
 
 ```bash
 cd frontend
@@ -57,14 +74,7 @@ npm install
 npm run dev
 ```
 
-Dev-сервер: `http://localhost:5173`. Роуты-заглушки: `/`, `/coffee`, `/machines`, `/product/:id`, `/favorites`, `/cart`, `/login`, `/register`, `/checkout`.
-
-При поднятом backend HTTP-клиент (`@shared/api`) ходит на `GET /api/health/`.
-
-```bash
-# TODO (COFFEE-6): всё окружение через Docker Compose
-# docker compose up
-```
+Роуты-заглушки: `/`, `/coffee`, `/machines`, `/product/:id`, `/favorites`, `/cart`, `/login`, `/register`, `/checkout`.
 
 ## CI
 
@@ -75,7 +85,6 @@ Dev-сервер: `http://localhost:5173`. Роуты-заглушки: `/`, `/c
 | `backend-ci` | ruff, black --check, pytest (+ Postgres service) |
 | `frontend-ci` | lint, typecheck, test, build |
 | `commitlint` | Conventional Commits в истории PR |
-
 
 ## Ветка `main`
 
