@@ -1,0 +1,84 @@
+.Input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-family: var(--font-sans);
+}
+
+.Input-Label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+}
+
+.Input-Control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  box-sizing: border-box;
+  min-height: var(--control-height-md);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.Input-Control:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.Input--error .Input-Control {
+  border-color: var(--color-danger);
+}
+
+.Input--error .Input-Control:focus-within {
+  box-shadow: var(--focus-ring-danger);
+}
+
+.Input--disabled .Input-Control {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg);
+}
+
+.Input-Icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: var(--size-control-icon);
+  height: var(--size-control-icon);
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+
+.Input-Icon svg {
+  width: var(--size-control-icon);
+  height: var(--size-control-icon);
+}
+
+.Input-Field {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  outline: none;
+}
+
+.Input-Field::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.Input-Field:disabled {
+  cursor: not-allowed;
+}

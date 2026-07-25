@@ -1,0 +1,58 @@
+.Checkbox {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-family: var(--font-sans);
+  cursor: pointer;
+}
+
+.Checkbox--disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.Checkbox-Box {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: var(--size-control-icon);
+  height: var(--size-control-icon);
+  margin-top: var(--space-2xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.Checkbox-Input:focus-visible + .Checkbox-Box {
+  box-shadow: var(--focus-ring);
+}
+
+.Checkbox-Input:checked + .Checkbox-Box {
+  position: relative;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.Checkbox-Input:checked + .Checkbox-Box::after {
+  content: '';
+  position: absolute;
+  top: calc(var(--space-2xs) / 2);
+  left: calc(var(--size-control-icon) * 0.3);
+  width: calc(var(--size-control-icon) * 0.25);
+  height: calc(var(--size-control-icon) * 0.5);
+  border: solid var(--color-primary-on);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.Checkbox--error .Checkbox-Box {
+  border-color: var(--color-danger);
+}
+
+.Checkbox-Label {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+}

@@ -61,6 +61,25 @@
   --layout-max-width: 1120px;
   --layout-gutter: var(--space-lg);
   --layout-columns-gap: var(--space-md);
+
+  /* Controls */
+  --control-height-sm: 32px;
+  --control-height-md: 40px;
+  --control-height-lg: 48px;
+  --size-control-icon: 1.125rem;
+  --focus-ring: 0 0 0 2px color-mix(in srgb, var(--color-primary) 25%, transparent);
+  --focus-ring-danger: 0 0 0 2px
+    color-mix(in srgb, var(--color-danger) 25%, transparent);
+  --color-badge-success-bg: color-mix(
+    in srgb,
+    var(--color-success) 16%,
+    var(--color-surface)
+  );
+  --color-badge-danger-bg: color-mix(
+    in srgb,
+    var(--color-danger) 14%,
+    var(--color-surface)
+  );
 }
 
 html {
