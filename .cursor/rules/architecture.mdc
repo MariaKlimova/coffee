@@ -1,0 +1,35 @@
+---
+description: Монорепо Coffee Shop — слои FSD и Django apps
+globs: backend/**/*,frontend/**/*
+alwaysApply: false
+---
+
+# Архитектура
+
+## Монорепо
+
+- `backend/` — Django + DRF
+- `frontend/` — React + Vite, Feature-Sliced Design
+- `docs/` — architecture, OpenAPI, design, agents
+- `infra/` — Docker Compose
+
+## Frontend (FSD)
+
+1. `src/app/` — providers, router
+2. `src/pages/` — страницы-композиция
+3. `src/features/` — пользовательские сценарии
+4. `src/entities/` — бизнес-сущности
+5. `src/shared/` — ui, api, lib, store
+
+Импорты только «вниз» по слоям. UI-блоки — skill `bem-components`.
+
+## Backend
+
+- `config/` — settings/urls
+- `apps/` — доменные приложения (появятся по эпикам)
+- Секреты только из env (django-environ)
+
+## Запреты
+
+- Frontend не меняет Django URL/views «чтобы починить UI»
+- Не дублировать API-контракт вразрез с `docs/api/openapi.yaml`

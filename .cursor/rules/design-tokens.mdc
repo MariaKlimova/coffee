@@ -1,0 +1,12 @@
+---
+description: Цвета и отступы только через design tokens
+globs: frontend/src/**/*.{ts,tsx,css,module.css}
+alwaysApply: false
+---
+
+# Design tokens
+
+- Источник (stub до Epic 1): `docs/design/design-tokens.md`
+- В UI не хардкодить hex/rgb и «магические» отступы — только CSS-переменные / tokens
+- Новые значения палитры/шкалы сначала в tokens-документе (позже — в theme-модуле)
+- Skill: `.cursor/skills/design-tokens/SKILL.md`

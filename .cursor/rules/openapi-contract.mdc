@@ -1,0 +1,13 @@
+---
+description: API-изменения сверять с OpenAPI-контрактом
+globs: backend/**/*,frontend/src/shared/api/**/*,docs/api/**
+alwaysApply: false
+---
+
+# OpenAPI-контракт
+
+- Черновик и планирование: `docs/api/openapi.yaml`
+- После реализации эндпоинтов источник истины — drf-spectacular (`/api/schema/`, `/api/docs/`)
+- Перед добавлением/сменой пути, метода или схемы ответа — сверься с YAML
+- Конвенции (пагинация `page`/`page_size`, ошибки `{detail,code}`, цены decimal-string RUB, ISO 8601) — в `info.description` YAML
+- Frontend HTTP-клиент не должен выдумывать поля вне контракта
