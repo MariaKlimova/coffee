@@ -1,5 +1,9 @@
 # Contributing
 
+## Ветка `main`
+
+В `main` нельзя пушить напрямую — только через pull request. CI (lint / typecheck / tests / commitlint) должен быть зелёным перед merge.
+
 ## Conventional Commits
 
 Формат сообщения:
