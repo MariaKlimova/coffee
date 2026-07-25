@@ -39,6 +39,20 @@ coffee/
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
+npm run dev
+```
+
+Если `backend/.env` уже есть — сверь `SECRET_KEY` с `.env.example` (нужен ≥50 символов, иначе PyJWT/Django ругаются). `cp` сам старый файл не обновит.
+
+| Команда | Что делает |
+|---------|------------|
+| `npm run dev` | `up --build` |
+| `npm run dev:down` | остановить контейнеры |
+| `npm run dev:reset` | `down -v` + `up --build` (чистая БД) |
+
+Эквивалент без npm:
+
+```bash
 docker compose -f infra/docker-compose.yml up --build
 ```
 
