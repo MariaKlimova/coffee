@@ -22,7 +22,7 @@ coffee/
 ├── docs/
 │   ├── architecture.md
 │   ├── design/   # референсы и токены
-│   └── api/      # OpenAPI-контракты
+│   └── api/      # OpenAPI-контракт (openapi.yaml)
 ├── infra/        # Docker Compose
 ├── .github/workflows/  # CI на каждый PR
 ├── CONTRIBUTING.md
