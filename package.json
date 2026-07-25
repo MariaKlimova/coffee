@@ -1,0 +1,13 @@
+{
+  "name": "coffee",
+  "private": true,
+  "description": "Internet shop for coffee and coffee machines",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^9.1.7"
+  }
+}
