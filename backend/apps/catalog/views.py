@@ -19,6 +19,7 @@ from apps.catalog.serializers import (
     ProductDetailSerializer,
     ProductListSerializer,
 )
+from apps.favorites.query import annotate_is_favorite
 
 ORDERING_MAP = {
     "price": ("price",),
@@ -160,7 +161,7 @@ class ProductViewSet(
         return ProductListSerializer
 
     def get_queryset(self) -> QuerySet[Product]:
-        qs = _base_product_queryset()
+        qs = annotate_is_favorite(_base_product_queryset(), self.request.user)
         # List filters must not affect retrieve — stray query params would 404.
         if self.action != "list":
             return qs.order_by("-created_at")
@@ -170,12 +171,13 @@ class ProductViewSet(
     def related(self, request: Request, slug: str | None = None) -> Response:
         """GET /api/products/{slug}/related/ — same-category neighbors."""
         product = self.get_object()
-        qs = (
+        qs = annotate_is_favorite(
             _base_product_queryset()
             .filter(category_id=product.category_id)
             .exclude(pk=product.pk)
-            .order_by("-created_at")[:RELATED_PRODUCTS_LIMIT]
-        )
+            .order_by("-created_at"),
+            request.user,
+        )[:RELATED_PRODUCTS_LIMIT]
         serializer = ProductListSerializer(
             qs,
             many=True,
