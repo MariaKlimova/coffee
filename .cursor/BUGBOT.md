@@ -73,7 +73,7 @@ If захардкожена user-visible строка с API-жаргоном и
 
 ## Design tokens
 
-Источник: `docs/design/design-tokens.md` (stub → theme-модуль).
+Источник: `docs/design/design-tokens.md` и `frontend/src/shared/ui/tokens.css`.
 
 If в UI появляются hex/rgb или «магические» px вне tokens:
 

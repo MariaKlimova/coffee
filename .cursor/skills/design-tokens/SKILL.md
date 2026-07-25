@@ -2,24 +2,23 @@
 name: design-tokens
 description: >-
   Design tokens Coffee Shop: цвета, spacing, radius, typography только из
-  docs/design/design-tokens.md (позже — theme-модуль). Запрет hex и магических
-  отступов в UI. Применять при любом стиле/теме/shared/ui.
+  docs/design/design-tokens.md и frontend/src/shared/ui/tokens.css.
+  Запрет hex и магических отступов в UI. Применять при любом стиле/теме/shared/ui.
 ---
 
 # Design tokens
 
 ## Источник
 
-Сейчас (stub до COFFEE-10 / Epic 1): [docs/design/design-tokens.md](../../../docs/design/design-tokens.md).
-
-Позже: CSS variables / TS-модуль в `frontend/src/shared` (единственное место новых значений).
+- Документ: [docs/design/design-tokens.md](../../../docs/design/design-tokens.md)
+- CSS: [`frontend/src/shared/ui/tokens.css`](../../../frontend/src/shared/ui/tokens.css) — единственное место новых значений во frontend
 
 ## Правила
 
 - Цвета — `var(--color-*)`, не `#…` / `rgb(` в компонентах
 - Отступы — `var(--space-*)`, не `padding: 13px`
-- Радиусы / шрифты — из шкалы tokens
-- Новое значение: сначала в tokens-документ (и theme), потом использование
+- Радиусы / шрифты / тени — из шкалы tokens
+- Новое значение: сначала в `design-tokens.md` и `tokens.css`, потом использование
 
 ## Связь
 
