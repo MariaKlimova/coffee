@@ -1,0 +1,137 @@
+.Button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  box-sizing: border-box;
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.Button:disabled,
+.Button--loading {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.Button--sm {
+  min-height: var(--control-height-sm);
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-caption);
+}
+
+.Button--md {
+  min-height: var(--control-height-md);
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-sm);
+}
+
+.Button--lg {
+  min-height: var(--control-height-lg);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-md);
+}
+
+.Button--primary {
+  background: var(--color-primary);
+  color: var(--color-primary-on);
+  border-color: var(--color-primary);
+}
+
+.Button--primary:hover:not(:disabled):not(.Button--loading) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.Button--primary:active:not(:disabled):not(.Button--loading) {
+  background: var(--color-primary-hover);
+}
+
+.Button--secondary {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.Button--secondary:hover:not(:disabled):not(.Button--loading) {
+  background: var(--color-bg);
+}
+
+.Button--secondary:active:not(:disabled):not(.Button--loading) {
+  background: var(--color-bg);
+}
+
+.Button--ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: transparent;
+}
+
+.Button--ghost:hover:not(:disabled):not(.Button--loading) {
+  background: var(--color-bg);
+  color: var(--color-primary);
+}
+
+.Button--ghost:active:not(:disabled):not(.Button--loading) {
+  background: var(--color-bg);
+}
+
+.Button-Icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+}
+
+.Button-Icon svg {
+  width: 1em;
+  height: 1em;
+}
+
+.Button-Label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.Button-Label--hidden {
+  visibility: hidden;
+}
+
+.Button--loading {
+  position: relative;
+}
+
+.Button-Spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: Button-spin 0.7s linear infinite;
+}
+
+@keyframes Button-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}

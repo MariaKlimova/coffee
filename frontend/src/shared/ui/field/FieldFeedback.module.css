@@ -1,0 +1,15 @@
+.FieldFeedback-Hint {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  line-height: var(--leading-tight);
+  color: var(--color-text-muted);
+}
+
+.FieldFeedback-Error {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  line-height: var(--leading-tight);
+  color: var(--color-danger);
+}

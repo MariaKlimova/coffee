@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, type RouteObject } from 'react-router-dom'
 
 import { CartPage } from '@pages/CartPage'
 import { CheckoutPage } from '@pages/CheckoutPage'
@@ -10,7 +10,7 @@ import { MachinesPage } from '@pages/MachinesPage'
 import { ProductPage } from '@pages/ProductPage'
 import { RegisterPage } from '@pages/RegisterPage'
 
-export const router = createBrowserRouter([
+const appRoutes: RouteObject[] = [
   { path: '/', element: <HomePage /> },
   { path: '/coffee', element: <CoffeePage /> },
   { path: '/machines', element: <MachinesPage /> },
@@ -20,4 +20,16 @@ export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/checkout', element: <CheckoutPage /> },
-])
+]
+
+if (import.meta.env.DEV) {
+  appRoutes.push({
+    path: '/dev/ui-kit',
+    lazy: async () => {
+      const { UiKitPage } = await import('@pages/UiKitPage')
+      return { Component: UiKitPage }
+    },
+  })
+}
+
+export const router = createBrowserRouter(appRoutes)
