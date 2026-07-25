@@ -15,11 +15,6 @@ from rest_framework.test import APIClient
 from apps.catalog.models import Category, Product, ProductImage
 
 
-@pytest.fixture
-def api_client() -> APIClient:
-    return APIClient()
-
-
 def _png(name: str = "p.png") -> SimpleUploadedFile:
     buffer = BytesIO()
     Image.new("RGB", (16, 16), color=(120, 80, 40)).save(buffer, format="PNG")

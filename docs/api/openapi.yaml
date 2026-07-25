@@ -338,6 +338,9 @@ paths:
       tags: [Favorites]
       summary: Add product to favorites
       operationId: addFavorite
+      description: >
+        Idempotent: if the product is already in favorites, returns 201 with
+        the existing Favorite (no duplicate row).
       requestBody:
         required: true
         content:
@@ -351,11 +354,13 @@ paths:
                   format: uuid
       responses:
         "201":
-          description: Added
+          description: Added (or already present)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Favorite"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -774,7 +779,17 @@ components:
 
     ProductListItem:
       type: object
-      required: [id, name, slug, short_description, price, category, in_stock]
+      required:
+        [
+          id,
+          name,
+          slug,
+          short_description,
+          price,
+          category,
+          in_stock,
+          is_favorite,
+        ]
       properties:
         id:
           type: string
@@ -803,6 +818,11 @@ components:
           type: string
           format: uri
           nullable: true
+        is_favorite:
+          type: boolean
+          description: >
+            True when the authenticated user has this product in favorites.
+            Always false for guests (public catalog does not require auth).
 
     Product:
       allOf:

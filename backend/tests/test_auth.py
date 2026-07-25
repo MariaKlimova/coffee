@@ -1,28 +1,14 @@
 """Auth endpoint tests for COFFEE-15."""
 
-import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from tests.helpers import auth_client
+
 User = get_user_model()
-
-
-@pytest.fixture
-def api_client() -> APIClient:
-    return APIClient()
-
-
-@pytest.fixture
-def user(db) -> User:
-    return User.objects.create_user(
-        email="alice@example.com",
-        password="SecurePass1",
-        first_name="Alice",
-        last_name="Coffee",
-    )
 
 
 def test_register_success(api_client: APIClient, db) -> None:
@@ -94,8 +80,7 @@ def test_me_requires_auth(api_client: APIClient, db) -> None:
 
 def test_me_with_token(api_client: APIClient, user: User) -> None:
     """GET /me/ with a valid access token returns the user profile."""
-    refresh = RefreshToken.for_user(user)
-    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+    auth_client(api_client, user)
 
     response = api_client.get(reverse("auth-me"))
 
@@ -125,7 +110,7 @@ def test_refresh_token(api_client: APIClient, user: User) -> None:
 def test_logout_blacklists_refresh(api_client: APIClient, user: User) -> None:
     """Logout blacklists refresh so a subsequent refresh fails."""
     refresh = RefreshToken.for_user(user)
-    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+    auth_client(api_client, user)
 
     logout_response = api_client.post(
         reverse("auth-logout"),
@@ -144,8 +129,7 @@ def test_logout_blacklists_refresh(api_client: APIClient, user: User) -> None:
 
 def test_logout_requires_refresh(api_client: APIClient, user: User) -> None:
     """Logout without refresh returns validation_error 400."""
-    refresh = RefreshToken.for_user(user)
-    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+    auth_client(api_client, user)
 
     response = api_client.post(reverse("auth-logout"), {}, format="json")
 

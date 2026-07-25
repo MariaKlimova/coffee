@@ -61,6 +61,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     old_price = MoneyField(allow_null=True)
     category = serializers.SlugRelatedField(slug_field="slug", read_only=True)
     image_url = serializers.SerializerMethodField()
+    is_favorite = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -74,6 +75,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "category",
             "in_stock",
             "image_url",
+            "is_favorite",
         )
         read_only_fields = fields
 
@@ -84,6 +86,11 @@ class ProductListSerializer(serializers.ModelSerializer):
         if chosen is None:
             return None
         return absolute_media_url(self.context.get("request"), chosen.image)
+
+    def get_is_favorite(self, obj: Product) -> bool:
+        if not hasattr(obj, "is_favorite"):
+            return False
+        return bool(obj.is_favorite)
 
 
 class ProductDetailSerializer(ProductListSerializer):
