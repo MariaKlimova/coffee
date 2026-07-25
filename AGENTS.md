@@ -47,5 +47,5 @@
 
 - Архитектура: [docs/architecture.md](docs/architecture.md)
 - API: [docs/api/openapi.yaml](docs/api/openapi.yaml)
-- Design tokens (stub → Epic 1): [docs/design/design-tokens.md](docs/design/design-tokens.md)
+- Design tokens: [docs/design/design-tokens.md](docs/design/design-tokens.md) → `frontend/src/shared/ui/tokens.css`
 - Glossary / тон: [docs/content/glossary.md](docs/content/glossary.md)

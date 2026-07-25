@@ -21,4 +21,5 @@
 
 - Skills: `fsd-frontend`, `bem-components`, `design-tokens`, `product-voice`
 - [docs/design/design-tokens.md](../design/design-tokens.md)
+- [`frontend/src/shared/ui/tokens.css`](../../frontend/src/shared/ui/tokens.css)
 - [docs/api/openapi.yaml](../api/openapi.yaml)
