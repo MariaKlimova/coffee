@@ -285,6 +285,31 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /api/products/{slug}/related/:
+    get:
+      tags: [Catalog]
+      summary: Related products in the same category
+      description: |
+        Returns up to 8 products from the same category as the given product,
+        excluding the product itself. Ordered by `-created_at` (newest first).
+        If the category has fewer neighbors, returns whatever is available
+        (possibly an empty array) without error.
+      operationId: listRelatedProducts
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/ProductSlug"
+      responses:
+        "200":
+          description: Related products (same category, excluding self)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductListItem"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
   /api/favorites/:
     get:
       tags: [Favorites]

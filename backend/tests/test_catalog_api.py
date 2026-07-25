@@ -185,6 +185,87 @@ def test_product_detail_unknown_slug_404(
 
 
 @pytest.mark.django_db
+def test_related_products_same_category_excludes_self(
+    api_client: APIClient,
+    catalog_data: dict,
+) -> None:
+    from apps.catalog.views import RELATED_PRODUCTS_LIMIT
+
+    response = api_client.get(
+        reverse("product-related", kwargs={"slug": "pricey-coffee"}),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert isinstance(body, list)
+    assert len(body) <= RELATED_PRODUCTS_LIMIT
+    slugs = {item["slug"] for item in body}
+    assert "pricey-coffee" not in slugs
+    assert "portafilter-machine" not in slugs
+    assert {item["category"] for item in body} == {"coffee"}
+    assert slugs == {"cheap-coffee", "out-of-stock-coffee"}
+
+
+@pytest.mark.django_db
+def test_related_products_empty_when_alone_in_category(
+    api_client: APIClient,
+    catalog_data: dict,
+) -> None:
+    response = api_client.get(
+        reverse("product-related", kwargs={"slug": "portafilter-machine"}),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == []
+
+
+@pytest.mark.django_db
+def test_related_products_unknown_slug_404(
+    api_client: APIClient,
+    catalog_data: dict,
+) -> None:
+    response = api_client.get(
+        reverse("product-related", kwargs={"slug": "missing"}),
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+def test_related_products_respects_limit(
+    api_client: APIClient,
+    catalog_data: dict,
+) -> None:
+    from apps.catalog.views import RELATED_PRODUCTS_LIMIT
+
+    coffee = catalog_data["coffee"]
+    for index in range(RELATED_PRODUCTS_LIMIT + 2):
+        product = Product.objects.create(
+            name=f"Сосед {index}",
+            slug=f"neighbor-coffee-{index}",
+            category=coffee,
+            short_description="Сосед по категории",
+            price=Decimal("800.00") + index,
+        )
+        ProductImage.objects.create(
+            product=product,
+            image=_png(f"neighbor-{index}.png"),
+            order=0,
+            is_main=True,
+        )
+
+    response = api_client.get(
+        reverse("product-related", kwargs={"slug": "pricey-coffee"}),
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert len(body) == RELATED_PRODUCTS_LIMIT
+    assert all(item["slug"] != "pricey-coffee" for item in body)
+    assert all(item["category"] == "coffee" for item in body)
+
+
+@pytest.mark.django_db
 def test_list_categories(
     api_client: APIClient,
     catalog_data: dict,
