@@ -741,7 +741,7 @@ components:
 
     ProductListItem:
       type: object
-      required: [id, name, slug, price, category]
+      required: [id, name, slug, short_description, price, category]
       properties:
         id:
           type: string
@@ -750,8 +750,17 @@ components:
           type: string
         slug:
           type: string
+        short_description:
+          type: string
+          maxLength: 300
+          description: Short teaser for cards and product header
         price:
           $ref: "#/components/schemas/Money"
+        old_price:
+          allOf:
+            - $ref: "#/components/schemas/Money"
+          nullable: true
+          description: Previous price for discount display; null if no discount
         category:
           type: string
           enum: [coffee, machines]
@@ -767,18 +776,97 @@ components:
           properties:
             description:
               type: string
+              description: Optional full product description
             in_stock:
               type: boolean
             attributes:
               type: object
-              additionalProperties: true
-              description: Category-specific attributes (roast, grind, wattage, etc.)
+              description: >
+                Category-specific attributes. Closed key set per category
+                (additional keys are rejected). All keys optional; price and
+                discount (old_price) live on the product itself. Schema is
+                selected by sibling `category` via if/then below.
             created_at:
               type: string
               format: date-time
             updated_at:
               type: string
               format: date-time
+        - if:
+            properties:
+              category:
+                const: coffee
+            required: [category]
+          then:
+            properties:
+              attributes:
+                $ref: "#/components/schemas/CoffeeAttributes"
+        - if:
+            properties:
+              category:
+                const: machines
+            required: [category]
+          then:
+            properties:
+              attributes:
+                $ref: "#/components/schemas/MachineAttributes"
+
+    CoffeeAttributes:
+      type: object
+      additionalProperties: false
+      description: Attributes for category slug "coffee"
+      properties:
+        country:
+          type: string
+          description: Страна происхождения
+        intensity:
+          type: integer
+          minimum: 0
+          maximum: 13
+          description: Интенсивность (0–13)
+        bitterness:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Горчинка (0–5)
+        acidity:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Кислинка (0–5)
+        roast:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Обжарка (0–5)
+        density:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Плотность (0–5)
+
+    MachineAttributes:
+      type: object
+      additionalProperties: false
+      description: Attributes for category slug "machines"
+      properties:
+        dimensions:
+          type: string
+          description: Размеры
+        pressure_bar:
+          type: integer
+          minimum: 0
+          description: Давление, бар
+        power_w:
+          type: integer
+          minimum: 0
+          description: Мощность, Вт
+        capsule_format:
+          type: string
+          description: Формат капсул
+        manufacturer_country:
+          type: string
+          description: Страна-производитель
 
     Favorite:
       type: object
