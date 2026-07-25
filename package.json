@@ -3,7 +3,10 @@
   "private": true,
   "description": "Internet shop for coffee and coffee machines",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "docker compose -f infra/docker-compose.yml up --build",
+    "dev:down": "docker compose -f infra/docker-compose.yml down",
+    "dev:reset": "docker compose -f infra/docker-compose.yml down -v && docker compose -f infra/docker-compose.yml up --build"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
