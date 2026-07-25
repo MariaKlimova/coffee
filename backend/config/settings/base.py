@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from corsheaders.defaults import default_headers
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -33,6 +34,7 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.catalog",
     "apps.favorites",
+    "apps.cart",
 ]
 
 MIDDLEWARE = [
@@ -107,6 +109,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "users.User"
 
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+# Guest cart token must be readable/sendable by the Vite SPA (cross-origin).
+CORS_ALLOW_HEADERS = (
+    *default_headers,
+    "x-cart-token",
+)
+CORS_EXPOSE_HEADERS = ["X-Cart-Token"]
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
