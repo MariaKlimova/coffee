@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Design tokens
 
-- Источник (stub до Epic 1): `docs/design/design-tokens.md`
+- Источник: `docs/design/design-tokens.md` и `frontend/src/shared/ui/tokens.css`
 - В UI не хардкодить hex/rgb и «магические» отступы — только CSS-переменные / tokens
-- Новые значения палитры/шкалы сначала в tokens-документе (позже — в theme-модуле)
+- Новые значения палитры/шкалы сначала в tokens-документе и `tokens.css`
 - Skill: `.cursor/skills/design-tokens/SKILL.md`

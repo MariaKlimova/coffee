@@ -6,7 +6,7 @@
 
 ## Делает
 
-- Проверяет отступы, типографику, цвета, hover/disabled против [docs/design/design-tokens.md](../design/design-tokens.md)
+- Проверяет отступы, типографику, цвета, hover/disabled против [docs/design/design-tokens.md](../design/design-tokens.md) и [`tokens.css`](../../frontend/src/shared/ui/tokens.css)
 - Следит за БЭМ-структурой и использованием `shared/ui`
 - Оставляет замечания (blocking / recommendation) в ревью
 
@@ -19,4 +19,5 @@
 ## Источники истины
 
 - [docs/design/design-tokens.md](../design/design-tokens.md)
+- [`frontend/src/shared/ui/tokens.css`](../../frontend/src/shared/ui/tokens.css)
 - Skills: `design-tokens`, `bem-components`
