@@ -18,7 +18,7 @@
 ```
 coffee/
 ├── backend/      # Django + DRF API
-├── frontend/     # React SPA (TODO: COFFEE-5)
+├── frontend/     # React + Vite SPA (FSD)
 ├── docs/
 │   ├── architecture.md
 │   ├── design/   # референсы и токены
@@ -48,10 +48,20 @@ python manage.py runserver
 Проверка: `GET http://127.0.0.1:8000/api/health/` → `{"status": "ok"}`.  
 OpenAPI: `http://127.0.0.1:8000/api/docs/`.
 
-```bash
-# TODO (COFFEE-5): frontend
-# cd frontend && npm install && npm run dev
+### Frontend
 
+```bash
+cd frontend
+cp .env.example .env   # VITE_API_BASE_URL=http://127.0.0.1:8000
+npm install
+npm run dev
+```
+
+Dev-сервер: `http://localhost:5173`. Роуты-заглушки: `/`, `/coffee`, `/machines`, `/product/:id`, `/favorites`, `/cart`, `/login`, `/register`, `/checkout`.
+
+При поднятом backend HTTP-клиент (`@shared/api`) ходит на `GET /api/health/`.
+
+```bash
 # TODO (COFFEE-6): всё окружение через Docker Compose
 # docker compose up
 ```
@@ -63,10 +73,9 @@ OpenAPI: `http://127.0.0.1:8000/api/docs/`.
 | Workflow | Что проверяет |
 |----------|----------------|
 | `backend-ci` | ruff, black --check, pytest (+ Postgres service) |
-| `frontend-ci` | lint, typecheck, test, build (после COFFEE-5) |
+| `frontend-ci` | lint, typecheck, test, build |
 | `commitlint` | Conventional Commits в истории PR |
 
-Пока скелет frontend не готов, `frontend-ci` пропускает шаги и остаётся зелёным.
 
 ## Ветка `main`
 
