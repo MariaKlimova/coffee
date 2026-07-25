@@ -1,0 +1,12 @@
+---
+description: TypeScript — strict, JSDoc на полях, без nested ternary
+globs: frontend/**/*.ts,frontend/**/*.tsx
+alwaysApply: false
+---
+
+# TypeScript
+
+- `strict: true`
+- Каждое поле публичного `interface` — с JSDoc (`/** ... */`)
+- Без nested ternary — if/else или ранний return
+- Предпочитай `import type` для типов (verbatimModuleSyntax)

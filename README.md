@@ -21,10 +21,13 @@ coffee/
 ├── frontend/     # React + Vite SPA (FSD)
 ├── docs/
 │   ├── architecture.md
-│   ├── design/   # референсы и токены
+│   ├── agents/   # роли Cursor-агентов
+│   ├── design/   # tokens (stub) и референсы
+│   ├── content/  # glossary / copy
 │   └── api/      # OpenAPI-контракт (openapi.yaml)
+├── .cursor/      # rules, skills, Code Review, BUGBOT
 ├── infra/        # Docker Compose
-├── .github/workflows/  # CI на каждый PR
+├── AGENTS.md
 ├── CONTRIBUTING.md
 └── README.md
 ```
@@ -89,6 +92,20 @@ npm run dev
 ## Ветка `main`
 
 Прямой push в `main` запрещён (в том числе для админов): изменения только через pull request. Перед merge обязательны зелёные checks: `lint-format-test`, `lint-typecheck-test-build`, `conventional-commits`.
+
+## Как работать с агентами в Cursor
+
+Карта ролей и handoff: [AGENTS.md](AGENTS.md).  
+Описание каждой роли: [docs/agents/](docs/agents/).
+
+| Инструмент | Путь |
+|------------|------|
+| Rules | `.cursor/rules/` |
+| Skills (bem, product-voice, tokens, django, fsd) | `.cursor/skills/` |
+| Code Review subagent | `.cursor/agents/code-review.md` (`/code-review`) |
+| Контракт findings | `.cursor/BUGBOT.md` |
+
+Пример: задача «добавь эндпоинт» для frontend-агента → отказ и handoff на [backend-django](docs/agents/backend-django.md).
 
 ## Контрибьюция
 
