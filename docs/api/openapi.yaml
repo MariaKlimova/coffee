@@ -171,6 +171,8 @@ paths:
       responses:
         "204":
           description: Logged out
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -668,7 +670,7 @@ components:
 
     RegisterRequest:
       type: object
-      required: [email, password]
+      required: [email, password, password_confirm]
       properties:
         email:
           type: string
@@ -677,6 +679,11 @@ components:
           type: string
           format: password
           minLength: 8
+        password_confirm:
+          type: string
+          format: password
+          minLength: 8
+          description: Must match password
         first_name:
           type: string
         last_name:
@@ -695,7 +702,7 @@ components:
 
     AuthTokens:
       type: object
-      required: [access, refresh]
+      required: [access, refresh, user]
       properties:
         access:
           type: string
