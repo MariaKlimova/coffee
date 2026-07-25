@@ -50,6 +50,17 @@ info:
     ### Дата и время
     Все даты/время — **ISO 8601** в UTC, например `2026-07-25T12:00:00Z`.
 
+    ### Корзина (гость)
+    Гостевая корзина идентифицируется заголовком **`X-Cart-Token`** (UUID),
+    не JWT. При первом обращении без токена API создаёт корзину и возвращает
+    токен в ответном заголовке `X-Cart-Token` — клиент сохраняет его и шлёт
+    дальше. Неизвестный или протухший токен (например после merge) тоже
+    создаёт **новую** гостевую корзину с новым UUID — клиент должен заменить
+    сохранённый токен на значение из ответа. Авторизованный пользователь
+    (Bearer JWT) работает со своей корзиной; `X-Cart-Token` в этом случае
+    игнорируется. После логина/регистрации клиент вызывает
+    `POST /api/cart/merge/` с гостевым токеном.
+
 servers:
   - url: http://127.0.0.1:8000
     description: Local development
@@ -391,21 +402,31 @@ paths:
       tags: [Cart]
       summary: Get current cart
       operationId: getCart
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CartToken"
       responses:
         "200":
           description: Cart with items
+          headers:
+            X-Cart-Token:
+              $ref: "#/components/headers/XCartToken"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Cart"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   /api/cart/items/:
     post:
       tags: [Cart]
       summary: Add item to cart
       operationId: addCartItem
+      security: []
+      description: |
+        Adds a product or increases quantity of an existing line.
+        Out-of-stock products (`in_stock: false`) are rejected with 400.
+      parameters:
+        - $ref: "#/components/parameters/CartToken"
       requestBody:
         required: true
         content:
@@ -415,22 +436,27 @@ paths:
       responses:
         "201":
           description: Item added
+          headers:
+            X-Cart-Token:
+              $ref: "#/components/headers/XCartToken"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CartItem"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/cart/items/{id}/:
     patch:
       tags: [Cart]
       summary: Update cart item quantity
       operationId: updateCartItem
+      security: []
       parameters:
         - $ref: "#/components/parameters/CartItemId"
+        - $ref: "#/components/parameters/CartToken"
       requestBody:
         required: true
         content:
@@ -445,27 +471,62 @@ paths:
       responses:
         "200":
           description: Updated item
+          headers:
+            X-Cart-Token:
+              $ref: "#/components/headers/XCartToken"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CartItem"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
     delete:
       tags: [Cart]
       summary: Remove cart item
       operationId: deleteCartItem
+      security: []
       parameters:
         - $ref: "#/components/parameters/CartItemId"
+        - $ref: "#/components/parameters/CartToken"
       responses:
         "204":
           description: Removed
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+          headers:
+            X-Cart-Token:
+              $ref: "#/components/headers/XCartToken"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /api/cart/merge/:
+    post:
+      tags: [Cart]
+      summary: Merge guest cart into user cart
+      operationId: mergeCart
+      description: |
+        Called after successful login/registration. Moves in-stock lines from
+        the guest cart identified by `cart_token` into the authenticated user's
+        cart (summing quantities on overlapping products), then deletes the
+        guest cart. Out-of-stock guest lines are skipped and not transferred.
+        Unknown `cart_token` is a no-op (returns the user cart unchanged).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CartMerge"
+      responses:
+        "200":
+          description: Merged user cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /api/orders/:
     get:
@@ -627,6 +688,18 @@ components:
       schema:
         type: string
         format: uuid
+    CartToken:
+      name: X-Cart-Token
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: >
+        Guest cart token. Omit on the first guest request — the API returns a
+        new token in the `X-Cart-Token` response header. Unknown/stale tokens
+        also create a new guest cart (new token in the response). Ignored for
+        authenticated (JWT) requests.
     OrderId:
       name: id
       in: path
@@ -654,6 +727,15 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
+
+  headers:
+    XCartToken:
+      description: >
+        Guest cart token. Present on guest cart responses so the client can
+        store and resend it as `X-Cart-Token`. Omitted for authenticated carts.
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     Health:
@@ -960,6 +1042,15 @@ components:
           type: integer
           minimum: 1
 
+    CartMerge:
+      type: object
+      required: [cart_token]
+      properties:
+        cart_token:
+          type: string
+          format: uuid
+          description: Guest cart token to merge into the authenticated user's cart
+
     CartItem:
       type: object
       required: [id, product, quantity, line_total]
@@ -977,7 +1068,7 @@ components:
 
     Cart:
       type: object
-      required: [id, items, total]
+      required: [id, items, total, items_count]
       properties:
         id:
           type: string
@@ -988,6 +1079,15 @@ components:
             $ref: "#/components/schemas/CartItem"
         total:
           $ref: "#/components/schemas/Money"
+        items_count:
+          type: integer
+          minimum: 0
+          description: Number of distinct product lines in the cart
+        cart_token:
+          type: string
+          format: uuid
+          nullable: true
+          description: Guest token; null for authenticated user carts
         updated_at:
           type: string
           format: date-time
