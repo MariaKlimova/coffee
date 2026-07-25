@@ -17,7 +17,7 @@
 
 ```
 coffee/
-├── backend/      # Django API (TODO: COFFEE-4)
+├── backend/      # Django + DRF API
 ├── frontend/     # React SPA (TODO: COFFEE-5)
 ├── docs/
 │   ├── architecture.md
@@ -31,12 +31,24 @@ coffee/
 
 ## Локальный запуск
 
-Пока скелеты приложений и Docker ещё не настроены. После соответствующих задач:
+### Backend
+
+Нужен PostgreSQL (локально или позже через COFFEE-6). Пример URL — в `backend/.env.example`.
 
 ```bash
-# TODO (COFFEE-4): backend
-# cd backend && ...
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements/dev.txt
+cp .env.example .env   # при необходимости поправьте DATABASE_URL
+python manage.py migrate
+python manage.py runserver
+```
 
+Проверка: `GET http://127.0.0.1:8000/api/health/` → `{"status": "ok"}`.  
+OpenAPI: `http://127.0.0.1:8000/api/docs/`.
+
+```bash
 # TODO (COFFEE-5): frontend
 # cd frontend && npm install && npm run dev
 
@@ -50,11 +62,11 @@ coffee/
 
 | Workflow | Что проверяет |
 |----------|----------------|
-| `backend-ci` | ruff, black --check, pytest (после COFFEE-4) |
+| `backend-ci` | ruff, black --check, pytest (+ Postgres service) |
 | `frontend-ci` | lint, typecheck, test, build (после COFFEE-5) |
 | `commitlint` | Conventional Commits в истории PR |
 
-Пока скелеты backend/frontend не готовы, соответствующие джобы пропускают шаги и остаются зелёными.
+Пока скелет frontend не готов, `frontend-ci` пропускает шаги и остаётся зелёным.
 
 ## Ветка `main`
 
