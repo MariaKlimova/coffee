@@ -5,6 +5,7 @@ from decimal import Decimal, InvalidOperation
 from django.db.models import Prefetch, QuerySet
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
@@ -26,6 +27,7 @@ ORDERING_MAP = {
     "-created_at": ("-created_at",),
 }
 ALLOWED_CATEGORIES = frozenset({"coffee", "machines"})
+RELATED_PRODUCTS_LIMIT = 8
 
 
 def _parse_bool(raw: str, *, field: str) -> bool:
@@ -130,6 +132,15 @@ class CategoryListView(APIView):
         responses={200: ProductDetailSerializer},
         auth=[],
     ),
+    related=extend_schema(
+        tags=["Catalog"],
+        responses={200: ProductListSerializer(many=True)},
+        auth=[],
+        description=(
+            "Up to 8 products from the same category, excluding the current "
+            "product, ordered by -created_at."
+        ),
+    ),
 )
 class ProductViewSet(
     mixins.ListModelMixin,
@@ -154,6 +165,23 @@ class ProductViewSet(
         if self.action != "list":
             return qs.order_by("-created_at")
         return self._filter_list_queryset(qs)
+
+    @action(detail=True, methods=["get"], url_path="related")
+    def related(self, request: Request, slug: str | None = None) -> Response:
+        """GET /api/products/{slug}/related/ — same-category neighbors."""
+        product = self.get_object()
+        qs = (
+            _base_product_queryset()
+            .filter(category_id=product.category_id)
+            .exclude(pk=product.pk)
+            .order_by("-created_at")[:RELATED_PRODUCTS_LIMIT]
+        )
+        serializer = ProductListSerializer(
+            qs,
+            many=True,
+            context={"request": request},
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def _filter_list_queryset(self, qs: QuerySet[Product]) -> QuerySet[Product]:
         params = self.request.query_params
