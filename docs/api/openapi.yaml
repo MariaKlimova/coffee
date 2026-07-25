@@ -222,18 +222,23 @@ paths:
             type: string
             enum: [coffee, machines]
           description: High-level category slug
+        - name: in_stock
+          in: query
+          schema:
+            type: boolean
+          description: Filter by availability
         - name: search
           in: query
           schema:
             type: string
-          description: Free-text search
-        - name: min_price
+          description: Search by product name (icontains)
+        - name: price_min
           in: query
           schema:
             type: string
             example: "100.00"
           description: Minimum price (RUB decimal string)
-        - name: max_price
+        - name: price_max
           in: query
           schema:
             type: string
@@ -244,6 +249,7 @@ paths:
           schema:
             type: string
             enum: [price, -price, created_at, -created_at]
+          description: Sort by price or created_at (prefix "-" for descending)
       responses:
         "200":
           description: Paginated products
@@ -258,15 +264,17 @@ paths:
                         type: array
                         items:
                           $ref: "#/components/schemas/ProductListItem"
+        "400":
+          $ref: "#/components/responses/BadRequest"
 
-  /api/products/{id}/:
+  /api/products/{slug}/:
     get:
       tags: [Catalog]
-      summary: Product detail
+      summary: Product detail by slug
       operationId: getProduct
       security: []
       parameters:
-        - $ref: "#/components/parameters/ProductId"
+        - $ref: "#/components/parameters/ProductSlug"
       responses:
         "200":
           description: Product
@@ -575,13 +583,13 @@ components:
         maximum: 100
         default: 20
       description: Items per page
-    ProductId:
-      name: id
+    ProductSlug:
+      name: slug
       in: path
       required: true
       schema:
         type: string
-        format: uuid
+      description: Product slug for human-readable URLs
     CartItemId:
       name: id
       in: path
@@ -741,7 +749,7 @@ components:
 
     ProductListItem:
       type: object
-      required: [id, name, slug, short_description, price, category]
+      required: [id, name, slug, short_description, price, category, in_stock]
       properties:
         id:
           type: string
@@ -764,6 +772,8 @@ components:
         category:
           type: string
           enum: [coffee, machines]
+        in_stock:
+          type: boolean
         image_url:
           type: string
           format: uri
@@ -777,8 +787,6 @@ components:
             description:
               type: string
               description: Optional full product description
-            in_stock:
-              type: boolean
             attributes:
               type: object
               description: >
@@ -786,6 +794,10 @@ components:
                 (additional keys are rejected). All keys optional; price and
                 discount (old_price) live on the product itself. Schema is
                 selected by sibling `category` via if/then below.
+            images:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProductImage"
             created_at:
               type: string
               format: date-time
@@ -810,6 +822,19 @@ components:
             properties:
               attributes:
                 $ref: "#/components/schemas/MachineAttributes"
+
+    ProductImage:
+      type: object
+      required: [url, order, is_main]
+      properties:
+        url:
+          type: string
+          format: uri
+        order:
+          type: integer
+          minimum: 0
+        is_main:
+          type: boolean
 
     CoffeeAttributes:
       type: object
