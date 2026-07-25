@@ -1,0 +1,50 @@
+.Select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-family: var(--font-sans);
+}
+
+.Select-Label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+}
+
+.Select-Field {
+  box-sizing: border-box;
+  min-height: var(--control-height-md);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.Select-Field:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+
+.Select--error .Select-Field {
+  border-color: var(--color-danger);
+}
+
+.Select--error .Select-Field:focus {
+  box-shadow: var(--focus-ring-danger);
+}
+
+.Select--disabled .Select-Field {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--color-bg);
+}

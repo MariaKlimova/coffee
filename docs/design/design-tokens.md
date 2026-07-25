@@ -110,9 +110,24 @@
 
 ---
 
+## Controls
+
+| Токен | Значение | Назначение |
+|-------|----------|------------|
+| `--control-height-sm` | `32px` | Высота кнопки sm |
+| `--control-height-md` | `40px` | Высота кнопки md / Input / Select |
+| `--control-height-lg` | `48px` | Высота кнопки lg |
+| `--size-control-icon` | `1.125rem` | Иконка в поле / choice-box |
+| `--focus-ring` | `0 0 0 2px` + mix primary 25% | Focus ring по умолчанию |
+| `--focus-ring-danger` | `0 0 0 2px` + mix danger 25% | Focus ring в состоянии error |
+| `--color-badge-success-bg` | mix success 16% + surface | Фон Badge success |
+| `--color-badge-danger-bg` | mix danger 14% + surface | Фон Badge danger |
+
+---
+
 ## UI-гайдлайны (не отдельные токены)
 
-- **Бейджи** — мягкий фон + тёмный текст того же оттенка (`--color-badge-*`), без яркой заливки.
+- **Бейджи** — `neutral` через `--color-badge-*`; `success` / `danger` через `--color-badge-success-bg` / `--color-badge-danger-bg` + цвет текста semantic.
 - **Header** — лёгкий, sticky; фон surface/bg, мягкая тень `--shadow-sm`.
 - **Иконки** — outline (избранное — сердце, корзина — сумка, поиск — лупа). Реализация в COFFEE-11+.
 
