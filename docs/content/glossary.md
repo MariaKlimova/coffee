@@ -11,6 +11,7 @@
 | Избранное | сохранённые товары | «favorites array» |
 | Оформление заказа | checkout-поток | «submit order DTO» |
 | Каталог | витрина товаров | «products list endpoint» |
+| CTA в каталог | «В каталог» | «Перейти в каталог», «В products» |
 
 ## Тон
 

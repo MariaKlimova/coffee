@@ -1,3 +1,9 @@
+import demoCoffee1 from './assets/demo-coffee-1.svg'
+import demoCoffee2 from './assets/demo-coffee-2.svg'
+import demoCoffee3 from './assets/demo-coffee-3.svg'
+import demoMachine1 from './assets/demo-machine-1.svg'
+import demoMachine2 from './assets/demo-machine-2.svg'
+
 /**
  * Color token sample for the design-system page.
  * Values are a docs-only caption mirror of `docs/design/design-tokens.md`
@@ -83,4 +89,11 @@ export const UI_KIT_NAV = [
   { href: '#shadow', label: 'Shadow' },
   { href: '#grid', label: 'Grid' },
   { href: '#components', label: 'Components' },
+  { href: '#product-cards', label: 'Product cards' },
+  { href: '#toast-empty', label: 'Toast / Empty' },
 ] as const
+
+/** Demo image set — локальные плейсхолдеры, витрина работает без сети. */
+export const DEMO_COFFEE_IMAGES = [demoCoffee1, demoCoffee2, demoCoffee3]
+
+export const DEMO_MACHINE_IMAGES = [demoMachine1, demoMachine2]

@@ -1,0 +1,36 @@
+.ScaleRow {
+  display: grid;
+  grid-template-columns: minmax(var(--size-scale-label), auto) 1fr auto;
+  gap: var(--space-xs);
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.ScaleRow-Label {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.ScaleRow-Track {
+  display: flex;
+  gap: var(--space-2xs);
+}
+
+.ScaleRow-Segment {
+  flex: 1;
+  height: var(--size-scale-segment);
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+
+.ScaleRow-Segment--filled {
+  background: var(--color-primary);
+}
+
+.ScaleRow-Value {
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+}

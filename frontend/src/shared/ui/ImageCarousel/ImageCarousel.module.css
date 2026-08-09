@@ -1,0 +1,108 @@
+.ImageCarousel {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: var(--aspect-media-card);
+  background: var(--color-media-placeholder);
+  user-select: none;
+  touch-action: pan-y;
+}
+
+.ImageCarousel:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ImageCarousel--expanded {
+  border-radius: var(--radius-md);
+}
+
+.ImageCarousel-Slide {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ImageCarousel-Placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--color-media-placeholder);
+}
+
+.ImageCarousel-Arrow {
+  position: absolute;
+  top: 50%;
+  z-index: var(--layer-media-control);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-button-sm);
+  height: var(--size-icon-button-sm);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: var(--color-overlay-control);
+  color: var(--color-primary-on);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.ImageCarousel-Arrow:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ImageCarousel-Arrow svg {
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
+}
+
+.ImageCarousel-Arrow--prev {
+  left: var(--space-xs);
+}
+
+.ImageCarousel-Arrow--next {
+  right: var(--space-xs);
+}
+
+.ImageCarousel--multi:hover .ImageCarousel-Arrow,
+.ImageCarousel--multi:focus-within .ImageCarousel-Arrow,
+.ImageCarousel--touch.ImageCarousel--multi .ImageCarousel-Arrow {
+  display: inline-flex;
+}
+
+.ImageCarousel-Dots {
+  position: absolute;
+  right: 0;
+  bottom: var(--space-xs);
+  left: 0;
+  z-index: var(--layer-media-control);
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ImageCarousel-Dot {
+  width: var(--size-dot);
+  height: var(--size-dot);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-dot);
+  cursor: pointer;
+}
+
+.ImageCarousel-Dot:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ImageCarousel-Dot--active {
+  width: var(--size-dot-active);
+  background: var(--color-primary);
+}
