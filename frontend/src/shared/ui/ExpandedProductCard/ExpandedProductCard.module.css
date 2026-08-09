@@ -1,0 +1,191 @@
+.ExpandedProductCard {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  box-sizing: border-box;
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  animation: ExpandedProductCard-enter var(--duration-normal) var(--ease-emphasized)
+    both;
+}
+
+.ExpandedProductCard-Media {
+  flex: 1 1 var(--expanded-pane-basis);
+  min-width: 0;
+}
+
+.ExpandedProductCard-Info {
+  position: relative;
+  display: flex;
+  flex: 1 1 var(--expanded-pane-basis);
+  flex-direction: column;
+  min-width: 0;
+  padding-left: var(--space-md);
+}
+
+.ExpandedProductCard-Close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-button-md);
+  height: var(--size-icon-button-md);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-circle);
+  background: var(--color-badge-bg);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.ExpandedProductCard-Close:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ExpandedProductCard-Close svg {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+}
+
+.ExpandedProductCard-Category {
+  margin: 0 var(--size-icon-button-md) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--letter-spacing-overline);
+  line-height: var(--leading-tight);
+  text-transform: uppercase;
+}
+
+.ExpandedProductCard-Category--coffee {
+  color: var(--color-primary);
+}
+
+.ExpandedProductCard-Category--machines {
+  color: var(--color-neutral);
+}
+
+.ExpandedProductCard-Title {
+  margin: var(--space-xs) 0;
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+}
+
+.ExpandedProductCard-Description {
+  margin: 0 0 var(--space-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}
+
+.ExpandedProductCard-PriceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.ExpandedProductCard-Price {
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+}
+
+.ExpandedProductCard-OldPrice {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-text-placeholder);
+  text-decoration: line-through;
+}
+
+.ExpandedProductCard-AttrsTitle {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--letter-spacing-overline);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.ExpandedProductCard-Origin {
+  margin: 0 0 var(--space-md);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.ExpandedProductCard-MachineList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ExpandedProductCard-MachineRow {
+  display: grid;
+  grid-template-columns: var(--size-icon-md) 1fr auto;
+  gap: var(--space-xs);
+  align-items: center;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ExpandedProductCard-MachineRow:last-child {
+  border-bottom: none;
+}
+
+.ExpandedProductCard-MachineIcon {
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  color: var(--color-secondary);
+}
+
+.ExpandedProductCard-MachineLabel {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
+
+.ExpandedProductCard-MachineValue {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.ExpandedProductCard-Similar {
+  flex: 1 1 100%;
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+@keyframes ExpandedProductCard-enter {
+  from {
+    opacity: 0;
+    transform: scale(var(--scale-enter-from));
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ExpandedProductCard {
+    animation: none;
+  }
+}

@@ -1,5 +1,7 @@
 import { Badge, Button, Checkbox, Input, Radio, Select } from '@shared/ui'
 
+import { UiKitPageFeedbackSection } from './UiKitPage-FeedbackSection'
+import { UiKitPageProductSection } from './UiKitPage-ProductSection'
 import {
   COLOR_SWATCHES,
   RADIUS_SAMPLES,
@@ -336,6 +338,9 @@ export function UiKitPage() {
           </div>
         </div>
       </section>
+
+      <UiKitPageProductSection />
+      <UiKitPageFeedbackSection />
     </main>
   )
 }
