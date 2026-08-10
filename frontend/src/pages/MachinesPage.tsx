@@ -1,5 +1,5 @@
-import { StubPage } from '@pages/StubPage'
+import { CatalogPage } from '@pages/CatalogPage'
 
 export function MachinesPage() {
-  return <StubPage title="Machines" />
+  return <CatalogPage category="machines" />
 }

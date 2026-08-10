@@ -1,0 +1,38 @@
+.CatalogPage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.CatalogPage-Title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+}
+
+.CatalogPage-Layout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-xl);
+}
+
+.CatalogPage-Sidebar {
+  flex: 0 1 var(--grid-card-min);
+  width: 100%;
+  max-width: var(--size-empty-max);
+}
+
+.CatalogPage-Content {
+  flex: 1 1 var(--size-empty-max);
+  min-width: 0;
+}
+
+.CatalogPage-Grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--grid-card-min), 1fr));
+  gap: var(--layout-columns-gap);
+}

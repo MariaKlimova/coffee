@@ -49,6 +49,29 @@ React (Vite)  →  HTTP/JSON  →  Django REST Framework  →  PostgreSQL
 
 **SECURITY (MVP):** refresh token в `localStorage` читается любым скриптом на origin (XSS). В проде стоит перейти на httpOnly cookie, когда бэкенд это поддержит (см. COFFEE-16).
 
+## Каталог на фронте
+
+Слой данных каталога живёт в `entities/product`; фильтры и URL-состояние — в `features/catalog`; композиция витрин `/coffee` и `/machines` — в `pages/CatalogPage`.
+
+| Что | Где |
+|-----|-----|
+| HTTP `GET /api/products/`, `GET /api/products/{slug}/` | `entities/product/api` |
+| React Query хуки | `useProducts` / `useProduct`, ключи `productKeys` |
+| Мапперы API → UI-пропсы карточек | `toProductCardProps`, `toExpandedCardProps` |
+| Фильтры, пагинация, `?product=` | `features/catalog` + `useCatalogParams` |
+
+Конвенция ключей кэша:
+
+```ts
+productKeys.all            // ['products']
+productKeys.list(params)   // ['products', 'list', params]
+productKeys.detail(slug)   // ['products', 'detail', slug]
+```
+
+Список кэшируется по полному объекту фильтров; при смене страницы используется `placeholderData: keepPreviousData`, чтобы грид не мигал скелетонами. Разворот карточки на витрине подгружает деталку отдельным запросом — списочный эндпоинт не отдаёт `attributes` и галерею.
+
+В `ProductCard` поле `id` — UUID товара (для корзины/избранного). Expand и `?product=` работают по `slug` и передаются отдельно от `id`.
+
 ## Эпики инфраструктуры
 
 Базовый фундамент (Epic 0):
