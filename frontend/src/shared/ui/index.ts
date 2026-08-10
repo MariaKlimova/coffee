@@ -10,6 +10,12 @@ export type { CheckboxProps } from './Checkbox'
 export { EmptyState } from './EmptyState'
 export type { EmptyStateProps } from './EmptyState'
 
+export { Footer } from './Footer'
+export type { FooterProps } from './Footer'
+
+export { Header } from './Header'
+export type { HeaderProps, HeaderUser } from './Header'
+
 export { ExpandedProductCard } from './ExpandedProductCard'
 export type {
   CoffeeAttributes,

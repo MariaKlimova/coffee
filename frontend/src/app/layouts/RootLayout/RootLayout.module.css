@@ -1,0 +1,14 @@
+.RootLayout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.RootLayout-Main {
+  flex: 1 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: var(--space-lg) var(--layout-gutter) var(--space-2xl);
+}

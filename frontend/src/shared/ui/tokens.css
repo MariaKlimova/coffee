@@ -111,12 +111,16 @@
   --size-skeleton-line-lg: 16px;
   --size-empty-max: 28rem;
   --size-toast-max: 22rem;
+  --size-header: 64px;
+  --size-counter: 18px;
+  --size-search-max: 24rem;
   --filter-muted: grayscale(60%);
 
   /* Layers */
   --layer-card-surface: 1;
   --layer-media-control: 2;
   --layer-card-overlay: 3;
+  --layer-header: 100;
   --layer-toast: 1000;
 
   /* Motion */

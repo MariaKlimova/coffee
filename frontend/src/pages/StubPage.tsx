@@ -4,9 +4,5 @@ interface StubPageProps {
 }
 
 export function StubPage({ title }: StubPageProps) {
-  return (
-    <main>
-      <h1>{title}</h1>
-    </main>
-  )
+  return <h1>{title}</h1>
 }

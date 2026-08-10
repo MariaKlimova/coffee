@@ -91,6 +91,7 @@ export const UI_KIT_NAV = [
   { href: '#components', label: 'Components' },
   { href: '#product-cards', label: 'Product cards' },
   { href: '#toast-empty', label: 'Toast / Empty' },
+  { href: '#layout', label: 'Layout' },
 ] as const
 
 /** Demo image set — локальные плейсхолдеры, витрина работает без сети. */

@@ -284,3 +284,12 @@
   grid-template-columns: 1fr;
   gap: var(--space-lg);
 }
+
+.UiKitPage-LayoutDemo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}

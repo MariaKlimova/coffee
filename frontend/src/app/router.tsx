@@ -1,5 +1,6 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom'
 
+import { RootLayout } from '@app/layouts/RootLayout'
 import { CartPage } from '@pages/CartPage'
 import { CheckoutPage } from '@pages/CheckoutPage'
 import { CoffeePage } from '@pages/CoffeePage'
@@ -11,15 +12,20 @@ import { ProductPage } from '@pages/ProductPage'
 import { RegisterPage } from '@pages/RegisterPage'
 
 const appRoutes: RouteObject[] = [
-  { path: '/', element: <HomePage /> },
-  { path: '/coffee', element: <CoffeePage /> },
-  { path: '/machines', element: <MachinesPage /> },
-  { path: '/product/:id', element: <ProductPage /> },
-  { path: '/favorites', element: <FavoritesPage /> },
-  { path: '/cart', element: <CartPage /> },
-  { path: '/login', element: <LoginPage /> },
-  { path: '/register', element: <RegisterPage /> },
-  { path: '/checkout', element: <CheckoutPage /> },
+  {
+    element: <RootLayout />,
+    children: [
+      { path: '/', element: <HomePage /> },
+      { path: '/coffee', element: <CoffeePage /> },
+      { path: '/machines', element: <MachinesPage /> },
+      { path: '/product/:id', element: <ProductPage /> },
+      { path: '/favorites', element: <FavoritesPage /> },
+      { path: '/cart', element: <CartPage /> },
+      { path: '/login', element: <LoginPage /> },
+      { path: '/register', element: <RegisterPage /> },
+      { path: '/checkout', element: <CheckoutPage /> },
+    ],
+  },
 ]
 
 if (import.meta.env.DEV) {

@@ -1,0 +1,9 @@
+.Header-Search {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: var(--size-search-max);
+}
+
+.Header-SearchField {
+  width: 100%;
+}
