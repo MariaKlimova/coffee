@@ -1,6 +1,7 @@
 import { createBrowserRouter, type RouteObject } from 'react-router-dom'
 
 import { RootLayout } from '@app/layouts/RootLayout'
+import { RequireAuth } from '@app/routes/RequireAuth'
 import { CartPage } from '@pages/CartPage'
 import { CheckoutPage } from '@pages/CheckoutPage'
 import { CoffeePage } from '@pages/CoffeePage'
@@ -9,6 +10,7 @@ import { HomePage } from '@pages/HomePage'
 import { LoginPage } from '@pages/LoginPage'
 import { MachinesPage } from '@pages/MachinesPage'
 import { ProductPage } from '@pages/ProductPage'
+import { ProfilePage } from '@pages/ProfilePage'
 import { RegisterPage } from '@pages/RegisterPage'
 
 const appRoutes: RouteObject[] = [
@@ -19,11 +21,17 @@ const appRoutes: RouteObject[] = [
       { path: '/coffee', element: <CoffeePage /> },
       { path: '/machines', element: <MachinesPage /> },
       { path: '/product/:id', element: <ProductPage /> },
-      { path: '/favorites', element: <FavoritesPage /> },
       { path: '/cart', element: <CartPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },
-      { path: '/checkout', element: <CheckoutPage /> },
+      {
+        element: <RequireAuth />,
+        children: [
+          { path: '/favorites', element: <FavoritesPage /> },
+          { path: '/checkout', element: <CheckoutPage /> },
+          { path: '/profile', element: <ProfilePage /> },
+        ],
+      },
     ],
   },
 ]
