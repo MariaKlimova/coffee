@@ -71,7 +71,7 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
         <ul id={menuId} className={styles['Header-AccountMenu']} role="menu">
           <li role="none">
             <Link
-              to="/#profile"
+              to="/profile"
               role="menuitem"
               className={styles['Header-AccountItem']}
               onClick={() => {
