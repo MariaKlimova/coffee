@@ -3,6 +3,7 @@ export type {
   CatalogFilterPatch,
   CatalogParams,
 } from './lib/catalogSearchParams.typings'
+export { buildCatalogSearchParams } from './lib/catalogSearchParams'
 export { useCatalogParams } from './lib/useCatalogParams'
 export { CatalogFilters } from './ui/CatalogFilters'
 export type { CatalogFiltersProps } from './ui/CatalogFilters'

@@ -12,24 +12,25 @@ import { MachinesPage } from '@pages/MachinesPage'
 import { ProductPage } from '@pages/ProductPage'
 import { ProfilePage } from '@pages/ProfilePage'
 import { RegisterPage } from '@pages/RegisterPage'
+import { APP_ROUTES } from '@shared/config'
 
 const appRoutes: RouteObject[] = [
   {
     element: <RootLayout />,
     children: [
-      { path: '/', element: <HomePage /> },
-      { path: '/coffee', element: <CoffeePage /> },
-      { path: '/machines', element: <MachinesPage /> },
-      { path: '/product/:id', element: <ProductPage /> },
-      { path: '/cart', element: <CartPage /> },
-      { path: '/login', element: <LoginPage /> },
-      { path: '/register', element: <RegisterPage /> },
+      { path: APP_ROUTES.home, element: <HomePage /> },
+      { path: APP_ROUTES.coffee, element: <CoffeePage /> },
+      { path: APP_ROUTES.machines, element: <MachinesPage /> },
+      { path: APP_ROUTES.product, element: <ProductPage /> },
+      { path: APP_ROUTES.cart, element: <CartPage /> },
+      { path: APP_ROUTES.login, element: <LoginPage /> },
+      { path: APP_ROUTES.register, element: <RegisterPage /> },
       {
         element: <RequireAuth />,
         children: [
-          { path: '/favorites', element: <FavoritesPage /> },
-          { path: '/checkout', element: <CheckoutPage /> },
-          { path: '/profile', element: <ProfilePage /> },
+          { path: APP_ROUTES.favorites, element: <FavoritesPage /> },
+          { path: APP_ROUTES.checkout, element: <CheckoutPage /> },
+          { path: APP_ROUTES.profile, element: <ProfilePage /> },
         ],
       },
     ],
@@ -38,7 +39,7 @@ const appRoutes: RouteObject[] = [
 
 if (import.meta.env.DEV) {
   appRoutes.push({
-    path: '/dev/ui-kit',
+    path: APP_ROUTES.uiKit,
     lazy: async () => {
       const { UiKitPage } = await import('@pages/UiKitPage')
       return { Component: UiKitPage }

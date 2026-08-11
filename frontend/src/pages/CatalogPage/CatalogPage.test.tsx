@@ -146,6 +146,41 @@ describe('CatalogPage', () => {
     })
   })
 
+  it('names the tab after the expanded product and restores it on close', async () => {
+    const user = userEvent.setup()
+    // index.html ships a static <title>; React 19 must layer over it, not replace it.
+    const staticTitle = document.createElement('title')
+    staticTitle.textContent = 'Coffee Shop'
+    document.head.appendChild(staticTitle)
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/ethiopia-yirgacheffe/')) {
+        return jsonResponse(config, 200, detail)
+      }
+      return jsonResponse(config, 200, {
+        count: 1,
+        next: null,
+        previous: null,
+        results: [listItem],
+      })
+    })
+
+    renderCatalog()
+
+    await screen.findByRole('heading', { name: 'Эфиопия Иргачеффе' })
+    await user.click(screen.getByRole('button', { name: 'Эфиопия Иргачеффе' }))
+
+    await waitFor(() => {
+      expect(document.title).toBe('Эфиопия Иргачеффе — Coffee Shop')
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Закрыть' }))
+    await waitFor(() => {
+      expect(document.title).toBe('Coffee Shop')
+    })
+
+    staticTitle.remove()
+  })
+
   it('collapses on close and expands only one card at a time', async () => {
     const user = userEvent.setup()
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
