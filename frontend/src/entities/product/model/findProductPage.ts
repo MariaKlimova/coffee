@@ -1,12 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query'
 
 import type { ProductOrdering } from '../api/productApi.typings'
-import { productsQueryOptions } from '../model/productQueryOptions'
 import {
   CATALOG_PAGE_SIZE,
   MAX_SCANNED_PAGES,
   type ProductCategorySlug,
 } from '../product.const'
+import { productsQueryOptions } from './productQueryOptions'
 
 /**
  * Inputs for locating a product inside the unfiltered category listing.
@@ -33,6 +33,7 @@ export async function findProductPage({
   ordering,
 }: FindProductPageParams): Promise<number | null> {
   let page = 1
+  let maxPages = MAX_SCANNED_PAGES
 
   for (;;) {
     const data = await queryClient.fetchQuery(
@@ -44,10 +45,15 @@ export async function findProductPage({
       }),
     )
 
+    if (page === 1) {
+      const pagesByCount = Math.max(1, Math.ceil(data.count / CATALOG_PAGE_SIZE))
+      maxPages = Math.min(MAX_SCANNED_PAGES, pagesByCount)
+    }
+
     if (data.results.some((item) => item.slug === slug)) {
       return page
     }
-    if (!data.next || page >= MAX_SCANNED_PAGES) {
+    if (!data.next || page >= maxPages) {
       return null
     }
     page += 1

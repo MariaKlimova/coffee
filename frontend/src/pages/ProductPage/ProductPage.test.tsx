@@ -186,7 +186,9 @@ describe('ProductPage', () => {
     const { router } = renderProductPage('/product/gone-forever')
 
     expect(await screen.findByText('Не нашли такой товар')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Вернуться в каталог' }))
+    const backLink = screen.getByRole('link', { name: 'Вернуться в каталог' })
+    expect(backLink).toHaveAttribute('href', '/coffee')
+    await user.click(backLink)
 
     await waitFor(() => {
       expect(router.state.location.pathname).toBe('/coffee')

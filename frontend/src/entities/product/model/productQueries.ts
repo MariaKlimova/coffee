@@ -2,8 +2,8 @@ import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-quer
 
 import { fetchProduct } from '../api/productApi'
 import type { ProductListParams, ProductOrdering } from '../api/productApi.typings'
-import { findProductPage } from '../lib/findProductPage'
 import type { ProductCategorySlug } from '../product.const'
+import { findProductPage } from './findProductPage'
 import { productKeys, productsQueryOptions } from './productQueryOptions'
 
 /**

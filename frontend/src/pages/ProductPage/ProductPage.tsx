@@ -1,6 +1,11 @@
-import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 
-import { CATEGORY_ROUTES, useProduct, useProductPageNumber } from '@entities/product'
+import {
+  CATEGORY_ROUTES,
+  DEFAULT_CATALOG_ROUTE,
+  useProduct,
+  useProductPageNumber,
+} from '@entities/product'
 import {
   buildCatalogSearchParams,
   CATALOG_COPY,
@@ -18,7 +23,6 @@ import styles from './ProductPage.module.css'
  */
 export function ProductPage() {
   const { slug = '' } = useParams()
-  const navigate = useNavigate()
 
   const detailQuery = useProduct(slug)
   const pageQuery = useProductPageNumber({
@@ -35,14 +39,12 @@ export function ProductPage() {
           title={PRODUCT_PAGE_COPY.notFoundTitle}
           description={PRODUCT_PAGE_COPY.notFoundDescription}
           action={
-            <Button
-              type="button"
-              onClick={() => {
-                void navigate(CATEGORY_ROUTES.coffee)
-              }}
+            <Link
+              to={DEFAULT_CATALOG_ROUTE}
+              className={styles['ProductPage-CatalogLink']}
             >
               {PRODUCT_PAGE_COPY.backToCatalog}
-            </Button>
+            </Link>
           }
         />
       </section>

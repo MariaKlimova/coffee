@@ -7,7 +7,7 @@ import type { ProductCategorySlug } from '../product.const'
 /**
  * Identifies a "which catalog page holds this slug" lookup.
  */
-export interface ProductPageLookup {
+interface ProductPageLookup {
   /** Slug being located. */
   slug: string
   /** Category listing that is scanned, undefined while the detail is loading. */

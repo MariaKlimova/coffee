@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Paginated, ProductListItem } from '../api/productApi.typings'
-import { MAX_SCANNED_PAGES } from '../product.const'
+import { CATALOG_PAGE_SIZE, MAX_SCANNED_PAGES } from '../product.const'
 import { findProductPage } from './findProductPage'
 
 const { fetchProducts } = vi.hoisted(() => ({ fetchProducts: vi.fn() }))
@@ -24,9 +24,13 @@ function item(slug: string): ProductListItem {
   }
 }
 
-function page(slugs: string[], hasNext: boolean): Paginated<ProductListItem> {
+function page(
+  slugs: string[],
+  hasNext: boolean,
+  count = 100,
+): Paginated<ProductListItem> {
   return {
-    count: 100,
+    count,
     next: hasNext ? 'http://example/api/products/?page=next' : null,
     previous: null,
     results: slugs.map(item),
@@ -80,7 +84,8 @@ describe('findProductPage', () => {
   })
 
   it('stops scanning at MAX_SCANNED_PAGES even when `next` never ends', async () => {
-    fetchProducts.mockResolvedValue(page(['a'], true))
+    const hugeCount = MAX_SCANNED_PAGES * CATALOG_PAGE_SIZE + 1
+    fetchProducts.mockResolvedValue(page(['a'], true, hugeCount))
 
     const result = await findProductPage({
       queryClient: createQueryClient(),
@@ -91,6 +96,20 @@ describe('findProductPage', () => {
 
     expect(result).toBeNull()
     expect(fetchProducts).toHaveBeenCalledTimes(MAX_SCANNED_PAGES)
+  })
+
+  it('stops at the last page implied by count even if `next` keeps coming', async () => {
+    fetchProducts.mockResolvedValue(page(['a'], true, CATALOG_PAGE_SIZE * 2))
+
+    const result = await findProductPage({
+      queryClient: createQueryClient(),
+      slug: 'target',
+      category: 'coffee',
+      ordering: '-created_at',
+    })
+
+    expect(result).toBeNull()
+    expect(fetchProducts).toHaveBeenCalledTimes(2)
   })
 
   it('returns null when the listing ends without the slug', async () => {

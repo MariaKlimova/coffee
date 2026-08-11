@@ -20,6 +20,11 @@ export const CATEGORY_ROUTES: Record<ProductCategorySlug, '/coffee' | '/machines
 }
 
 /**
+ * Fallback storefront route when the product category is unknown (404 deep link).
+ */
+export const DEFAULT_CATALOG_ROUTE = CATEGORY_ROUTES.coffee
+
+/**
  * Default page size — matches backend CatalogPagination.page_size.
  */
 export const CATALOG_PAGE_SIZE = 20
