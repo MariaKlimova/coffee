@@ -6,27 +6,12 @@ import {
   ExpandedProductCard,
   ProductCard,
   ProductCardSkeleton,
+  type ExpandedProductCardProps,
 } from '@shared/ui'
 
 import { buildProductTitle } from './CatalogPage-Item.const'
 import type { CatalogPageItemProps } from './CatalogPage-Item.typings'
 import styles from './CatalogPage-Item.module.css'
-
-function ExpandedCard({
-  product,
-  onClose,
-}: {
-  /** Mapped expanded-card props without close handler. */
-  product: ReturnType<typeof toExpandedCardProps>
-  /** Close handler passed through to the card. */
-  onClose: () => void
-}) {
-  // Discriminated spread: TS needs the union narrowed before JSX props resolve.
-  if (product.category === 'coffee') {
-    return <ExpandedProductCard {...product} onClose={onClose} />
-  }
-  return <ExpandedProductCard {...product} onClose={onClose} />
-}
 
 export function CatalogPageItem({
   product,
@@ -80,14 +65,17 @@ export function CatalogPageItem({
     return <ProductCardSkeleton className={styles['CatalogPage-ItemSkeleton']} />
   }
 
+  // Union + onClose: assemble once so JSX does not need two identical branches.
+  const expandedCardProps = {
+    ...toExpandedCardProps(detailQuery.data),
+    onClose: onCollapse,
+  } as ExpandedProductCardProps
+
   return (
     <>
       {/* React 19 hoists this into <head>: works for deep links and in-grid expand alike. */}
       <title>{buildProductTitle(detailQuery.data.name)}</title>
-      <ExpandedCard
-        product={toExpandedCardProps(detailQuery.data)}
-        onClose={onCollapse}
-      />
+      <ExpandedProductCard {...expandedCardProps} />
     </>
   )
 }

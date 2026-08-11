@@ -51,7 +51,7 @@ React (Vite)  →  HTTP/JSON  →  Django REST Framework  →  PostgreSQL
 
 ## Каталог на фронте
 
-Слой данных каталога живёт в `entities/product`; фильтры и URL-состояние — в `features/catalog`; композиция витрин `/coffee` и `/machines` — в `pages/CatalogPage`.
+Канонические пути (`APP_ROUTES`, `CATEGORY_PATHS`) и название сайта (`SITE_TITLE`) лежат в `shared/config`. Слой данных каталога — в `entities/product` (публичный `CATEGORY_ROUTES` реэкспортирует `CATEGORY_PATHS`); фильтры и URL-состояние — в `features/catalog`; композиция витрин `/coffee` и `/machines` — в `pages/CatalogPage`.
 
 | Что | Где |
 |-----|-----|

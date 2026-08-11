@@ -1,3 +1,5 @@
+import { CATEGORY_PATHS } from '@shared/config'
+
 /**
  * Category slug used by the catalog API and storefront routes.
  */
@@ -13,11 +15,12 @@ export const CATEGORY_LABELS: Record<ProductCategorySlug, string> = {
 
 /**
  * Storefront route that lists products of a category.
+ * Re-exports shared paths so the product slice keeps a stable public API.
  */
-export const CATEGORY_ROUTES: Record<ProductCategorySlug, '/coffee' | '/machines'> = {
-  coffee: '/coffee',
-  machines: '/machines',
-}
+export const CATEGORY_ROUTES: Record<
+  ProductCategorySlug,
+  typeof CATEGORY_PATHS.coffee | typeof CATEGORY_PATHS.machines
+> = CATEGORY_PATHS
 
 /**
  * Fallback storefront route when the product category is unknown (404 deep link).

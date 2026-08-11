@@ -1,7 +1,4 @@
-/**
- * Site name appended to the tab title — matches the static title in index.html.
- */
-const SITE_TITLE = 'Coffee Shop'
+import { SITE_TITLE } from '@shared/config'
 
 /**
  * Tab title for an expanded product card.

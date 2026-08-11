@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 
 import {
   CATEGORY_ROUTES,
@@ -39,12 +39,9 @@ export function ProductPage() {
           title={PRODUCT_PAGE_COPY.notFoundTitle}
           description={PRODUCT_PAGE_COPY.notFoundDescription}
           action={
-            <Link
-              to={DEFAULT_CATALOG_ROUTE}
-              className={styles['ProductPage-CatalogLink']}
-            >
+            <Button to={DEFAULT_CATALOG_ROUTE}>
               {PRODUCT_PAGE_COPY.backToCatalog}
-            </Link>
+            </Button>
           }
         />
       </section>
