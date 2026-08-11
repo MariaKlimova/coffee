@@ -8,6 +8,7 @@ import {
   ProductCardSkeleton,
 } from '@shared/ui'
 
+import { buildProductTitle } from './CatalogPage-Item.const'
 import type { CatalogPageItemProps } from './CatalogPage-Item.typings'
 import styles from './CatalogPage-Item.module.css'
 
@@ -64,9 +65,19 @@ export function CatalogPageItem({
   }
 
   const expandedProps = toExpandedCardProps(detailQuery.data)
-  if (expandedProps.category === 'coffee') {
-    return <ExpandedProductCard {...expandedProps} onClose={onCollapse} />
-  }
+  // Spread needs the union narrowed, both branches render the same card.
+  const card =
+    expandedProps.category === 'coffee' ? (
+      <ExpandedProductCard {...expandedProps} onClose={onCollapse} />
+    ) : (
+      <ExpandedProductCard {...expandedProps} onClose={onCollapse} />
+    )
 
-  return <ExpandedProductCard {...expandedProps} onClose={onCollapse} />
+  return (
+    <>
+      {/* React 19 hoists this into <head>: works for deep links and in-grid expand alike. */}
+      <title>{buildProductTitle(detailQuery.data.name)}</title>
+      {card}
+    </>
+  )
 }

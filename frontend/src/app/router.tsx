@@ -20,7 +20,7 @@ const appRoutes: RouteObject[] = [
       { path: '/', element: <HomePage /> },
       { path: '/coffee', element: <CoffeePage /> },
       { path: '/machines', element: <MachinesPage /> },
-      { path: '/product/:id', element: <ProductPage /> },
+      { path: '/product/:slug', element: <ProductPage /> },
       { path: '/cart', element: <CartPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/register', element: <RegisterPage /> },

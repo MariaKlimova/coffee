@@ -12,9 +12,23 @@ export const CATEGORY_LABELS: Record<ProductCategorySlug, string> = {
 }
 
 /**
+ * Storefront route that lists products of a category.
+ */
+export const CATEGORY_ROUTES: Record<ProductCategorySlug, '/coffee' | '/machines'> = {
+  coffee: '/coffee',
+  machines: '/machines',
+}
+
+/**
  * Default page size — matches backend CatalogPagination.page_size.
  */
 export const CATALOG_PAGE_SIZE = 20
+
+/**
+ * Safety limit for the deep-link page scan — guards against an endless
+ * `next` chain if the backend ever paginates unexpectedly.
+ */
+export const MAX_SCANNED_PAGES = 50
 
 /**
  * Placeholder shown when an optional product attribute is missing.
