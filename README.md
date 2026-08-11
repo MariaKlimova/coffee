@@ -91,7 +91,7 @@ npm install
 npm run dev
 ```
 
-Роуты-заглушки: `/`, `/coffee`, `/machines`, `/product/:id`, `/favorites`, `/cart`, `/login`, `/register`, `/checkout`.
+Роуты: `/`, `/coffee`, `/machines`, `/product/:slug` (deep-link на витрину), `/favorites`, `/cart`, `/login`, `/register`, `/checkout`.
 
 ## CI
 
