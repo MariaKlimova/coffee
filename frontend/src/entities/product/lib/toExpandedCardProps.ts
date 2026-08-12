@@ -9,8 +9,14 @@ import type {
 import { CATEGORY_LABELS, MISSING_ATTRIBUTE } from '../product.const'
 
 type ExpandedCardMappedProps =
-  | Omit<ExpandedCoffeeCardProps, 'onClose' | 'similarSlot' | 'className'>
-  | Omit<ExpandedMachineCardProps, 'onClose' | 'similarSlot' | 'className'>
+  | Omit<
+      ExpandedCoffeeCardProps,
+      'onClose' | 'similarSlot' | 'className' | 'onToggleFavorite'
+    >
+  | Omit<
+      ExpandedMachineCardProps,
+      'onClose' | 'similarSlot' | 'className' | 'onToggleFavorite'
+    >
 
 function textOrMissing(value: string | undefined): string {
   const trimmed = value?.trim()
@@ -64,13 +70,14 @@ export function toExpandedCardProps(product: Product): ExpandedCardMappedProps {
   }
 
   const base = {
-    id: product.slug,
+    id: product.id,
     categoryLabel: CATEGORY_LABELS[product.category],
     title: product.name,
     description: product.description || product.short_description,
     images,
     price: formatMoney(product.price),
     oldPrice: product.old_price ? formatMoney(product.old_price) : undefined,
+    isFavorite: product.is_favorite,
   }
 
   if (product.category === 'coffee') {

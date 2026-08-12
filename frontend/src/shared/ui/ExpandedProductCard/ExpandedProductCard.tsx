@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 
 import { cx } from '@shared/lib/cx'
+import { HeartIcon } from '@shared/ui/icons'
 import { ImageCarousel } from '@shared/ui/ImageCarousel'
 
 import { COFFEE_SCALES, MACHINE_ROWS } from './ExpandedProductCard.const'
@@ -48,6 +49,8 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
     price,
     oldPrice,
     onClose,
+    isFavorite = false,
+    onToggleFavorite,
     similarSlot,
     className,
     attributes,
@@ -79,14 +82,29 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
       </div>
 
       <div className={styles['ExpandedProductCard-Info']}>
-        <button
-          type="button"
-          className={styles['ExpandedProductCard-Close']}
-          aria-label="Закрыть"
-          onClick={onClose}
-        >
-          <CloseIcon />
-        </button>
+        <div className={styles['ExpandedProductCard-Actions']}>
+          {onToggleFavorite ? (
+            <button
+              type="button"
+              className={styles['ExpandedProductCard-Favorite']}
+              aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+              aria-pressed={isFavorite}
+              onClick={() => {
+                onToggleFavorite(id)
+              }}
+            >
+              <HeartIcon filled={isFavorite} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={styles['ExpandedProductCard-Close']}
+            aria-label="Закрыть"
+            onClick={onClose}
+          >
+            <CloseIcon />
+          </button>
+        </div>
 
         <p
           className={cx(

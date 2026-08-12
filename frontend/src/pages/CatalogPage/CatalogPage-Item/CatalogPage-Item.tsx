@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 
 import { toExpandedCardProps, toProductCardProps, useProduct } from '@entities/product'
 import { CATALOG_COPY, SimilarProducts, useOpenSimilarProduct } from '@features/catalog'
+import { useToggleFavorite } from '@features/toggle-favorite'
 import {
   Button,
   EmptyState,
@@ -24,6 +25,7 @@ export function CatalogPageItem({
   const rootRef = useRef<HTMLDivElement>(null)
   const detailQuery = useProduct(product.slug, { enabled: isExpanded })
   const { openProduct, isPending } = useOpenSimilarProduct(product.category)
+  const { toggleFavorite } = useToggleFavorite()
 
   useEffect(() => {
     if (!isExpanded || !detailQuery.isSuccess) {
@@ -44,8 +46,10 @@ export function CatalogPageItem({
         onExpand={() => {
           onExpand(product.slug)
         }}
-        // Stubs until favorites / cart epics wire real handlers (UUID is in `id`).
-        onToggleFavorite={() => undefined}
+        onToggleFavorite={(productId) => {
+          toggleFavorite(productId, product.is_favorite)
+        }}
+        // Stub until the cart epic wires a real handler (UUID is in `id`).
         onAddToCart={() => undefined}
       />
     )
@@ -81,16 +85,22 @@ export function CatalogPageItem({
     return <ProductCardSkeleton className={styles['CatalogPage-ItemSkeleton']} />
   }
 
-  // Union + onClose: assemble once so JSX does not need two identical branches.
+  // Union + handlers: assemble once so JSX does not need two identical branches.
   const expandedCardProps = {
     ...toExpandedCardProps(detailQuery.data),
     onClose: onCollapse,
+    onToggleFavorite: (productId: string) => {
+      toggleFavorite(productId, detailQuery.data.is_favorite)
+    },
     similarSlot: (
       <SimilarProducts
         slug={product.slug}
         disabled={isPending}
         onSelect={(slug) => {
           void openProduct(slug)
+        }}
+        onToggleFavorite={(productId, isFavorite) => {
+          toggleFavorite(productId, isFavorite)
         }}
       />
     ),

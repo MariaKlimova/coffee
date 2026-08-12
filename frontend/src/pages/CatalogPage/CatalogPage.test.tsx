@@ -7,6 +7,7 @@ import { Route, Routes } from 'react-router-dom'
 import { http } from '@shared/api'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
 import { ToastProvider } from '@shared/ui'
+import { useAuthStore } from '@entities/user'
 
 import { CatalogPage } from './CatalogPage'
 
@@ -86,6 +87,12 @@ describe('CatalogPage', () => {
   beforeEach(() => {
     adapter.mockReset()
     http.defaults.adapter = adapter
+    useAuthStore.setState({
+      status: 'guest',
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+    })
   })
 
   afterEach(() => {
@@ -498,5 +505,103 @@ describe('CatalogPage', () => {
       await screen.findByText('Сбросили фильтры, чтобы показать товар'),
     ).toBeInTheDocument()
     expect(await screen.findByText('Описание дорогой Бразилии')).toBeInTheDocument()
+  })
+
+  it('toggles favorite in the grid optimistically for an authenticated user', async () => {
+    const user = userEvent.setup()
+    useAuthStore.setState({
+      status: 'authenticated',
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      user: { id: 'u1', email: 'a@b.c', first_name: 'A', last_name: 'B' },
+    })
+
+    let favorited = false
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/favorites/') && config.method === 'post') {
+        favorited = true
+        return jsonResponse(config, 201, {
+          product_id: listItem.id,
+          created_at: '2026-01-01T00:00:00Z',
+        })
+      }
+      if (config.url?.includes('/api/favorites/')) {
+        return jsonResponse(config, 200, {
+          count: favorited ? 1 : 0,
+          next: null,
+          previous: null,
+          results: [],
+        })
+      }
+      return jsonResponse(config, 200, {
+        count: 1,
+        next: null,
+        previous: null,
+        results: [{ ...listItem, is_favorite: favorited }],
+      })
+    })
+
+    renderCatalog()
+
+    await screen.findByRole('heading', { name: 'Эфиопия Иргачеффе' })
+    const favoriteButton = screen.getByRole('button', { name: 'В избранное' })
+    expect(favoriteButton).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(favoriteButton)
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('button', { name: 'Убрать из избранного' }),
+      ).toHaveAttribute('aria-pressed', 'true')
+    })
+  })
+
+  it('rolls favorite back in the grid when the API fails', async () => {
+    const user = userEvent.setup()
+    useAuthStore.setState({
+      status: 'authenticated',
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      user: { id: 'u1', email: 'a@b.c', first_name: 'A', last_name: 'B' },
+    })
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/favorites/') && config.method === 'post') {
+        throw new AxiosError(
+          'Server Error',
+          AxiosError.ERR_BAD_RESPONSE,
+          config,
+          null,
+          jsonResponse(config, 500, { detail: 'boom', code: 'server_error' }),
+        )
+      }
+      if (config.url?.includes('/api/favorites/')) {
+        return jsonResponse(config, 200, {
+          count: 0,
+          next: null,
+          previous: null,
+          results: [],
+        })
+      }
+      return jsonResponse(config, 200, {
+        count: 1,
+        next: null,
+        previous: null,
+        results: [listItem],
+      })
+    })
+
+    renderCatalog()
+
+    await screen.findByRole('heading', { name: 'Эфиопия Иргачеффе' })
+    await user.click(screen.getByRole('button', { name: 'В избранное' }))
+
+    expect(
+      await screen.findByText('Не удалось обновить избранное. Попробуй ещё раз'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'В избранное' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
   })
 })

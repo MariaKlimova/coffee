@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 
 import { cx } from '@shared/lib/cx'
+import { HeartIcon } from '@shared/ui/icons'
 
 import { HeaderAccount } from './Header-Account'
 import { HeaderCounterLink } from './Header-CounterLink'
@@ -8,19 +9,6 @@ import { HeaderSearch } from './Header-Search'
 import { HEADER_NAV_ITEMS } from './Header.const'
 import type { HeaderProps } from './Header.typings'
 import styles from './Header.module.css'
-
-function HeartIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 20s-7-4.35-7-9.2A3.8 3.8 0 0 1 12 7.2a3.8 3.8 0 0 1 7 3.6C19 15.65 12 20 12 20Z"
-        stroke="currentColor"
-        strokeWidth="1.75"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
 
 function CartIcon() {
   return (
