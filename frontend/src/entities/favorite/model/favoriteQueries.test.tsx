@@ -8,6 +8,7 @@ import { useAuthStore } from '@entities/user'
 import { http } from '@shared/api'
 
 import { useFavoritesCount } from './favoriteQueries'
+import { favoriteKeys } from './favoriteQueryOptions'
 
 function jsonResponse(
   config: InternalAxiosRequestConfig,
@@ -97,5 +98,54 @@ describe('useFavoritesCount', () => {
     const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
     expect(config.url).toContain('/api/favorites/')
     expect(config.params).toMatchObject({ page_size: '1' })
+  })
+
+  it('stops exposing count data for consumers after logout cache clear', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      user: {
+        id: 'u1',
+        email: 'a@b.c',
+        first_name: 'A',
+        last_name: 'B',
+      },
+    })
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, {
+        count: 3,
+        next: null,
+        previous: null,
+        results: [],
+      }),
+    )
+
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+
+    const { result, rerender } = renderHook(() => useFavoritesCount(), {
+      wrapper: createWrapper(queryClient),
+    })
+
+    await waitFor(() => {
+      expect(result.current.data).toBe(3)
+    })
+
+    queryClient.removeQueries({ queryKey: favoriteKeys.all })
+    useAuthStore.setState({
+      status: 'guest',
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+    })
+    rerender()
+
+    await waitFor(() => {
+      expect(result.current.data).toBeUndefined()
+      expect(adapter.mock.calls.length).toBe(1)
+    })
   })
 })

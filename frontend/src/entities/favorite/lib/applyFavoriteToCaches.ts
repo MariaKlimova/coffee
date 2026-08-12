@@ -29,33 +29,49 @@ export function applyFavoriteToCaches(
   productId: string,
   isFavorite: boolean,
 ): void {
+  let didChange = false
+
   queryClient.setQueriesData({ queryKey: productKeys.all }, (cached: unknown) => {
     if (cached == null || typeof cached === 'number') {
       return cached
     }
 
     if (Array.isArray(cached)) {
-      return (cached as ProductListItem[]).map((item) =>
-        patchProductFavorite(item, productId, isFavorite),
-      )
+      return (cached as ProductListItem[]).map((item) => {
+        if (item.id === productId && item.is_favorite !== isFavorite) {
+          didChange = true
+        }
+        return patchProductFavorite(item, productId, isFavorite)
+      })
     }
 
     if (typeof cached === 'object' && 'results' in cached) {
       const page = cached as Paginated<ProductListItem>
       return {
         ...page,
-        results: page.results.map((item) =>
-          patchProductFavorite(item, productId, isFavorite),
-        ),
+        results: page.results.map((item) => {
+          if (item.id === productId && item.is_favorite !== isFavorite) {
+            didChange = true
+          }
+          return patchProductFavorite(item, productId, isFavorite)
+        }),
       }
     }
 
     if (typeof cached === 'object' && 'id' in cached && 'is_favorite' in cached) {
-      return patchProductFavorite(cached as Product, productId, isFavorite)
+      const product = cached as Product
+      if (product.id === productId && product.is_favorite !== isFavorite) {
+        didChange = true
+      }
+      return patchProductFavorite(product, productId, isFavorite)
     }
 
     return cached
   })
+
+  if (!didChange) {
+    return
+  }
 
   queryClient.setQueryData(favoriteKeys.count(), (count: unknown) => {
     if (typeof count !== 'number') {

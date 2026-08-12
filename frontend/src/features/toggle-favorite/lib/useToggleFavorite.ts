@@ -21,6 +21,10 @@ export function useToggleFavorite() {
       return
     }
 
+    if (mutation.isPending) {
+      return
+    }
+
     mutation.mutate(
       { productId, isFavorite },
       {

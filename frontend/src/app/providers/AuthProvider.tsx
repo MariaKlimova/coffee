@@ -12,8 +12,8 @@ interface AuthProviderProps {
 
 /**
  * Restores a persisted session on first mount when a refresh token exists.
- * Invalidates product/favorite caches when auth status settles to guest or
- * authenticated so `is_favorite` flags match the current session.
+ * On auth status changes: refreshes product caches so `is_favorite` matches the
+ * session, and clears favorite queries on logout so the header count cannot linger.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient()
@@ -40,6 +40,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     void queryClient.invalidateQueries({ queryKey: productKeys.all })
+
+    if (status === 'guest') {
+      // Drop favorites cache so the header count cannot linger after logout.
+      queryClient.removeQueries({ queryKey: favoriteKeys.all })
+      return
+    }
+
     void queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
   }, [status, queryClient])
 

@@ -13,9 +13,11 @@ import styles from './RootLayout.module.css'
  */
 export function RootLayout() {
   const user = useAuthStore((state) => state.user)
+  const status = useAuthStore((state) => state.status)
   const logout = useAuthStore((state) => state.logout)
   const favoritesCountQuery = useFavoritesCount()
-  const favoritesCount = favoritesCountQuery.data ?? 0
+  const favoritesCount =
+    status === 'authenticated' ? (favoritesCountQuery.data ?? 0) : 0
 
   return (
     <div className={styles.RootLayout}>
