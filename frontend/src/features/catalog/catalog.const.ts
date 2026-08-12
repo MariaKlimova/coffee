@@ -22,6 +22,11 @@ export const CATALOG_COPY = {
   previousPage: 'Назад',
   nextPage: 'Вперёд',
   loadingLabel: 'Загрузка каталога',
+  similarTitle: 'Похожие товары',
+  similarStripLabel: 'Лента похожих товаров',
+  filtersResetToast: 'Сбросили фильтры, чтобы показать товар',
+  similarNotFoundToast: 'Не нашли такой товар',
+  similarOpenErrorToast: 'Не удалось открыть товар',
 } as const
 
 /**

@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { fetchProduct } from '../api/productApi'
+import { fetchProduct, fetchRelatedProducts } from '../api/productApi'
 import type { ProductListParams, ProductOrdering } from '../api/productApi.typings'
 import type { ProductCategorySlug } from '../product.const'
 import { findProductPage } from './findProductPage'
@@ -30,6 +30,26 @@ export function useProduct(slug: string, options: UseProductOptions = {}) {
   return useQuery({
     queryKey: productKeys.detail(slug),
     queryFn: () => fetchProduct(slug),
+    enabled: enabled && Boolean(slug),
+  })
+}
+
+interface UseRelatedProductsOptions {
+  /** When false, the related request is not sent. */
+  enabled?: boolean
+}
+
+/**
+ * Related products for the expanded card strip (same category, excluding self).
+ */
+export function useRelatedProducts(
+  slug: string,
+  options: UseRelatedProductsOptions = {},
+) {
+  const { enabled = true } = options
+  return useQuery({
+    queryKey: productKeys.related(slug),
+    queryFn: () => fetchRelatedProducts(slug),
     enabled: enabled && Boolean(slug),
   })
 }

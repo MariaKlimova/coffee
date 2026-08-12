@@ -6,6 +6,7 @@ import { Route, Routes } from 'react-router-dom'
 
 import { http } from '@shared/api'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
+import { ToastProvider } from '@shared/ui'
 
 import { CatalogPage } from './CatalogPage'
 
@@ -61,12 +62,22 @@ const detail = {
 
 function renderCatalog(initialPath = '/coffee') {
   return renderWithProviders(
-    <Routes>
-      <Route path="/coffee" element={<CatalogPage category="coffee" />} />
-      <Route path="/machines" element={<CatalogPage category="machines" />} />
-    </Routes>,
+    <ToastProvider>
+      <Routes>
+        <Route path="/coffee" element={<CatalogPage category="coffee" />} />
+        <Route path="/machines" element={<CatalogPage category="machines" />} />
+      </Routes>
+    </ToastProvider>,
     { initialEntries: [initialPath] },
   )
+}
+
+function isProductDetailUrl(url: string | undefined, slug: string): boolean {
+  return Boolean(url?.includes(`/${slug}/`) && !url.includes('/related/'))
+}
+
+function isRelatedUrl(url: string | undefined, slug: string): boolean {
+  return Boolean(url?.includes(`/${slug}/related/`))
 }
 
 describe('CatalogPage', () => {
@@ -122,7 +133,10 @@ describe('CatalogPage', () => {
   it('expands a card via detail fetch and writes ?product= into the URL', async () => {
     const user = userEvent.setup()
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
-      if (config.url?.includes('/ethiopia-yirgacheffe/')) {
+      if (isRelatedUrl(config.url, 'ethiopia-yirgacheffe')) {
+        return jsonResponse(config, 200, [])
+      }
+      if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
         return jsonResponse(config, 200, detail)
       }
       return jsonResponse(config, 200, {
@@ -153,7 +167,10 @@ describe('CatalogPage', () => {
     staticTitle.textContent = 'Coffee Shop'
     document.head.appendChild(staticTitle)
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
-      if (config.url?.includes('/ethiopia-yirgacheffe/')) {
+      if (isRelatedUrl(config.url, 'ethiopia-yirgacheffe')) {
+        return jsonResponse(config, 200, [])
+      }
+      if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
         return jsonResponse(config, 200, detail)
       }
       return jsonResponse(config, 200, {
@@ -184,10 +201,16 @@ describe('CatalogPage', () => {
   it('collapses on close and expands only one card at a time', async () => {
     const user = userEvent.setup()
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
-      if (config.url?.includes('/ethiopia-yirgacheffe/')) {
+      if (
+        isRelatedUrl(config.url, 'ethiopia-yirgacheffe') ||
+        isRelatedUrl(config.url, 'brazil-santos')
+      ) {
+        return jsonResponse(config, 200, [])
+      }
+      if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
         return jsonResponse(config, 200, detail)
       }
-      if (config.url?.includes('/brazil-santos/')) {
+      if (isProductDetailUrl(config.url, 'brazil-santos')) {
         return jsonResponse(config, 200, {
           ...detail,
           ...secondItem,
@@ -319,7 +342,10 @@ describe('CatalogPage', () => {
   it('shows a detail error with retry instead of a silent card fallback', async () => {
     const user = userEvent.setup()
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
-      if (config.url?.includes('/ethiopia-yirgacheffe/')) {
+      if (isRelatedUrl(config.url, 'ethiopia-yirgacheffe')) {
+        return jsonResponse(config, 200, [])
+      }
+      if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
         throw new AxiosError(
           'Server Error',
           AxiosError.ERR_BAD_RESPONSE,
@@ -349,5 +375,128 @@ describe('CatalogPage', () => {
       screen.getByRole('button', { name: 'Попробовать ещё раз' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Закрыть' })).toBeInTheDocument()
+  })
+
+  it('switches to a similar product that passes current filters', async () => {
+    const user = userEvent.setup()
+    const relatedOnPage = {
+      ...secondItem,
+      price: '990.00',
+    }
+    const relatedDetail = {
+      ...detail,
+      ...relatedOnPage,
+      description: 'Описание Бразилии',
+    }
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (isRelatedUrl(config.url, 'ethiopia-yirgacheffe')) {
+        return jsonResponse(config, 200, [relatedOnPage])
+      }
+      if (isRelatedUrl(config.url, 'brazil-santos')) {
+        return jsonResponse(config, 200, [])
+      }
+      if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
+        return jsonResponse(config, 200, detail)
+      }
+      if (isProductDetailUrl(config.url, 'brazil-santos')) {
+        return jsonResponse(config, 200, relatedDetail)
+      }
+      return jsonResponse(config, 200, {
+        count: 2,
+        next: null,
+        previous: null,
+        results: [listItem, relatedOnPage],
+      })
+    })
+
+    const { router } = renderCatalog('/coffee?product=ethiopia-yirgacheffe')
+
+    expect(await screen.findByText('Полное описание кофе')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Похожие товары' }),
+    ).toBeInTheDocument()
+
+    const similarStrip = screen.getByRole('region', { name: 'Лента похожих товаров' })
+    await user.click(
+      within(similarStrip).getByRole('button', { name: 'Бразилия Сантос' }),
+    )
+
+    await waitFor(() => {
+      expect(router.state.location.search).toContain('product=brazil-santos')
+    })
+    expect(router.state.location.search).not.toContain('price_')
+    expect(await screen.findByText('Описание Бразилии')).toBeInTheDocument()
+  })
+
+  it('resets filters and shows a toast when a similar product is filtered out', async () => {
+    const user = userEvent.setup()
+    const expensiveRelated = {
+      ...secondItem,
+      name: 'Дорогая Бразилия',
+      slug: 'brazil-expensive',
+      price: '24990.00',
+    }
+    const expensiveDetail = {
+      ...detail,
+      ...expensiveRelated,
+      description: 'Описание дорогой Бразилии',
+    }
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      const params = config.params as Record<string, string> | undefined
+
+      if (isRelatedUrl(config.url, 'ethiopia-yirgacheffe')) {
+        return jsonResponse(config, 200, [expensiveRelated])
+      }
+      if (isRelatedUrl(config.url, 'brazil-expensive')) {
+        return jsonResponse(config, 200, [])
+      }
+      if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
+        return jsonResponse(config, 200, detail)
+      }
+      if (isProductDetailUrl(config.url, 'brazil-expensive')) {
+        return jsonResponse(config, 200, expensiveDetail)
+      }
+
+      if (params?.price_max === '10000') {
+        return jsonResponse(config, 200, {
+          count: 1,
+          next: null,
+          previous: null,
+          results: [listItem],
+        })
+      }
+
+      return jsonResponse(config, 200, {
+        count: 2,
+        next: null,
+        previous: null,
+        results: [listItem, expensiveRelated],
+      })
+    })
+
+    const { router } = renderCatalog(
+      '/coffee?price_max=10000&product=ethiopia-yirgacheffe',
+    )
+
+    expect(await screen.findByText('Полное описание кофе')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', { name: 'Похожие товары' }),
+    ).toBeInTheDocument()
+
+    const similarStrip = screen.getByRole('region', { name: 'Лента похожих товаров' })
+    await user.click(
+      within(similarStrip).getByRole('button', { name: 'Дорогая Бразилия' }),
+    )
+
+    await waitFor(() => {
+      expect(router.state.location.search).toContain('product=brazil-expensive')
+    })
+    expect(router.state.location.search).not.toContain('price_max')
+    expect(
+      await screen.findByText('Сбросили фильтры, чтобы показать товар'),
+    ).toBeInTheDocument()
+    expect(await screen.findByText('Описание дорогой Бразилии')).toBeInTheDocument()
   })
 })

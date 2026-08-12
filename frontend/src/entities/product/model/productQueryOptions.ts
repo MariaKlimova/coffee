@@ -20,6 +20,7 @@ export const productKeys = {
   all: ['products'] as const,
   list: (params: ProductListParams) => [...productKeys.all, 'list', params] as const,
   detail: (slug: string) => [...productKeys.all, 'detail', slug] as const,
+  related: (slug: string) => [...productKeys.all, 'related', slug] as const,
   pageOf: (lookup: ProductPageLookup) =>
     [...productKeys.all, 'page-of', lookup] as const,
 }
