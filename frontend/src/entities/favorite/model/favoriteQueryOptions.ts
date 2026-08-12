@@ -5,12 +5,14 @@ import type { FavoriteListParams } from '../api/favoriteApi.typings'
 
 export const favoriteKeys = {
   all: ['favorites'] as const,
-  list: (params: FavoriteListParams) => [...favoriteKeys.all, 'list', params] as const,
+  /** Prefix for every paginated favorites list query. */
+  lists: () => [...favoriteKeys.all, 'list'] as const,
+  list: (params: FavoriteListParams) => [...favoriteKeys.lists(), params] as const,
   count: () => [...favoriteKeys.all, 'count'] as const,
 }
 
 /**
- * Paginated favorites list — shared by the future favorites page and count prefetch.
+ * Paginated favorites list — shared by the favorites page (and list prefetch).
  */
 export function favoritesQueryOptions(params: FavoriteListParams = {}) {
   return queryOptions({

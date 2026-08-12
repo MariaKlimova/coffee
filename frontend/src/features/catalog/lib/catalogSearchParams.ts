@@ -1,4 +1,5 @@
 import type { ProductOrdering } from '@entities/product'
+import { parsePageNumber } from '@shared/lib/parsePageNumber'
 
 import { DEFAULT_ORDERING } from '../catalog.const'
 import type { CatalogParams } from './catalogSearchParams.typings'
@@ -18,17 +19,6 @@ function parseOrdering(raw: string | null): ProductOrdering {
   return raw as ProductOrdering
 }
 
-function parsePage(raw: string | null): number {
-  if (!raw) {
-    return 1
-  }
-  const page = Number.parseInt(raw, 10)
-  if (!Number.isFinite(page) || page < 1) {
-    return 1
-  }
-  return page
-}
-
 /**
  * Reads catalog state from URL search params, ignoring invalid values.
  */
@@ -41,7 +31,7 @@ export function parseCatalogParams(searchParams: URLSearchParams): CatalogParams
     priceMax: parsePriceInput(searchParams.get('price_max')),
     inStockOnly: inStockRaw === 'true' || inStockRaw === '1',
     ordering: parseOrdering(searchParams.get('ordering')),
-    page: parsePage(searchParams.get('page')),
+    page: parsePageNumber(searchParams.get('page')),
     product: productRaw && productRaw.trim() ? productRaw.trim() : null,
   }
 }

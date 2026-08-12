@@ -79,11 +79,13 @@ productKeys.pageOf(lookup) // ['products', 'page-of', { slug, category, ordering
 
 ### Избранное
 
-Слайс `entities/favorite` ходит в `POST/DELETE/GET /api/favorites/`. Счётчик в шапке — `useFavoritesCount` (`page_size=1`, только для `authenticated`). Тоггл — `features/toggle-favorite`: гость получает тост «Войди, чтобы добавить в избранное» без запроса; авторизованный пользователь обновляет кеш оптимистично.
+Слайс `entities/favorite` ходит в `POST/DELETE/GET /api/favorites/`. Счётчик в шапке — `useFavoritesCount` (`page_size=1`, только для `authenticated`). Список на `/favorites` — `useFavorites` с пагинацией и `keepPreviousData`. Тоггл — `features/toggle-favorite`: гость получает тост «Войди, чтобы добавить в избранное» без запроса; авторизованный пользователь обновляет кеш оптимистично.
 
-`applyFavoriteToCaches` патчит все записи под `productKeys.all` трёх форм — пагинированный `list` (`results`), массив `related`, одиночный `detail` — плюс `favoriteKeys.count` (±1). При ошибке мутация откатывает снимок; `onSettled` инвалидирует `productKeys.all` и `favoriteKeys.all`. `clientStore.favoriteIds` не подключаем: избранное серверное, стор остаётся заделом под корзину.
+`applyFavoriteToCaches` патчит все записи под `productKeys.all` трёх форм — пагинированный `list` (`results`), массив `related`, одиночный `detail` — плюс страницы списка избранного (`favoriteKeys.list`: при снятии товар убирается из `results`, `count` страницы уменьшается; при возврате позицию не угадываем — ждём инвалидацию) и `favoriteKeys.count` (±1). Флаг `didChange` поднимается и от продуктовых кешей, и от списка избранного, чтобы счётчик в шапке сдвигался даже если пользователь открыл `/favorites` напрямую без витрины в кеше. При ошибке мутация откатывает снимок; `onSettled` инвалидирует `productKeys.all` и `favoriteKeys.all`. `clientStore.favoriteIds` не подключаем: избранное серверное, стор остаётся заделом под корзину.
 
-После смены сессии (`AuthProvider`: переход в `authenticated` / `guest`) инвалидируются те же ключи, чтобы флаги `is_favorite` на витрине совпали с новой сессией.
+Страница `pages/FavoritesPage` (под `RequireAuth`): грид `ProductCard`, скелетоны, пустое состояние со ссылкой в каталог, пагинация через `CatalogPagination`. Клик по карточке ведёт на `/product/:slug`. Если после снятия сердечка текущая страница опустела и она не первая — URL переключается на предыдущую.
+
+После смены сессии (`AuthProvider`: переход в `authenticated` / `guest`) инвалидируются те же ключи, чтобы флаги `is_favorite` на витрине совпали с новой сессией. На logout кеш избранного снимается (`removeQueries`), чтобы счётчик в шапке не залипал.
 
 ### Страница товара как deep-link
 

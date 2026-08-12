@@ -21,8 +21,12 @@ function patchProductFavorite<T extends { id: string; is_favorite: boolean }>(
 }
 
 /**
- * Optimistically patches every product cache entry that carries `is_favorite`
- * (list pages, related arrays, detail) and adjusts the favorites count by ±1.
+ * Optimistically patches product caches (`is_favorite`), favorite list pages
+ * (remove on unfavorite), and the header count (±1).
+ *
+ * Favorite list inserts on re-favorite are left to invalidation — page position
+ * is unknown. `didChange` is raised from product or favorites-list patches so
+ * the header count still updates when the user opened `/favorites` directly.
  */
 export function applyFavoriteToCaches(
   queryClient: QueryClient,
@@ -67,6 +71,30 @@ export function applyFavoriteToCaches(
     }
 
     return cached
+  })
+
+  queryClient.setQueriesData({ queryKey: favoriteKeys.lists() }, (cached: unknown) => {
+    if (cached == null || typeof cached !== 'object' || !('results' in cached)) {
+      return cached
+    }
+
+    const page = cached as Paginated<ProductListItem>
+
+    if (isFavorite) {
+      return cached
+    }
+
+    const nextResults = page.results.filter((item) => item.id !== productId)
+    if (nextResults.length === page.results.length) {
+      return cached
+    }
+
+    didChange = true
+    return {
+      ...page,
+      results: nextResults,
+      count: Math.max(0, page.count - 1),
+    }
   })
 
   if (!didChange) {
