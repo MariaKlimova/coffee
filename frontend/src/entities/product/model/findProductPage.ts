@@ -9,7 +9,7 @@ import {
 import { productsQueryOptions } from './productQueryOptions'
 
 /**
- * Inputs for locating a product inside the unfiltered category listing.
+ * Inputs for locating a product inside a category listing.
  */
 export interface FindProductPageParams {
   /** Query client whose cache the catalog page reuses afterwards. */
@@ -20,6 +20,12 @@ export interface FindProductPageParams {
   category: ProductCategorySlug
   /** Ordering the storefront uses for the same listing. */
   ordering: ProductOrdering
+  /** Availability filter applied to the scanned listing. */
+  in_stock?: boolean
+  /** Minimum price filter as a RUB decimal string. */
+  price_min?: string
+  /** Maximum price filter as a RUB decimal string. */
+  price_max?: string
 }
 
 /**
@@ -31,6 +37,9 @@ export async function findProductPage({
   slug,
   category,
   ordering,
+  in_stock,
+  price_min,
+  price_max,
 }: FindProductPageParams): Promise<number | null> {
   let page = 1
   let maxPages = MAX_SCANNED_PAGES
@@ -42,6 +51,9 @@ export async function findProductPage({
         page,
         page_size: CATALOG_PAGE_SIZE,
         ordering,
+        in_stock,
+        price_min,
+        price_max,
       }),
     )
 

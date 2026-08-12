@@ -56,9 +56,10 @@ React (Vite)  →  HTTP/JSON  →  Django REST Framework  →  PostgreSQL
 | Что | Где |
 |-----|-----|
 | HTTP `GET /api/products/`, `GET /api/products/{slug}/` | `entities/product/api` |
-| React Query хуки | `useProducts` / `useProduct`, ключи `productKeys` |
+| React Query хуки | `useProducts` / `useProduct` / `useRelatedProducts`, ключи `productKeys` |
 | Мапперы API → UI-пропсы карточек | `toProductCardProps`, `toExpandedCardProps` |
 | Фильтры, пагинация, `?product=` | `features/catalog` + `useCatalogParams` |
+| Похожие товары | `SimilarProducts` + `useOpenSimilarProduct` |
 
 Конвенция ключей кэша:
 
@@ -66,6 +67,7 @@ React (Vite)  →  HTTP/JSON  →  Django REST Framework  →  PostgreSQL
 productKeys.all            // ['products']
 productKeys.list(params)   // ['products', 'list', params]
 productKeys.detail(slug)   // ['products', 'detail', slug]
+productKeys.related(slug)  // ['products', 'related', slug]
 productKeys.pageOf(lookup) // ['products', 'page-of', { slug, category, ordering }]
 ```
 
@@ -88,6 +90,12 @@ productKeys.pageOf(lookup) // ['products', 'page-of', { slug, category, ordering
 ### Title вкладки
 
 Название товара в заголовке вкладки ставит штатный `<title>` React 19 внутри `CatalogPage-Item` — React сам поднимает тег в `head` поверх статического из `index.html`, а при закрытии карточки убирает свой тег, и заголовок возвращается к `Coffee Shop`. `react-helmet-async` не подключаем: зависимость и провайдер ради одного тега не нужны, а поведение одинаково и для deep-link, и для обычного разворота карточки в гриде.
+
+### Похожие товары
+
+В развёрнутой карточке слот `similarSlot` заполняет `features/catalog/ui/SimilarProducts`: `GET /api/products/{slug}/related/` через `useRelatedProducts`, горизонтальная лента `ProductCard`. Пустой ответ и ошибка скрывают блок целиком — он вторичный.
+
+Клик по соседнему товару всегда должен открыть его в гриде. `useOpenSimilarProduct` через `findProductPage` ищет страницу сначала с текущими фильтрами; если товара в отфильтрованной выдаче нет — сканирует без фильтров, пишет URL через `openProductAt` со сбросом `priceMin`/`priceMax`/`inStockOnly` (ordering сохраняется) и показывает тост «Сбросили фильтры, чтобы показать товар». Если товар не находится даже без фильтров или скан падает по сети — показываем тост («Не нашли такой товар» / «Не удалось открыть товар»), без тихого no-op. Иначе эффект очистки `?product=` из COFFEE-21 сразу снял бы параметр, и визуально ничего бы не произошло.
 
 ## Эпики инфраструктуры
 

@@ -57,3 +57,11 @@ export async function fetchProduct(slug: string): Promise<Product> {
   const { data } = await http.get<Product>(`/api/products/${slug}/`)
   return data
 }
+
+/**
+ * Fetches related products in the same category (up to 8, excluding self).
+ */
+export async function fetchRelatedProducts(slug: string): Promise<ProductListItem[]> {
+  const { data } = await http.get<ProductListItem[]>(`/api/products/${slug}/related/`)
+  return data
+}

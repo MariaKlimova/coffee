@@ -1,5 +1,7 @@
+import { useEffect, useRef } from 'react'
+
 import { toExpandedCardProps, toProductCardProps, useProduct } from '@entities/product'
-import { CATALOG_COPY } from '@features/catalog'
+import { CATALOG_COPY, SimilarProducts, useOpenSimilarProduct } from '@features/catalog'
 import {
   Button,
   EmptyState,
@@ -19,7 +21,21 @@ export function CatalogPageItem({
   onExpand,
   onCollapse,
 }: CatalogPageItemProps) {
+  const rootRef = useRef<HTMLDivElement>(null)
   const detailQuery = useProduct(product.slug, { enabled: isExpanded })
+  const { openProduct, isPending } = useOpenSimilarProduct(product.category)
+
+  useEffect(() => {
+    if (!isExpanded || !detailQuery.isSuccess) {
+      return
+    }
+    const mediaQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+    const prefersReducedMotion = mediaQuery?.matches ?? false
+    rootRef.current?.scrollIntoView?.({
+      block: 'nearest',
+      behavior: prefersReducedMotion ? 'auto' : 'smooth',
+    })
+  }, [isExpanded, detailQuery.isSuccess, product.slug])
 
   if (!isExpanded) {
     return (
@@ -69,13 +85,22 @@ export function CatalogPageItem({
   const expandedCardProps = {
     ...toExpandedCardProps(detailQuery.data),
     onClose: onCollapse,
+    similarSlot: (
+      <SimilarProducts
+        slug={product.slug}
+        disabled={isPending}
+        onSelect={(slug) => {
+          void openProduct(slug)
+        }}
+      />
+    ),
   } as ExpandedProductCardProps
 
   return (
-    <>
+    <div ref={rootRef}>
       {/* React 19 hoists this into <head>: works for deep links and in-grid expand alike. */}
       <title>{buildProductTitle(detailQuery.data.name)}</title>
       <ExpandedProductCard {...expandedCardProps} />
-    </>
+    </div>
   )
 }

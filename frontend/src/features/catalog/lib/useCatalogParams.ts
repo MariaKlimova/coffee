@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { DEFAULT_ORDERING } from '../catalog.const'
 import { buildCatalogSearchParams, parseCatalogParams } from './catalogSearchParams'
 import type { CatalogFilterPatch, CatalogParams } from './catalogSearchParams.typings'
+import type { OpenProductAtOptions } from './useCatalogParams.typings'
 
 function commitParams(
   setSearchParams: ReturnType<typeof useSearchParams>[1],
@@ -85,6 +86,27 @@ export function useCatalogParams() {
     )
   }
 
+  /**
+   * Opens a product on a known page in one URL write.
+   * Used when switching from the similar-products strip.
+   */
+  function openProductAt({ slug, page, resetFilters }: OpenProductAtOptions): void {
+    const next: CatalogParams = resetFilters
+      ? {
+          inStockOnly: false,
+          ordering: params.ordering,
+          page,
+          product: slug,
+        }
+      : {
+          ...params,
+          page,
+          product: slug,
+        }
+
+    commitParams(setSearchParams, next, { replace: false })
+  }
+
   function resetFilters(): void {
     commitParams(
       setSearchParams,
@@ -105,6 +127,7 @@ export function useCatalogParams() {
     expandProduct,
     collapseProduct,
     clearProduct,
+    openProductAt,
     resetFilters,
   }
 }
