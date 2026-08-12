@@ -11,6 +11,7 @@ export function SimilarProducts({
   slug,
   onSelect,
   disabled = false,
+  onToggleFavorite,
 }: SimilarProductsProps) {
   const relatedQuery = useRelatedProducts(slug, { enabled: Boolean(slug) })
 
@@ -67,7 +68,9 @@ export function SimilarProducts({
                 }
                 onSelect(item.slug)
               }}
-              onToggleFavorite={() => undefined}
+              onToggleFavorite={(productId) => {
+                onToggleFavorite?.(productId, item.is_favorite)
+              }}
               onAddToCart={() => undefined}
             />
           </div>

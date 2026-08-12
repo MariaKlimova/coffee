@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom'
 
+import { useFavoritesCount } from '@entities/favorite'
 import { getUserDisplayName, useAuthStore } from '@entities/user'
 import { Footer } from '@shared/ui/Footer'
 import { Header } from '@shared/ui/Header'
@@ -8,16 +9,18 @@ import styles from './RootLayout.module.css'
 
 /**
  * App shell for store pages: sticky header, page content, footer.
- * Cart/favorites counts stay stubbed until their epics wire real data.
+ * Cart count stays stubbed until the cart epic wires real data.
  */
 export function RootLayout() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+  const favoritesCountQuery = useFavoritesCount()
+  const favoritesCount = favoritesCountQuery.data ?? 0
 
   return (
     <div className={styles.RootLayout}>
       <Header
-        favoritesCount={0}
+        favoritesCount={favoritesCount}
         cartCount={0}
         user={user ? { name: getUserDisplayName(user) } : null}
         onLogout={() => {

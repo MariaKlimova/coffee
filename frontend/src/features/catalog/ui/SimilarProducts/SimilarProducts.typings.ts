@@ -8,4 +8,6 @@ export interface SimilarProductsProps {
   onSelect: (slug: string) => void
   /** When true, clicks on cards are ignored (resolve in flight). */
   disabled?: boolean
+  /** Favorite toggle for cards in the strip (product UUID + current flag). */
+  onToggleFavorite?: (productId: string, isFavorite: boolean) => void
 }

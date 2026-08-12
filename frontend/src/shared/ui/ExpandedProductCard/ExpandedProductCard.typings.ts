@@ -54,6 +54,10 @@ interface ExpandedProductCardBase extends Omit<
   oldPrice?: string
   /** Close handler (× button or Escape). */
   onClose: () => void
+  /** Whether the product is in the user's favorites. */
+  isFavorite?: boolean
+  /** Favorite toggle; receives the product id passed to the card. */
+  onToggleFavorite?: (id: string) => void
   /** Optional similar-products slot (COFFEE-25). */
   similarSlot?: ReactNode
 }

@@ -34,7 +34,7 @@ const coffeeProduct: Product = {
 describe('toExpandedCardProps', () => {
   it('maps coffee detail onto ExpandedProductCard props', () => {
     expect(toExpandedCardProps(coffeeProduct)).toEqual({
-      id: 'ethiopia-yirgacheffe',
+      id: '11111111-1111-1111-1111-111111111111',
       category: 'coffee',
       categoryLabel: 'Кофе',
       title: 'Эфиопия Иргачеффе',
@@ -42,6 +42,7 @@ describe('toExpandedCardProps', () => {
       images: ['https://example.com/1.jpg', 'https://example.com/2.jpg'],
       price: '1\u00A0290\u00A0₽',
       oldPrice: undefined,
+      isFavorite: false,
       attributes: {
         originCountry: 'Эфиопия',
         intensity: 8,

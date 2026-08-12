@@ -9,6 +9,9 @@
 | Помол | степень помола зерна | «grind_level» в UI без пояснения |
 | Корзина | список товаров к заказу | «cart payload» |
 | Избранное | сохранённые товары | «favorites array» |
+| Избранное: действия | «В избранное», «Убрать из избранного» | «Add to wishlist», «Unfavorite» |
+| Избранное: гость | «Войди, чтобы добавить в избранное» | «Login required», «Sign in to favorite» |
+| Избранное: ошибка | «Не удалось обновить избранное. Попробуй ещё раз» | «Favorite failed», «Could not update favorites» |
 | Оформление заказа | checkout-поток | «submit order DTO» |
 | Каталог | витрина товаров | «products list endpoint» |
 | CTA в каталог | «В каталог» | «Перейти в каталог», «В products» |

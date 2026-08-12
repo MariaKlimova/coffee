@@ -77,6 +77,14 @@ productKeys.pageOf(lookup) // ['products', 'page-of', { slug, category, ordering
 
 В `ProductCard` поле `id` — UUID товара (для корзины/избранного). Expand и `?product=` работают по `slug` и передаются отдельно от `id`.
 
+### Избранное
+
+Слайс `entities/favorite` ходит в `POST/DELETE/GET /api/favorites/`. Счётчик в шапке — `useFavoritesCount` (`page_size=1`, только для `authenticated`). Тоггл — `features/toggle-favorite`: гость получает тост «Войди, чтобы добавить в избранное» без запроса; авторизованный пользователь обновляет кеш оптимистично.
+
+`applyFavoriteToCaches` патчит все записи под `productKeys.all` трёх форм — пагинированный `list` (`results`), массив `related`, одиночный `detail` — плюс `favoriteKeys.count` (±1). При ошибке мутация откатывает снимок; `onSettled` инвалидирует `productKeys.all` и `favoriteKeys.all`. `clientStore.favoriteIds` не подключаем: избранное серверное, стор остаётся заделом под корзину.
+
+После смены сессии (`AuthProvider`: переход в `authenticated` / `guest`) инвалидируются те же ключи, чтобы флаги `is_favorite` на витрине совпали с новой сессией.
+
 ### Страница товара как deep-link
 
 Отдельной вёрстки у `/product/:slug` нет: `pages/ProductPage` — резолвер, который открывает витрину на нужной странице с уже развёрнутой карточкой.

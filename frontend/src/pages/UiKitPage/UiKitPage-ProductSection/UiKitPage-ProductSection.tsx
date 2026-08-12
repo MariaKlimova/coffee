@@ -89,6 +89,10 @@ export function UiKitPageProductSection() {
             onClose={() => {
               setExpanded(null)
             }}
+            isFavorite={favorite}
+            onToggleFavorite={() => {
+              setFavorite((value) => !value)
+            }}
             similarSlot={
               <p className={styles['UiKitPage-Meta']}>Место для похожих товаров</p>
             }
@@ -112,6 +116,10 @@ export function UiKitPageProductSection() {
             }}
             onClose={() => {
               setExpanded(null)
+            }}
+            isFavorite={favorite}
+            onToggleFavorite={() => {
+              setFavorite((value) => !value)
             }}
           />
         ) : null}
