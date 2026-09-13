@@ -42,6 +42,22 @@ function isCartMergeUrl(url: string | undefined): boolean {
   return Boolean(url?.includes('/api/cart/merge/'))
 }
 
+/** Гостевой checkout: заказ создаётся по существующему `X-Cart-Token`. */
+function isGuestOrderCreateUrl(url: string | undefined): boolean {
+  if (!url) {
+    return false
+  }
+  // Только коллекция POST /api/orders/, не detail /api/orders/{id}/
+  return /\/api\/orders\/?$/.test(url) || url.includes('/api/orders/?')
+}
+
+function shouldAttachGuestCartToken(url: string | undefined): boolean {
+  if (isCartMergeUrl(url)) {
+    return false
+  }
+  return isCartApiUrl(url) || isGuestOrderCreateUrl(url)
+}
+
 function readResponseCartToken(response: AxiosResponse): string | null {
   const headers = response.headers
   const fromHeader =
@@ -112,7 +128,7 @@ http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     return config
   }
 
-  if (isCartApiUrl(config.url) && !isCartMergeUrl(config.url)) {
+  if (shouldAttachGuestCartToken(config.url)) {
     const cartToken = getCartBridge().getCartToken()
     if (cartToken) {
       config.headers[CART_TOKEN_HEADER] = cartToken

@@ -23,13 +23,13 @@ const appRoutes: RouteObject[] = [
       { path: APP_ROUTES.machines, element: <MachinesPage /> },
       { path: APP_ROUTES.product, element: <ProductPage /> },
       { path: APP_ROUTES.cart, element: <CartPage /> },
+      { path: APP_ROUTES.checkout, element: <CheckoutPage /> },
       { path: APP_ROUTES.login, element: <LoginPage /> },
       { path: APP_ROUTES.register, element: <RegisterPage /> },
       {
         element: <RequireAuth />,
         children: [
           { path: APP_ROUTES.favorites, element: <FavoritesPage /> },
-          { path: APP_ROUTES.checkout, element: <CheckoutPage /> },
           { path: APP_ROUTES.profile, element: <ProfilePage /> },
         ],
       },

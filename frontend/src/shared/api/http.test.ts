@@ -107,6 +107,34 @@ describe('http interceptors', () => {
     expect(config.headers[CART_TOKEN_HEADER]).toBe('guest-cart-token')
   })
 
+  it('attaches X-Cart-Token for guest order create', async () => {
+    accessToken = null
+    cartToken = 'guest-cart-token'
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 201, { id: 'order-1' }),
+    )
+
+    await http.post('/api/orders/', { delivery_address: 'Москва' })
+
+    const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
+    expect(config.headers[CART_TOKEN_HEADER]).toBe('guest-cart-token')
+  })
+
+  it('does not attach X-Cart-Token to order detail for guests', async () => {
+    accessToken = null
+    cartToken = 'guest-cart-token'
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, { id: 'order-1' }),
+    )
+
+    await http.get('/api/orders/11111111-1111-1111-1111-111111111111/')
+
+    const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
+    expect(config.headers[CART_TOKEN_HEADER]).toBeUndefined()
+  })
+
   it('does not attach X-Cart-Token when the user is authenticated', async () => {
     cartToken = 'guest-cart-token'
 

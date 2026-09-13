@@ -18,7 +18,7 @@ export const APP_ROUTES = {
   register: '/register',
   /** Favorites (auth). */
   favorites: '/favorites',
-  /** Checkout (auth). */
+  /** Checkout (guest + auth). */
   checkout: '/checkout',
   /** Profile (auth). */
   profile: '/profile',

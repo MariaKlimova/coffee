@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
-    CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5173"]),
+    CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5174"]),
     YOOKASSA_WEBHOOK_IP_CHECK=(bool, True),
 )
 
@@ -151,7 +151,7 @@ YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", default="")
 YOOKASSA_SECRET_KEY = env("YOOKASSA_SECRET_KEY", default="")
 YOOKASSA_RETURN_URL = env(
     "YOOKASSA_RETURN_URL",
-    default="http://localhost:5173/checkout/result",
+    default="http://localhost:5174/checkout/result",
 )
 YOOKASSA_API_BASE = env(
     "YOOKASSA_API_BASE",

@@ -28,7 +28,7 @@ coffee/
 React (Vite)  →  HTTP/JSON  →  Django REST Framework  →  PostgreSQL
 ```
 
-Клиент ходит на API backend. CORS настроен для локальной разработки (Vite на `localhost:5173`). Контракт API описывается в OpenAPI (черновик в `docs/api/`, схема генерируется из DRF).
+Клиент ходит на API backend. CORS настроен для локальной разработки (Vite на `localhost:5174`). Контракт API описывается в OpenAPI (черновик в `docs/api/`, схема генерируется из DRF).
 
 ## Аутентификация на фронте
 
@@ -45,7 +45,7 @@ React (Vite)  →  HTTP/JSON  →  Django REST Framework  →  PostgreSQL
 1. При старте `AuthProvider` вызывает `restoreSession()` → `GET /api/auth/me/`.
 2. После F5 access-токена нет → `/me/` отвечает 401 → интерцептор делает `POST /api/auth/refresh/` (single-flight на параллельные 401), сохраняет новый access и повторяет исходный запрос.
 3. Если refresh не удался: сессия очищается. Редирект на `/login` только при mid-session expiry (`status === 'authenticated'`); soft-restore на F5 со stale token остаётся на текущей публичной странице. Приватные роуты по-прежнему закрывает `RequireAuth`.
-4. `RequireAuth` закрывает `/favorites` и `/profile`. `/cart` доступен гостю. API оформления заказа (`POST /api/orders/`) принимает и JWT, и гостя (`X-Cart-Token` + `guest_email` / `guest_phone`). Гостевой заказ можно снова открыть по UUID (`GET /api/orders/{id}/`); список заказов — только для авторизованных. Страница `/checkout` на фронте пока может оставаться за `RequireAuth` до UI-задачи; целевой UX — гостевой checkout без обязательной регистрации. Исходный путь сохраняется в `location.state.from` для возврата после логина (формы — COFFEE-17).
+4. `RequireAuth` закрывает `/favorites` и `/profile`. `/cart` и `/checkout` доступны гостю. API оформления заказа (`POST /api/orders/`) принимает и JWT, и гостя (`X-Cart-Token` + `guest_email` / `guest_phone`). Гостевой заказ можно снова открыть по UUID (`GET /api/orders/{id}/`); список заказов — только для авторизованных. На чекауте гость указывает контакты, затем клиент создаёт платёж и уходит на `payment_url` ЮKassa. Исходный путь сохраняется в `location.state.from` для возврата после логина (формы — COFFEE-17).
 
 ### Оплата (backend)
 
