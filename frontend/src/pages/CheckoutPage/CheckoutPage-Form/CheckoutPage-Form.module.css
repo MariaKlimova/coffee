@@ -1,0 +1,26 @@
+.CheckoutPage-Form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.CheckoutPage-Form-Error {
+  margin: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: var(--color-badge-danger-bg);
+  color: var(--color-danger);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+}
+
+.CheckoutPage-Form-Submit {
+  width: 100%;
+  margin-top: var(--space-sm);
+}

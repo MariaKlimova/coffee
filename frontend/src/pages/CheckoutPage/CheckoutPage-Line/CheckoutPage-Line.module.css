@@ -1,0 +1,40 @@
+.CheckoutPage-Line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-block: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.CheckoutPage-Line:last-child {
+  border-bottom: none;
+}
+
+.CheckoutPage-Line-Name {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  color: var(--color-text);
+}
+
+.CheckoutPage-Line-Meta {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.CheckoutPage-Line-Total {
+  margin: 0;
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.CheckoutPage-Line--outOfStock .CheckoutPage-Line-Name,
+.CheckoutPage-Line--outOfStock .CheckoutPage-Line-Total {
+  color: var(--color-text-secondary);
+}
