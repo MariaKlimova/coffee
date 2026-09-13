@@ -12,6 +12,7 @@ env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5173"]),
+    YOOKASSA_WEBHOOK_IP_CHECK=(bool, True),
 )
 
 environ.Env.read_env(BASE_DIR / ".env")
@@ -35,6 +36,8 @@ INSTALLED_APPS = [
     "apps.catalog",
     "apps.favorites",
     "apps.cart",
+    "apps.orders",
+    "apps.payments",
 ]
 
 MIDDLEWARE = [
@@ -141,3 +144,19 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API for the coffee and coffee machines store",
     "VERSION": "0.1.0",
 }
+
+# YooKassa — shop credentials from Merchant Profile (demo store for local/dev).
+# Never commit real secrets; see backend/.env.example.
+YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", default="")
+YOOKASSA_SECRET_KEY = env("YOOKASSA_SECRET_KEY", default="")
+YOOKASSA_RETURN_URL = env(
+    "YOOKASSA_RETURN_URL",
+    default="http://localhost:5173/checkout/result",
+)
+YOOKASSA_API_BASE = env(
+    "YOOKASSA_API_BASE",
+    default="https://api.yookassa.ru/v3",
+)
+# Enforce documented YooKassa IP ranges on webhooks. Disable only for local
+# curl/ngrok debugging or pytest (set YOOKASSA_WEBHOOK_IP_CHECK=False).
+YOOKASSA_WEBHOOK_IP_CHECK = env("YOOKASSA_WEBHOOK_IP_CHECK")

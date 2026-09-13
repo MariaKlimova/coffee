@@ -1,14 +1,11 @@
 """Favorites API tests for COFFEE-27."""
 
-from decimal import Decimal
-
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from apps.catalog.models import Category, Product
 from apps.favorites.models import Favorite
 from tests.helpers import auth_client
 
@@ -21,26 +18,6 @@ def other_user(db) -> User:
         email="bob@example.com",
         password="SecurePass1",
     )
-
-
-@pytest.fixture
-def products(db) -> dict:
-    coffee = Category.objects.create(name="Кофе", slug="coffee")
-    cheap = Product.objects.create(
-        name="Дешёвый кофе",
-        slug="cheap-coffee",
-        category=coffee,
-        short_description="Бюджетный вариант",
-        price=Decimal("500.00"),
-    )
-    pricey = Product.objects.create(
-        name="Дорогой кофе",
-        slug="pricey-coffee",
-        category=coffee,
-        short_description="Премиум зерно",
-        price=Decimal("1500.00"),
-    )
-    return {"coffee": coffee, "cheap": cheap, "pricey": pricey}
 
 
 @pytest.mark.django_db

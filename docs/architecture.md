@@ -45,7 +45,7 @@ React (Vite)  →  HTTP/JSON  →  Django REST Framework  →  PostgreSQL
 1. При старте `AuthProvider` вызывает `restoreSession()` → `GET /api/auth/me/`.
 2. После F5 access-токена нет → `/me/` отвечает 401 → интерцептор делает `POST /api/auth/refresh/` (single-flight на параллельные 401), сохраняет новый access и повторяет исходный запрос.
 3. Если refresh не удался: сессия очищается. Редирект на `/login` только при mid-session expiry (`status === 'authenticated'`); soft-restore на F5 со stale token остаётся на текущей публичной странице. Приватные роуты по-прежнему закрывает `RequireAuth`.
-4. `RequireAuth` закрывает `/favorites`, `/checkout`, `/profile`; `/cart` доступен гостю. Исходный путь сохраняется в `location.state.from` для возврата после логина (формы — COFFEE-17).
+4. `RequireAuth` закрывает `/favorites` и `/profile`. `/cart` доступен гостю. API оформления заказа (`POST /api/orders/`) принимает и JWT, и гостя (`X-Cart-Token` + `guest_email` / `guest_phone`). Гостевой заказ можно снова открыть по UUID (`GET /api/orders/{id}/`); список заказов — только для авторизованных. Страница `/checkout` на фронте пока может оставаться за `RequireAuth` до UI-задачи; целевой UX — гостевой checkout без обязательной регистрации. Исходный путь сохраняется в `location.state.from` для возврата после логина (формы — COFFEE-17).
 
 **SECURITY (MVP):** refresh token в `localStorage` читается любым скриптом на origin (XSS). В проде стоит перейти на httpOnly cookie, когда бэкенд это поддержит (см. COFFEE-16).
 
