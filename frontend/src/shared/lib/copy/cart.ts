@@ -1,3 +1,5 @@
+import { GO_TO_CATALOG, RETRY } from './phrases'
+
 /**
  * Пользовательские строки для действий с корзиной (product-voice, glossary).
  */
@@ -12,4 +14,20 @@ export const CART_COPY = {
   increaseQty: 'Увеличить количество',
   quantityLabel: 'Количество',
   outOfStock: 'Нет в наличии',
+} as const
+
+/**
+ * Пользовательские строки страницы корзины.
+ */
+export const CART_PAGE_COPY = {
+  title: 'Корзина',
+  emptyTitle: 'Корзина пока пуста',
+  emptyDescription: 'Загляни в каталог — выбери то, что хочется попробовать',
+  goToCatalog: GO_TO_CATALOG,
+  checkout: 'Оформить заказ',
+  remove: 'Удалить',
+  total: 'Итого',
+  errorTitle: 'Не удалось загрузить корзину',
+  loadingLabel: 'Загрузка корзины',
+  retry: RETRY,
 } as const

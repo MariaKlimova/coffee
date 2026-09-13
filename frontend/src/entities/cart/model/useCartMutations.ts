@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { addItem, removeItem, updateItem } from '../api/cartApi'
 import {
   applyCartAddToCaches,
+  applyCartItemUpsertToCaches,
   applyCartRemoveToCaches,
   applyCartUpdateToCaches,
 } from '../lib/applyCartToCaches'
@@ -50,6 +51,9 @@ export function useCartMutations() {
       const previousCart = queryClient.getQueryData(cartKeys.detail())
       applyCartAddToCaches(queryClient, productId, quantity)
       return { previousCart }
+    },
+    onSuccess: (cartItem) => {
+      applyCartItemUpsertToCaches(queryClient, cartItem)
     },
     onError: (_error, _variables, context) => {
       if (!context) {

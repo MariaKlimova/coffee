@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { toExpandedCardProps, toProductCardProps, useProduct } from '@entities/product'
-import { useAddToCart } from '@features/add-to-cart'
+import { useCartLineActions } from '@features/add-to-cart'
 import { CATALOG_COPY, SimilarProducts, useOpenSimilarProduct } from '@features/catalog'
 import { useToggleFavorite } from '@features/toggle-favorite'
 import {
@@ -27,7 +27,7 @@ export function CatalogPageItem({
   const detailQuery = useProduct(product.slug, { enabled: isExpanded })
   const { openProduct, isPending } = useOpenSimilarProduct(product.category)
   const { toggleFavorite } = useToggleFavorite()
-  const { addToCart } = useAddToCart()
+  const { getQuantity, setQuantity, addToCart } = useCartLineActions()
 
   useEffect(() => {
     if (!isExpanded || !detailQuery.isSuccess) {
@@ -45,6 +45,7 @@ export function CatalogPageItem({
     return (
       <ProductCard
         {...toProductCardProps(product)}
+        cartQuantity={getQuantity(product.id)}
         onExpand={() => {
           onExpand(product.slug)
         }}
@@ -53,6 +54,9 @@ export function CatalogPageItem({
         }}
         onAddToCart={(productId) => {
           addToCart(productId, 1)
+        }}
+        onCartQuantityChange={(productId, quantity) => {
+          setQuantity(productId, quantity)
         }}
       />
     )
@@ -108,8 +112,12 @@ export function CatalogPageItem({
         onToggleFavorite={(productId, isFavorite) => {
           toggleFavorite(productId, isFavorite)
         }}
+        getCartQuantity={getQuantity}
         onAddToCart={(productId) => {
           addToCart(productId, 1)
+        }}
+        onCartQuantityChange={(productId, quantity) => {
+          setQuantity(productId, quantity)
         }}
       />
     ),

@@ -3,7 +3,7 @@
  * Новые фразы сверяй с docs/content/glossary.md.
  */
 export { AUTH_COPY } from './auth'
-export { CART_COPY } from './cart'
+export { CART_COPY, CART_PAGE_COPY } from './cart'
 export { CATALOG_COPY } from './catalog'
 export { FAVORITE_COPY, FAVORITES_PAGE_COPY } from './favorite'
 export { FOOTER_COPY, NAV_COPY } from './nav'

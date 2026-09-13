@@ -30,8 +30,39 @@ function patchCart(queryClient: QueryClient, updater: (cart: Cart) => Cart): voi
 }
 
 /**
+ * Вставляет или заменяет позицию по ответу API (после POST /cart/items/).
+ * Нужно, чтобы на карточке сразу появился счётчик −/+.
+ */
+export function applyCartItemUpsertToCaches(
+  queryClient: QueryClient,
+  cartItem: CartItem,
+): void {
+  patchCart(queryClient, (cart) => {
+    const existingIndex = cart.items.findIndex(
+      (item) => item.id === cartItem.id || item.product.id === cartItem.product.id,
+    )
+
+    let items: CartItem[]
+    if (existingIndex === -1) {
+      items = [...cart.items, cartItem]
+    } else {
+      items = cart.items.map((item, index) =>
+        index === existingIndex ? cartItem : item,
+      )
+    }
+
+    return {
+      ...cart,
+      items,
+      items_count: items.length,
+      total: sumLineTotals(items),
+    }
+  })
+}
+
+/**
  * Оптимистично увеличивает quantity существующей позиции или `items_count`,
- * если товара ещё нет в кэше (полная строка придёт после invalidate).
+ * если товара ещё нет в кэше (полная строка придёт после ответа / invalidate).
  */
 export function applyCartAddToCaches(
   queryClient: QueryClient,

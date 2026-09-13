@@ -7,7 +7,7 @@ import {
   DEFAULT_CATALOG_ROUTE,
   toProductCardProps,
 } from '@entities/product'
-import { useAddToCart } from '@features/add-to-cart'
+import { useCartLineActions } from '@features/add-to-cart'
 import { CatalogPagination } from '@features/catalog'
 import { useToggleFavorite } from '@features/toggle-favorite'
 import { FAVORITES_PAGE_COPY } from '@shared/lib/copy'
@@ -24,7 +24,7 @@ export function FavoritesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const page = parsePageNumber(searchParams.get('page'))
   const { toggleFavorite } = useToggleFavorite()
-  const { addToCart } = useAddToCart()
+  const { getQuantity, setQuantity, addToCart } = useCartLineActions()
 
   const favoritesQuery = useFavorites({
     page,
@@ -121,6 +121,7 @@ export function FavoritesPage() {
               <ProductCard
                 key={product.id}
                 {...toProductCardProps(product)}
+                cartQuantity={getQuantity(product.id)}
                 onExpand={() => {
                   void navigate(`/product/${product.slug}`)
                 }}
@@ -129,6 +130,9 @@ export function FavoritesPage() {
                 }}
                 onAddToCart={(productId) => {
                   addToCart(productId, 1)
+                }}
+                onCartQuantityChange={(productId, quantity) => {
+                  setQuantity(productId, quantity)
                 }}
               />
             ))}

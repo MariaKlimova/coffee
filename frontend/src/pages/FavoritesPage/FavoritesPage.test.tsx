@@ -46,6 +46,16 @@ const secondItem = {
   slug: 'brazil-santos',
 }
 
+function emptyCartResponse(config: InternalAxiosRequestConfig): AxiosResponse {
+  return jsonResponse(config, 200, {
+    id: 'cart-1',
+    items: [],
+    total: '0.00',
+    items_count: 0,
+    cart_token: null,
+  })
+}
+
 function renderFavorites(initialPath = '/favorites') {
   return renderWithProviders(
     <ToastProvider>
@@ -84,24 +94,33 @@ describe('FavoritesPage', () => {
 
   it('shows skeletons, then favorite cards', async () => {
     let resolveList!: (value: AxiosResponse) => void
-    adapter.mockImplementation(
-      (config: InternalAxiosRequestConfig) =>
-        new Promise<AxiosResponse>((resolve) => {
-          resolveList = resolve
-          void config
-        }),
-    )
+    adapter.mockImplementation((config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/cart/')) {
+        return Promise.resolve(emptyCartResponse(config))
+      }
+      return new Promise<AxiosResponse>((resolve) => {
+        resolveList = resolve
+        void config
+      })
+    })
 
     renderFavorites()
 
     expect(screen.getByLabelText(FAVORITES_PAGE_COPY.loadingLabel)).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(adapter).toHaveBeenCalled()
+      expect(resolveList).toBeTypeOf('function')
     })
 
+    const favoritesCall = adapter.mock.calls.find((call) =>
+      String((call[0] as InternalAxiosRequestConfig).url ?? '').includes(
+        '/api/favorites/',
+      ),
+    )
+    expect(favoritesCall).toBeDefined()
+
     resolveList(
-      jsonResponse(adapter.mock.calls[0][0] as InternalAxiosRequestConfig, 200, {
+      jsonResponse(favoritesCall![0] as InternalAxiosRequestConfig, 200, {
         count: 1,
         next: null,
         previous: null,
@@ -115,20 +134,20 @@ describe('FavoritesPage', () => {
     expect(
       screen.queryByLabelText(FAVORITES_PAGE_COPY.loadingLabel),
     ).not.toBeInTheDocument()
-
-    const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
-    expect(config.url).toContain('/api/favorites/')
   })
 
   it('shows an empty state with a link to the coffee catalog', async () => {
-    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
-      jsonResponse(config, 200, {
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/cart/')) {
+        return emptyCartResponse(config)
+      }
+      return jsonResponse(config, 200, {
         count: 0,
         next: null,
         previous: null,
         results: [],
-      }),
-    )
+      })
+    })
 
     renderFavorites()
 
@@ -148,6 +167,9 @@ describe('FavoritesPage', () => {
     let favorited = true
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/cart/')) {
+        return emptyCartResponse(config)
+      }
       if (config.url?.includes('/api/favorites/') && config.method === 'delete') {
         favorited = false
         return jsonResponse(config, 204, undefined)
@@ -188,6 +210,9 @@ describe('FavoritesPage', () => {
     let pageTwoItemFavorited = true
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/cart/')) {
+        return emptyCartResponse(config)
+      }
       if (config.url?.includes('/api/favorites/') && config.method === 'delete') {
         pageTwoItemFavorited = false
         return jsonResponse(config, 204, undefined)
@@ -232,6 +257,9 @@ describe('FavoritesPage', () => {
     let shouldFail = true
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/cart/')) {
+        return emptyCartResponse(config)
+      }
       if (shouldFail) {
         throw new AxiosError(
           'Server Error',
@@ -267,6 +295,9 @@ describe('FavoritesPage', () => {
     const user = userEvent.setup()
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url?.includes('/api/cart/')) {
+        return emptyCartResponse(config)
+      }
       const page = Number(config.params?.page ?? 1)
       if (page >= 2) {
         return jsonResponse(config, 200, {
