@@ -1,10 +1,4 @@
-export {
-  addItem,
-  fetchCart,
-  mergeCart,
-  removeItem,
-  updateItem,
-} from './api/cartApi'
+export { addItem, fetchCart, mergeCart, removeItem, updateItem } from './api/cartApi'
 export type {
   Cart,
   CartItem,

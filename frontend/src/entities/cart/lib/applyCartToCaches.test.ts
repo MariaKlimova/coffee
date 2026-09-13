@@ -56,11 +56,7 @@ describe('applyCartToCaches', () => {
     const queryClient = new QueryClient()
     queryClient.setQueryData(cartKeys.detail(), structuredClone(baseCart))
 
-    applyCartAddToCaches(
-      queryClient,
-      '22222222-2222-2222-2222-222222222222',
-      1,
-    )
+    applyCartAddToCaches(queryClient, '22222222-2222-2222-2222-222222222222', 1)
 
     const cart = queryClient.getQueryData(cartKeys.detail()) as Cart
     expect(cart.items_count).toBe(2)

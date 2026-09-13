@@ -1,11 +1,7 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
-import {
-  cartKeys,
-  mergeCart,
-  useCartStore,
-} from '@entities/cart'
+import { cartKeys, mergeCart, useCartStore } from '@entities/cart'
 import { favoriteKeys } from '@entities/favorite'
 import { productKeys } from '@entities/product'
 import { useAuthStore } from '@entities/user'

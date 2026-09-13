@@ -2,11 +2,7 @@ import { create } from 'zustand'
 
 import { setCartBridge } from '@shared/api'
 
-import {
-  clearCartTokenStorage,
-  readCartToken,
-  writeCartToken,
-} from './cartStorage'
+import { clearCartTokenStorage, readCartToken, writeCartToken } from './cartStorage'
 import type { CartStoreState } from './cartStore.typings'
 
 /**

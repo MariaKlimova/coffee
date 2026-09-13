@@ -92,7 +92,12 @@ describe('http interceptors', () => {
     cartToken = 'guest-cart-token'
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
-      jsonResponse(config, 200, { id: 'cart-1', items: [], total: '0.00', items_count: 0 }),
+      jsonResponse(config, 200, {
+        id: 'cart-1',
+        items: [],
+        total: '0.00',
+        items_count: 0,
+      }),
     )
 
     await http.get('/api/cart/')

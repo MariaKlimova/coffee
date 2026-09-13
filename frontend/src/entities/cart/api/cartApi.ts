@@ -19,10 +19,7 @@ export async function fetchCart(): Promise<Cart> {
 /**
  * Добавляет товар в корзину (или увеличивает quantity, если позиция уже есть).
  */
-export async function addItem(
-  productId: string,
-  quantity: number,
-): Promise<CartItem> {
+export async function addItem(productId: string, quantity: number): Promise<CartItem> {
   const body: CartItemCreate = {
     product_id: productId,
     quantity,
@@ -34,10 +31,7 @@ export async function addItem(
 /**
  * Обновляет количество существующей позиции.
  */
-export async function updateItem(
-  itemId: string,
-  quantity: number,
-): Promise<CartItem> {
+export async function updateItem(itemId: string, quantity: number): Promise<CartItem> {
   const body: CartItemUpdate = { quantity }
   const { data } = await http.patch<CartItem>(`/api/cart/items/${itemId}/`, body)
   return data

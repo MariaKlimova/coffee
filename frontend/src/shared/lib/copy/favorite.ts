@@ -16,8 +16,7 @@ export const FAVORITE_COPY = {
 export const FAVORITES_PAGE_COPY = {
   title: 'Избранное',
   emptyTitle: 'Здесь пока пусто',
-  emptyDescription:
-    'Отмечай сердечком то, что понравилось — вернёшься к этому позже',
+  emptyDescription: 'Отмечай сердечком то, что понравилось — вернёшься к этому позже',
   goToCatalog: GO_TO_CATALOG,
   errorTitle: 'Не удалось загрузить избранное',
   loadingLabel: 'Загрузка избранного',

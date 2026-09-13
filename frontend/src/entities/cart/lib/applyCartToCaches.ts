@@ -20,10 +20,7 @@ function sumLineTotals(items: CartItem[]): string {
   return formatMoneyAmount(total)
 }
 
-function patchCart(
-  queryClient: QueryClient,
-  updater: (cart: Cart) => Cart,
-): void {
+function patchCart(queryClient: QueryClient, updater: (cart: Cart) => Cart): void {
   queryClient.setQueryData(cartKeys.detail(), (cached: unknown) => {
     if (cached == null || typeof cached !== 'object' || !('items' in cached)) {
       return cached
@@ -42,9 +39,7 @@ export function applyCartAddToCaches(
   quantity: number,
 ): void {
   patchCart(queryClient, (cart) => {
-    const existingIndex = cart.items.findIndex(
-      (item) => item.product.id === productId,
-    )
+    const existingIndex = cart.items.findIndex((item) => item.product.id === productId)
 
     if (existingIndex === -1) {
       return {

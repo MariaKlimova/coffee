@@ -38,6 +38,9 @@ test(frontend): cover ProductCard render
 ci: run lint on pull requests
 ```
 
-При `git commit` husky запускает commitlint и отклоняет сообщения вне этой конвенции.
+При `git commit` husky:
+
+1. **pre-commit** — lint (и typecheck для frontend; ruff/black для backend) по затронутым путям; при ошибке коммит не создаётся
+2. **commit-msg** — commitlint отклоняет сообщения вне конвенции
 
 После клонирования репозитория один раз выполните `npm install` в корне — скрипт `prepare` установит git-хуки.
