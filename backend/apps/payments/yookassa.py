@@ -80,9 +80,13 @@ def create_payment(
     order_id: str,
     description: str,
     return_url: str | None = None,
+    idempotence_key: str | None = None,
 ) -> dict[str, Any]:
     """
     Create a redirect payment in YooKassa.
+
+    ``idempotence_key`` should be stable per attempt (e.g. ``{order_id}:{n}``)
+    so client retries after a timeout do not create duplicate provider payments.
 
     Returns the provider payment object (must include ``id`` and
     ``confirmation.confirmation_url``).
@@ -104,7 +108,7 @@ def create_payment(
         "POST",
         "/payments",
         body=payload,
-        idempotence_key=str(uuid.uuid4()),
+        idempotence_key=idempotence_key or str(uuid.uuid4()),
     )
 
 

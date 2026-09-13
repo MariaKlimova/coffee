@@ -647,6 +647,12 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
+        "502":
+          description: Payment provider temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /api/payments/webhook/:
     post:
@@ -654,9 +660,12 @@ paths:
       summary: Payment provider webhook
       description: |
         YooKassa HTTP notification. No JWT. Source IP must match documented
-        YooKassa ranges when `YOOKASSA_WEBHOOK_IP_CHECK` is enabled. The handler
-        re-fetches the payment from YooKassa and applies status changes
-        idempotently (`select_for_update`). Responds 200 quickly.
+        YooKassa ranges when `YOOKASSA_WEBHOOK_IP_CHECK` is enabled (checked
+        via `REMOTE_ADDR` only — not `X-Forwarded-For`). The handler re-fetches
+        the payment from YooKassa and applies status changes idempotently
+        (`select_for_update`). A second succeeded attempt on an already-paid
+        order is marked `failed` and still returns 200. Responds 200 quickly;
+        502 if the provider re-fetch fails (YooKassa will retry).
       operationId: paymentWebhook
       security: []
       requestBody:
@@ -682,6 +691,12 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "403":
           description: Untrusted webhook source (IP check failed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Payment provider temporarily unavailable
           content:
             application/json:
               schema:
