@@ -12,6 +12,7 @@ from rest_framework.test import APIClient
 
 from apps.orders.models import Order
 from apps.payments.models import Payment
+from apps.payments.yookassa import YooKassaError
 from tests.helpers import auth_client
 
 User = get_user_model()
@@ -353,3 +354,145 @@ def test_create_payment_unknown_order(
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@pytest.mark.django_db
+@override_settings(YOOKASSA_WEBHOOK_IP_CHECK=True)
+def test_webhook_ignores_spoofed_x_forwarded_for(
+    api_client: APIClient,
+    user,
+    monkeypatch,
+) -> None:
+    order = _make_order(user=user)
+    Payment.objects.create(
+        order=order,
+        provider_payment_id=PROVIDER_ID,
+        status=Payment.Status.PENDING,
+        amount=order.total_amount,
+        confirmation_url=CONFIRM_URL,
+    )
+    _mock_get_payment(monkeypatch, provider_status="succeeded")
+
+    response = api_client.post(
+        reverse("payment-webhook"),
+        {
+            "type": "notification",
+            "event": "payment.succeeded",
+            "object": {"id": PROVIDER_ID, "status": "succeeded"},
+        },
+        format="json",
+        REMOTE_ADDR="203.0.113.10",
+        HTTP_X_FORWARDED_FOR="185.71.76.1",
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    order.refresh_from_db()
+    assert order.status == Order.Status.PENDING
+
+
+@pytest.mark.django_db
+@override_settings(YOOKASSA_WEBHOOK_IP_CHECK=False)
+def test_webhook_second_succeeded_payment_demoted_to_failed(
+    api_client: APIClient,
+    user,
+    monkeypatch,
+) -> None:
+    order = _make_order(user=user)
+    Payment.objects.create(
+        order=order,
+        provider_payment_id="pay-first",
+        status=Payment.Status.PENDING,
+        amount=order.total_amount,
+        confirmation_url=CONFIRM_URL,
+    )
+    Payment.objects.create(
+        order=order,
+        provider_payment_id="pay-second",
+        status=Payment.Status.PENDING,
+        amount=order.total_amount,
+        confirmation_url=CONFIRM_URL,
+    )
+
+    def fake_get(provider_payment_id: str):
+        return {
+            "id": provider_payment_id,
+            "status": "succeeded",
+            "amount": {"value": "500.00", "currency": "RUB"},
+            "paid": True,
+            "test": True,
+        }
+
+    monkeypatch.setattr("apps.payments.yookassa.get_payment", fake_get)
+
+    first = api_client.post(
+        reverse("payment-webhook"),
+        {
+            "type": "notification",
+            "event": "payment.succeeded",
+            "object": {"id": "pay-first", "status": "succeeded"},
+        },
+        format="json",
+    )
+    second = api_client.post(
+        reverse("payment-webhook"),
+        {
+            "type": "notification",
+            "event": "payment.succeeded",
+            "object": {"id": "pay-second", "status": "succeeded"},
+        },
+        format="json",
+    )
+
+    assert first.status_code == status.HTTP_200_OK
+    assert second.status_code == status.HTTP_200_OK
+    order.refresh_from_db()
+    assert order.status == Order.Status.PAID
+    assert Payment.objects.get(provider_payment_id="pay-first").status == (
+        Payment.Status.SUCCEEDED
+    )
+    assert Payment.objects.get(provider_payment_id="pay-second").status == (
+        Payment.Status.FAILED
+    )
+    assert (
+        Payment.objects.filter(
+            order=order,
+            status=Payment.Status.SUCCEEDED,
+        ).count()
+        == 1
+    )
+
+
+@pytest.mark.django_db
+@override_settings(YOOKASSA_WEBHOOK_IP_CHECK=False)
+def test_webhook_provider_outage_returns_502(
+    api_client: APIClient,
+    user,
+    monkeypatch,
+) -> None:
+    order = _make_order(user=user)
+    Payment.objects.create(
+        order=order,
+        provider_payment_id=PROVIDER_ID,
+        status=Payment.Status.PENDING,
+        amount=order.total_amount,
+        confirmation_url=CONFIRM_URL,
+    )
+
+    def boom(_provider_payment_id: str):
+        raise YooKassaError("unreachable")
+
+    monkeypatch.setattr("apps.payments.yookassa.get_payment", boom)
+
+    response = api_client.post(
+        reverse("payment-webhook"),
+        {
+            "type": "notification",
+            "event": "payment.succeeded",
+            "object": {"id": PROVIDER_ID, "status": "succeeded"},
+        },
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_502_BAD_GATEWAY
+    order.refresh_from_db()
+    assert order.status == Order.Status.PENDING

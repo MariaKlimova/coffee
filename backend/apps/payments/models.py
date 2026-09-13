@@ -15,7 +15,13 @@ class Payment(models.Model):
     """
 
     class Status(models.TextChoices):
-        """Lifecycle mirrored from the payment provider."""
+        """
+        Payment lifecycle.
+
+        ``canceled`` mirrors YooKassa declined/canceled payments.
+        ``failed`` is reserved for local terminalization (e.g. a second
+        succeeded attempt on an already-paid order).
+        """
 
         PENDING = "pending", "Pending"
         SUCCEEDED = "succeeded", "Succeeded"

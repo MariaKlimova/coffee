@@ -97,7 +97,7 @@ npm run dev
 
 1. В [ЛК ЮKassa](https://yookassa.ru) создай **демо-магазин**, скопируй shopId и secret в `backend/.env` (`YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`).
 2. `YOOKASSA_RETURN_URL` — куда вернуть покупателя после оплаты (например `http://localhost:5173/checkout/result`).
-3. В ЛК укажи HTTP-уведомления на публичный URL `…/api/payments/webhook/` (для localhost — ngrok/cloudflared). Локально можно `YOOKASSA_WEBHOOK_IP_CHECK=False` для отладки curl’ом.
+3. В ЛК укажи HTTP-уведомления на публичный URL `…/api/payments/webhook/` (для localhost — ngrok/cloudflared). IP-check по умолчанию включён; для отладки curl’ом локально можно выставить `YOOKASSA_WEBHOOK_IP_CHECK=False`.
 4. Создай заказ (`POST /api/orders/`), затем `POST /api/payments/create/` с `order_id`, открой `payment_url`, оплати тестовой картой `5555 5555 5555 4444`. В демо деньги никуда не переводятся.
 
 ## CI

@@ -8,9 +8,14 @@ from typing import Any
 from uuid import UUID
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import HttpRequest
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    APIException,
+    NotFound,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.request import Request
 
 from apps.orders.access import can_view_order
@@ -42,11 +47,22 @@ TERMINAL_STATUSES = frozenset(
 )
 
 
+class PaymentProviderUnavailable(APIException):
+    """YooKassa is down or returned a transport/server error (retryable)."""
+
+    status_code = 502
+    default_detail = "Payment provider is temporarily unavailable."
+    default_code = "provider_unavailable"
+
+
 def client_ip(request: HttpRequest) -> str | None:
-    """Best-effort client IP (direct peer or first X-Forwarded-For hop)."""
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
-    if forwarded:
-        return forwarded.split(",")[0].strip() or None
+    """
+    Direct peer address for webhook IP checks.
+
+    Uses ``REMOTE_ADDR`` only — never trust client-controlled
+    ``X-Forwarded-For`` unless a reverse proxy strips/rewrites it to
+    ``REMOTE_ADDR`` (e.g. nginx ``real_ip``).
+    """
     return request.META.get("REMOTE_ADDR")
 
 
@@ -69,6 +85,7 @@ def create_payment_session(request: Request, order_id: UUID) -> Payment:
 
     Raises NotFound if the order is missing or not visible to the caller.
     Raises ValidationError if the order is not payable.
+    Raises PaymentProviderUnavailable if YooKassa is unreachable.
     """
     try:
         order = Order.objects.get(pk=order_id)
@@ -91,16 +108,18 @@ def create_payment_session(request: Request, order_id: UUID) -> Payment:
             {"order_id": ["Order already has a successful payment."]},
         )
 
+    attempt = Payment.objects.filter(order=order).count() + 1
+    idempotence_key = f"{order.id}:{attempt}"
+
     try:
         provider = yookassa.create_payment(
             amount=order.total_amount,
             order_id=str(order.id),
             description=f"Order {order.id}",
+            idempotence_key=idempotence_key,
         )
     except yookassa.YooKassaError as exc:
-        raise ValidationError(
-            {"non_field_errors": [str(exc)]},
-        ) from exc
+        raise PaymentProviderUnavailable() from exc
 
     provider_id = provider.get("id")
     confirmation = provider.get("confirmation") or {}
@@ -125,7 +144,12 @@ def create_payment_session(request: Request, order_id: UUID) -> Payment:
 
 
 def _map_provider_status(provider_status: str) -> str | None:
-    """Map YooKassa payment status to our Payment.Status value."""
+    """
+    Map YooKassa payment status to our Payment.Status value.
+
+    YooKassa uses ``canceled`` for declined/failed attempts. ``failed`` is
+    reserved for local terminalization (e.g. duplicate succeeded race).
+    """
     if provider_status == "succeeded":
         return Payment.Status.SUCCEEDED
     if provider_status == "canceled":
@@ -135,12 +159,61 @@ def _map_provider_status(provider_status: str) -> str | None:
     return None
 
 
+def _apply_succeeded(payment: Payment, provider: dict[str, Any]) -> None:
+    """
+    Mark ``payment`` succeeded and order paid, or demote on race.
+
+    If another payment already succeeded (or the order is already paid),
+    this attempt becomes ``failed`` so the unique constraint and webhook
+    retries stay healthy (HTTP 200, no IntegrityError).
+    """
+    order = payment.order
+    already_paid = (
+        order.status == Order.Status.PAID
+        or Payment.objects.filter(
+            order=order,
+            status=Payment.Status.SUCCEEDED,
+        )
+        .exclude(pk=payment.pk)
+        .exists()
+    )
+    if already_paid:
+        payment.status = Payment.Status.FAILED
+        payment.raw_payload = provider
+        payment.save(update_fields=["status", "raw_payload", "updated_at"])
+        logger.info(
+            "Demoted duplicate succeeded payment %s for order %s to failed",
+            payment.provider_payment_id,
+            order.id,
+        )
+        return
+
+    payment.status = Payment.Status.SUCCEEDED
+    payment.raw_payload = provider
+    try:
+        with transaction.atomic():
+            payment.save(update_fields=["status", "raw_payload", "updated_at"])
+    except IntegrityError:
+        payment.status = Payment.Status.FAILED
+        payment.save(update_fields=["status", "raw_payload", "updated_at"])
+        logger.info(
+            "IntegrityError on succeeded payment %s; marked failed",
+            payment.provider_payment_id,
+        )
+        return
+
+    if order.status == Order.Status.PENDING:
+        order.status = Order.Status.PAID
+        order.save(update_fields=["status", "updated_at"])
+
+
 def handle_webhook(request: HttpRequest, payload: dict[str, Any]) -> None:
     """
     Process a YooKassa notification after IP verification.
 
     Re-fetches the payment from the provider before applying status changes.
-    Idempotent for already-terminal Payment rows.
+    Idempotent for already-terminal Payment rows and for a second succeeded
+    attempt on the same order.
     """
     if settings.YOOKASSA_WEBHOOK_IP_CHECK:
         ip = client_ip(request)
@@ -164,9 +237,7 @@ def handle_webhook(request: HttpRequest, payload: dict[str, Any]) -> None:
     try:
         provider = yookassa.get_payment(str(provider_payment_id))
     except yookassa.YooKassaError as exc:
-        raise ValidationError(
-            {"non_field_errors": [str(exc)]},
-        ) from exc
+        raise PaymentProviderUnavailable() from exc
 
     mapped = _map_provider_status(str(provider.get("status") or ""))
     if mapped is None:
@@ -194,12 +265,10 @@ def handle_webhook(request: HttpRequest, payload: dict[str, Any]) -> None:
         if payment.status in TERMINAL_STATUSES:
             return
 
+        if mapped == Payment.Status.SUCCEEDED:
+            _apply_succeeded(payment, provider)
+            return
+
         payment.raw_payload = provider
         payment.status = mapped
         payment.save(update_fields=["status", "raw_payload", "updated_at"])
-
-        if mapped == Payment.Status.SUCCEEDED:
-            order = payment.order
-            if order.status == Order.Status.PENDING:
-                order.status = Order.Status.PAID
-                order.save(update_fields=["status", "updated_at"])
