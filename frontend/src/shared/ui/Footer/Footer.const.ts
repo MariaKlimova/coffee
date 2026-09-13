@@ -1,3 +1,5 @@
+import { FOOTER_COPY } from '@shared/lib/copy'
+
 import type {
   FooterContactItem,
   FooterLinkItem,
@@ -6,16 +8,16 @@ import type {
 
 /** Utility links in the footer. */
 export const FOOTER_LINKS: FooterLinkItem[] = [
-  { href: '/#delivery', label: 'Доставка и оплата' },
-  { href: '/#contacts', label: 'Контакты' },
-  { href: '/#privacy', label: 'Политика конфиденциальности' },
+  { href: '/#delivery', label: FOOTER_COPY.delivery },
+  { href: '/#contacts', label: FOOTER_COPY.contacts },
+  { href: '/#privacy', label: FOOTER_COPY.privacy },
 ]
 
 /** Placeholder contact details. */
 export const FOOTER_CONTACTS: FooterContactItem[] = [
-  { label: 'Телефон', value: '+7 (495) 000-00-00' },
-  { label: 'Email', value: 'hello@coffeeshop.example' },
-  { label: 'Адрес', value: 'Москва, ул. Примерная, 1' },
+  { label: FOOTER_COPY.phone, value: '+7 (495) 000-00-00' },
+  { label: FOOTER_COPY.email, value: 'hello@coffeeshop.example' },
+  { label: FOOTER_COPY.address, value: 'Москва, ул. Примерная, 1' },
 ]
 
 /** Placeholder social links. */

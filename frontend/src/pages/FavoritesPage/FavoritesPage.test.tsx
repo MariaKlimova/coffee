@@ -6,11 +6,11 @@ import { Route, Routes } from 'react-router-dom'
 
 import { useAuthStore } from '@entities/user'
 import { http } from '@shared/api'
+import { FAVORITES_PAGE_COPY } from '@shared/lib/copy'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
 import { ToastProvider } from '@shared/ui'
 
 import { FavoritesPage } from './FavoritesPage'
-import { FAVORITES_PAGE_COPY } from './FavoritesPage.const'
 
 function jsonResponse(
   config: InternalAxiosRequestConfig,

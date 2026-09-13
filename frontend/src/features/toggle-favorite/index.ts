@@ -1,2 +1,2 @@
-export { FAVORITE_COPY } from './toggleFavorite.const'
+export { FAVORITE_COPY } from '@shared/lib/copy'
 export { useToggleFavorite } from './lib/useToggleFavorite'

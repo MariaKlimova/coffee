@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { toExpandedCardProps, toProductCardProps, useProduct } from '@entities/product'
+import { useAddToCart } from '@features/add-to-cart'
 import { CATALOG_COPY, SimilarProducts, useOpenSimilarProduct } from '@features/catalog'
 import { useToggleFavorite } from '@features/toggle-favorite'
 import {
@@ -26,6 +27,7 @@ export function CatalogPageItem({
   const detailQuery = useProduct(product.slug, { enabled: isExpanded })
   const { openProduct, isPending } = useOpenSimilarProduct(product.category)
   const { toggleFavorite } = useToggleFavorite()
+  const { addToCart } = useAddToCart()
 
   useEffect(() => {
     if (!isExpanded || !detailQuery.isSuccess) {
@@ -49,8 +51,9 @@ export function CatalogPageItem({
         onToggleFavorite={(productId) => {
           toggleFavorite(productId, product.is_favorite)
         }}
-        // Stub until the cart epic wires a real handler (UUID is in `id`).
-        onAddToCart={() => undefined}
+        onAddToCart={(productId) => {
+          addToCart(productId, 1)
+        }}
       />
     )
   }
@@ -92,6 +95,9 @@ export function CatalogPageItem({
     onToggleFavorite: (productId: string) => {
       toggleFavorite(productId, detailQuery.data.is_favorite)
     },
+    onAddToCart: (productId: string, quantity: number) => {
+      addToCart(productId, quantity)
+    },
     similarSlot: (
       <SimilarProducts
         slug={product.slug}
@@ -101,6 +107,9 @@ export function CatalogPageItem({
         }}
         onToggleFavorite={(productId, isFavorite) => {
           toggleFavorite(productId, isFavorite)
+        }}
+        onAddToCart={(productId) => {
+          addToCart(productId, 1)
         }}
       />
     ),

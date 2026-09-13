@@ -28,5 +28,7 @@ description: >-
 
 ## Куда класть строки
 
-- Пока: согласовывать формулировки с glossary; выносить повторяющиеся строки в общий copy-модуль (`shared/lib/copy` — когда появится)
-- Не размножать одинаковые литералы в JSX
+- Источник формулировок: [docs/content/glossary.md](../../../docs/content/glossary.md)
+- Код: [`frontend/src/shared/lib/copy/`](../../../frontend/src/shared/lib/copy/) — единый модуль (`AUTH_COPY`, `CART_COPY`, `CATALOG_COPY`, …)
+- Новые UI-фразы сначала в glossary (если термин общий), затем в `shared/lib/copy`
+- Не размножать одинаковые литералы в JSX и локальных `*.const.ts`

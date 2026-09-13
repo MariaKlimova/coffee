@@ -43,6 +43,7 @@ describe('toExpandedCardProps', () => {
       price: '1\u00A0290\u00A0₽',
       oldPrice: undefined,
       isFavorite: false,
+      inStock: true,
       attributes: {
         originCountry: 'Эфиопия',
         intensity: 8,

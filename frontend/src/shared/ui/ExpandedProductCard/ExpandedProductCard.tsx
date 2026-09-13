@@ -1,6 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
+import { CART_COPY, CLOSE, FAVORITE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
+import { Button } from '@shared/ui/Button'
 import { HeartIcon } from '@shared/ui/icons'
 import { ImageCarousel } from '@shared/ui/ImageCarousel'
 
@@ -51,6 +53,8 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
     onClose,
     isFavorite = false,
     onToggleFavorite,
+    inStock = true,
+    onAddToCart,
     similarSlot,
     className,
     attributes,
@@ -58,6 +62,8 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
   } = props
 
   const titleId = `${id}-expanded-title`
+  const quantityId = `${id}-quantity`
+  const [quantity, setQuantity] = useState(1)
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -87,7 +93,7 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
             <button
               type="button"
               className={styles['ExpandedProductCard-Favorite']}
-              aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+              aria-label={isFavorite ? FAVORITE_COPY.remove : FAVORITE_COPY.add}
               aria-pressed={isFavorite}
               onClick={() => {
                 onToggleFavorite(id)
@@ -99,7 +105,7 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
           <button
             type="button"
             className={styles['ExpandedProductCard-Close']}
-            aria-label="Закрыть"
+            aria-label={CLOSE}
             onClick={onClose}
           >
             <CloseIcon />
@@ -126,6 +132,55 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
           ) : null}
           <span className={styles['ExpandedProductCard-Price']}>{price}</span>
         </div>
+
+        {onAddToCart ? (
+          <div className={styles['ExpandedProductCard-CartRow']}>
+            <div
+              className={styles['ExpandedProductCard-Qty']}
+              role="group"
+              aria-label={CART_COPY.quantityLabel}
+            >
+              <button
+                type="button"
+                className={styles['ExpandedProductCard-QtyButton']}
+                aria-label={CART_COPY.decreaseQty}
+                disabled={!inStock || quantity <= 1}
+                onClick={() => {
+                  setQuantity((value) => Math.max(1, value - 1))
+                }}
+              >
+                −
+              </button>
+              <span
+                id={quantityId}
+                className={styles['ExpandedProductCard-QtyValue']}
+                aria-live="polite"
+              >
+                {quantity}
+              </span>
+              <button
+                type="button"
+                className={styles['ExpandedProductCard-QtyButton']}
+                aria-label={CART_COPY.increaseQty}
+                disabled={!inStock}
+                onClick={() => {
+                  setQuantity((value) => value + 1)
+                }}
+              >
+                +
+              </button>
+            </div>
+            <Button
+              className={styles['ExpandedProductCard-AddToCart']}
+              disabled={!inStock}
+              onClick={() => {
+                onAddToCart(id, quantity)
+              }}
+            >
+              {CART_COPY.addCta}
+            </Button>
+          </div>
+        ) : null}
 
         <p className={styles['ExpandedProductCard-AttrsTitle']}>Характеристики</p>
 

@@ -108,7 +108,67 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.ExpandedProductCard-CartRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
   margin-bottom: var(--space-lg);
+}
+
+.ExpandedProductCard-Qty {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.ExpandedProductCard-QtyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-icon-button-md);
+  height: var(--size-icon-button-md);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.ExpandedProductCard-QtyButton:disabled {
+  color: var(--color-text-placeholder);
+  cursor: not-allowed;
+}
+
+.ExpandedProductCard-QtyButton:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ExpandedProductCard-QtyValue {
+  min-width: var(--space-xl);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-tight);
+  text-align: center;
+  color: var(--color-text);
+}
+
+.ExpandedProductCard-AddToCart {
+  flex: 1 1 auto;
 }
 
 .ExpandedProductCard-Price {

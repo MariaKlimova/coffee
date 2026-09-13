@@ -3,18 +3,20 @@ import axios from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resetAuthBridge, setAuthBridge } from './authBridge'
-import { http } from './http'
+import { resetCartBridge, setCartBridge } from './cartBridge'
+import { CART_TOKEN_HEADER, http } from './http'
 
 function jsonResponse(
   config: InternalAxiosRequestConfig,
   status: number,
   data: unknown,
+  headers: Record<string, string> = {},
 ): AxiosResponse {
   return {
     data,
     status,
     statusText: String(status),
-    headers: {},
+    headers,
     config,
   }
 }
@@ -37,12 +39,18 @@ describe('http interceptors', () => {
   const onSessionExpired = vi.fn()
   let accessToken: string | null = 'access-old'
   let refreshToken: string | null = 'refresh-valid'
+  let cartToken: string | null = null
+  const setCartToken = vi.fn((token: string) => {
+    cartToken = token
+  })
 
   beforeEach(() => {
     adapter.mockReset()
     onSessionExpired.mockReset()
+    setCartToken.mockClear()
     accessToken = 'access-old'
     refreshToken = 'refresh-valid'
+    cartToken = null
     http.defaults.adapter = adapter
 
     setAuthBridge({
@@ -53,10 +61,16 @@ describe('http interceptors', () => {
       },
       onSessionExpired,
     })
+
+    setCartBridge({
+      getCartToken: () => cartToken,
+      setCartToken,
+    })
   })
 
   afterEach(() => {
     resetAuthBridge()
+    resetCartBridge()
     delete http.defaults.adapter
     vi.restoreAllMocks()
   })
@@ -71,6 +85,76 @@ describe('http interceptors', () => {
     expect(adapter).toHaveBeenCalledTimes(1)
     const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
     expect(config.headers.Authorization).toBe('Bearer access-old')
+  })
+
+  it('attaches X-Cart-Token for guest cart requests', async () => {
+    accessToken = null
+    cartToken = 'guest-cart-token'
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, { id: 'cart-1', items: [], total: '0.00', items_count: 0 }),
+    )
+
+    await http.get('/api/cart/')
+
+    const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
+    expect(config.headers.Authorization).toBeUndefined()
+    expect(config.headers[CART_TOKEN_HEADER]).toBe('guest-cart-token')
+  })
+
+  it('does not attach X-Cart-Token when the user is authenticated', async () => {
+    cartToken = 'guest-cart-token'
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, {
+        id: 'cart-1',
+        items: [],
+        total: '0.00',
+        items_count: 0,
+        cart_token: null,
+      }),
+    )
+
+    await http.get('/api/cart/')
+
+    const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
+    expect(config.headers.Authorization).toBe('Bearer access-old')
+    expect(config.headers[CART_TOKEN_HEADER]).toBeUndefined()
+  })
+
+  it('persists cart token from the response header', async () => {
+    accessToken = null
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(
+        config,
+        200,
+        { id: 'cart-1', items: [], total: '0.00', items_count: 0 },
+        { [CART_TOKEN_HEADER.toLowerCase()]: 'new-guest-token' },
+      ),
+    )
+
+    await http.get('/api/cart/')
+
+    expect(setCartToken).toHaveBeenCalledWith('new-guest-token')
+  })
+
+  it('persists cart token from the response body when the header is absent', async () => {
+    accessToken = null
+
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, {
+        id: 'cart-1',
+        items: [],
+        total: '0.00',
+        items_count: 0,
+        cart_token: 'body-guest-token',
+      }),
+    )
+
+    await http.get('/api/cart/')
+
+    expect(setCartToken).toHaveBeenCalledWith('body-guest-token')
   })
 
   it('refreshes on 401 and retries the original request', async () => {

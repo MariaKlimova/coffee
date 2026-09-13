@@ -1,19 +1,24 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 
+import {
+  cartKeys,
+  mergeCart,
+  useCartStore,
+} from '@entities/cart'
 import { favoriteKeys } from '@entities/favorite'
 import { productKeys } from '@entities/product'
 import { useAuthStore } from '@entities/user'
 
 interface AuthProviderProps {
-  /** Nested application tree. */
+  /** Дерево приложения внутри провайдера. */
   children: ReactNode
 }
 
 /**
- * Restores a persisted session on first mount when a refresh token exists.
- * On auth status changes: refreshes product caches so `is_favorite` matches the
- * session, and clears favorite queries on logout so the header count cannot linger.
+ * Восстанавливает сессию при первом маунте, если есть refresh token.
+ * При смене auth: обновляет кэши товаров под `is_favorite`, сливает гостевую
+ * корзину после логина, сбрасывает кэши избранного/корзины при выходе.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient()
@@ -42,12 +47,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
     void queryClient.invalidateQueries({ queryKey: productKeys.all })
 
     if (status === 'guest') {
-      // Drop favorites cache so the header count cannot linger after logout.
+      // Сбрасываем кэши, чтобы счётчики в шапке не «залипали» после выхода.
       queryClient.removeQueries({ queryKey: favoriteKeys.all })
+      queryClient.removeQueries({ queryKey: cartKeys.all })
       return
     }
 
     void queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
+
+    if (previousStatus === 'authenticated') {
+      return
+    }
+
+    const cartToken = useCartStore.getState().cartToken
+    if (!cartToken) {
+      void queryClient.invalidateQueries({ queryKey: cartKeys.all })
+      return
+    }
+
+    void (async () => {
+      try {
+        await mergeCart(cartToken)
+        useCartStore.getState().clearCartToken()
+      } catch {
+        // Токен оставляем — merge можно повторить при следующей сессии.
+      } finally {
+        void queryClient.invalidateQueries({ queryKey: cartKeys.all })
+      }
+    })()
   }, [status, queryClient])
 
   return children

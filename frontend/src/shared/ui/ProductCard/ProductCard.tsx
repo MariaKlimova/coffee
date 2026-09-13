@@ -1,3 +1,4 @@
+import { CART_COPY, FAVORITE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { Badge } from '@shared/ui/Badge'
 import { Button } from '@shared/ui/Button'
@@ -40,12 +41,12 @@ export function ProductCard({
       >
         <ImageCarousel images={images} alt={title} size="card" />
         {!inStock ? (
-          <Badge className={styles['ProductCard-Badge']}>Нет в наличии</Badge>
+          <Badge className={styles['ProductCard-Badge']}>{CART_COPY.outOfStock}</Badge>
         ) : null}
         <button
           type="button"
           className={styles['ProductCard-Favorite']}
-          aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
+          aria-label={isFavorite ? FAVORITE_COPY.remove : FAVORITE_COPY.add}
           aria-pressed={isFavorite}
           onClick={(event) => {
             event.stopPropagation()
@@ -89,7 +90,7 @@ export function ProductCard({
               onAddToCart?.(id)
             }}
           >
-            В корзину
+            {CART_COPY.add}
           </Button>
         </div>
       </div>

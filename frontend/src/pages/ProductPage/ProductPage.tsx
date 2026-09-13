@@ -12,9 +12,9 @@ import {
   DEFAULT_ORDERING,
 } from '@features/catalog'
 import { isNotFoundError } from '@shared/api'
+import { PRODUCT_PAGE_COPY } from '@shared/lib/copy'
 import { Button, EmptyState, ProductCardSkeleton } from '@shared/ui'
 
-import { PRODUCT_PAGE_COPY } from './ProductPage.const'
 import styles from './ProductPage.module.css'
 
 /**

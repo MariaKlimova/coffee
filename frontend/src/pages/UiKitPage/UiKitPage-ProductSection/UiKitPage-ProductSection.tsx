@@ -93,6 +93,7 @@ export function UiKitPageProductSection() {
             onToggleFavorite={() => {
               setFavorite((value) => !value)
             }}
+            onAddToCart={() => undefined}
             similarSlot={
               <p className={styles['UiKitPage-Meta']}>Место для похожих товаров</p>
             }
@@ -121,6 +122,7 @@ export function UiKitPageProductSection() {
             onToggleFavorite={() => {
               setFavorite((value) => !value)
             }}
+            onAddToCart={() => undefined}
           />
         ) : null}
       </div>

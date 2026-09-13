@@ -10,4 +10,6 @@ export interface SimilarProductsProps {
   disabled?: boolean
   /** Favorite toggle for cards in the strip (product UUID + current flag). */
   onToggleFavorite?: (productId: string, isFavorite: boolean) => void
+  /** Add-to-cart handler for cards in the strip (product UUID). */
+  onAddToCart?: (productId: string) => void
 }

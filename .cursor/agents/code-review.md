@@ -38,6 +38,7 @@ diff и выдать структурированные findings по `.cursor/B
 |-------------|--------|
 | `frontend/src/shared/ui/`, `features/**/ui/` | `bem-components`, `design-tokens` |
 | `frontend/src/pages/`, `app/`, `features/` | `fsd-frontend`, `product-voice` |
+| `frontend/src/shared/lib/copy/` | `product-voice` |
 | `frontend/src/shared/api/` | `fsd-frontend` + `docs/api/openapi.yaml` |
 | `backend/` | `django-api` + `docs/api/openapi.yaml` |
 | `docs/content/` | `product-voice` |
@@ -67,9 +68,14 @@ Severity — см. BUGBOT «Дублирование кода».
 
 ### Hardcoded copy / tokens
 
-- User-visible API-жаргон или дубль glossary → finding (product-voice)
+- User-visible строки вне `frontend/src/shared/lib/copy/` → finding (blocking, кроме stub-скелета)
+- User-visible API-жаргон или расхождение с glossary → finding (product-voice)
 - hex/rgb/магические px вне tokens → blocking (design-tokens)
 - Stub page titles на скелете — recommendation, не обязательно blocking
+
+### Комментарии
+
+- JSDoc / комментарии в новом или изменённом коде — на русском (см. BUGBOT «TypeScript»)
 
 ### Мёртвый код
 

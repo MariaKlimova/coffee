@@ -4,9 +4,11 @@ import { createRoot } from 'react-dom/client'
 import { App } from '@app/App'
 import { setupAuthBridge } from '@app/lib/setupAuthBridge'
 import { AppProviders } from '@app/providers/AppProviders'
+import { bindCartBridge } from '@entities/cart'
 import '@shared/ui/tokens.css'
 
 setupAuthBridge()
+bindCartBridge()
 
 const rootElement = document.getElementById('root')
 

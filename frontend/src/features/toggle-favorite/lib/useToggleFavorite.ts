@@ -1,8 +1,7 @@
 import { useFavoriteMutation } from '@entities/favorite'
 import { useAuthStore } from '@entities/user'
+import { FAVORITE_COPY } from '@shared/lib/copy'
 import { useToast } from '@shared/ui'
-
-import { FAVORITE_COPY } from '../toggleFavorite.const'
 
 /**
  * Toggles a product in favorites with guest toast and error feedback.
