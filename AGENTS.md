@@ -49,3 +49,4 @@
 - API: [docs/api/openapi.yaml](docs/api/openapi.yaml)
 - Design tokens: [docs/design/design-tokens.md](docs/design/design-tokens.md) → `frontend/src/shared/ui/tokens.css`
 - Glossary / тон: [docs/content/glossary.md](docs/content/glossary.md)
+- UI copy (код): `frontend/src/shared/lib/copy/`

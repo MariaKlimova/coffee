@@ -1,5 +1,5 @@
 ---
-description: TypeScript — strict, JSDoc на полях, без nested ternary
+description: TypeScript — strict, JSDoc на русском, без nested ternary
 globs: frontend/**/*.ts,frontend/**/*.tsx
 alwaysApply: false
 ---
@@ -7,6 +7,8 @@ alwaysApply: false
 # TypeScript
 
 - `strict: true`
-- Каждое поле публичного `interface` — с JSDoc (`/** ... */`)
+- Каждое поле публичного `interface` — с JSDoc (`/** ... */`) **на русском**
+- Комментарии в коде — на русском (имена полей API/OpenAPI вроде `cart_token` можно оставлять как в контракте)
 - Без nested ternary — if/else или ранний return
 - Предпочитай `import type` для типов (verbatimModuleSyntax)
+- User-visible строки — из `@shared/lib/copy`, не литералы в JSX

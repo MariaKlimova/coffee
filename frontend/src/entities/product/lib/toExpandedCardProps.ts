@@ -11,11 +11,11 @@ import { CATEGORY_LABELS, MISSING_ATTRIBUTE } from '../product.const'
 type ExpandedCardMappedProps =
   | Omit<
       ExpandedCoffeeCardProps,
-      'onClose' | 'similarSlot' | 'className' | 'onToggleFavorite'
+      'onClose' | 'similarSlot' | 'className' | 'onToggleFavorite' | 'onAddToCart'
     >
   | Omit<
       ExpandedMachineCardProps,
-      'onClose' | 'similarSlot' | 'className' | 'onToggleFavorite'
+      'onClose' | 'similarSlot' | 'className' | 'onToggleFavorite' | 'onAddToCart'
     >
 
 function textOrMissing(value: string | undefined): string {
@@ -78,6 +78,7 @@ export function toExpandedCardProps(product: Product): ExpandedCardMappedProps {
     price: formatMoney(product.price),
     oldPrice: product.old_price ? formatMoney(product.old_price) : undefined,
     isFavorite: product.is_favorite,
+    inStock: product.in_stock,
   }
 
   if (product.category === 'coffee') {

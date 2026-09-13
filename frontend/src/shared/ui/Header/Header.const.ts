@@ -1,13 +1,14 @@
 import { APP_ROUTES } from '@shared/config'
+import { NAV_COPY } from '@shared/lib/copy'
 
 import type { HeaderNavItem } from './Header.typings'
 
 /** Primary navigation links. */
 export const HEADER_NAV_ITEMS: HeaderNavItem[] = [
-  { to: APP_ROUTES.home, label: 'Главная' },
-  { to: APP_ROUTES.coffee, label: 'Кофе' },
-  { to: APP_ROUTES.machines, label: 'Кофемашины' },
-  { to: APP_ROUTES.contacts, label: 'Контакты' },
+  { to: APP_ROUTES.home, label: NAV_COPY.home },
+  { to: APP_ROUTES.coffee, label: NAV_COPY.coffee },
+  { to: APP_ROUTES.machines, label: NAV_COPY.machines },
+  { to: APP_ROUTES.contacts, label: NAV_COPY.contacts },
 ]
 
 /** Maximum numeric value shown in header counters before clamping. */

@@ -58,6 +58,10 @@ interface ExpandedProductCardBase extends Omit<
   isFavorite?: boolean
   /** Favorite toggle; receives the product id passed to the card. */
   onToggleFavorite?: (id: string) => void
+  /** Whether the product can be added to cart. */
+  inStock?: boolean
+  /** Add-to-cart handler with selected quantity. */
+  onAddToCart?: (id: string, quantity: number) => void
   /** Optional similar-products slot (COFFEE-25). */
   similarSlot?: ReactNode
 }

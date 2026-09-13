@@ -7,12 +7,13 @@ import {
   DEFAULT_CATALOG_ROUTE,
   toProductCardProps,
 } from '@entities/product'
+import { useAddToCart } from '@features/add-to-cart'
 import { CatalogPagination } from '@features/catalog'
 import { useToggleFavorite } from '@features/toggle-favorite'
+import { FAVORITES_PAGE_COPY } from '@shared/lib/copy'
 import { parsePageNumber } from '@shared/lib/parsePageNumber'
 import { Button, EmptyState, ProductCard, ProductCardSkeleton } from '@shared/ui'
 
-import { FAVORITES_PAGE_COPY } from './FavoritesPage.const'
 import styles from './FavoritesPage.module.css'
 
 /**
@@ -23,6 +24,7 @@ export function FavoritesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const page = parsePageNumber(searchParams.get('page'))
   const { toggleFavorite } = useToggleFavorite()
+  const { addToCart } = useAddToCart()
 
   const favoritesQuery = useFavorites({
     page,
@@ -125,8 +127,9 @@ export function FavoritesPage() {
                 onToggleFavorite={(productId) => {
                   toggleFavorite(productId, product.is_favorite)
                 }}
-                // Stub until the cart epic wires a real handler (UUID is in `id`).
-                onAddToCart={() => undefined}
+                onAddToCart={(productId) => {
+                  addToCart(productId, 1)
+                }}
               />
             ))}
           </div>

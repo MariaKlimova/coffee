@@ -62,7 +62,7 @@ docker compose -f infra/docker-compose.yml up --build
 | Backend API | http://127.0.0.1:8000 |
 | Health | http://127.0.0.1:8000/api/health/ |
 | OpenAPI | http://127.0.0.1:8000/api/docs/ |
-| Postgres | localhost:5432 |
+| Postgres | localhost:5433 (внутри Docker — `db:5432`) |
 
 Код монтируется volume'ами: правки в `backend/` и `frontend/` подхватываются без пересборки образа.
 

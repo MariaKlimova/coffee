@@ -1,12 +1,17 @@
 import axios, {
   type AxiosError,
   type AxiosRequestConfig,
+  type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios'
 
 import { getAuthBridge } from './authBridge'
+import { getCartBridge } from './cartBridge'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
+
+/** Заголовок гостевой корзины (OpenAPI `CartToken` / `XCartToken`). */
+export const CART_TOKEN_HEADER = 'X-Cart-Token'
 
 /** Paths that must never trigger a refresh retry on 401. */
 const AUTH_SKIP_REFRESH_PATHS = [
@@ -27,6 +32,33 @@ function shouldSkipRefresh(url: string | undefined): boolean {
     return false
   }
   return AUTH_SKIP_REFRESH_PATHS.some((path) => url.includes(path))
+}
+
+function isCartApiUrl(url: string | undefined): boolean {
+  return Boolean(url?.includes('/api/cart/'))
+}
+
+function isCartMergeUrl(url: string | undefined): boolean {
+  return Boolean(url?.includes('/api/cart/merge/'))
+}
+
+function readResponseCartToken(response: AxiosResponse): string | null {
+  const headers = response.headers
+  const fromHeader =
+    headers[CART_TOKEN_HEADER.toLowerCase()] ?? headers[CART_TOKEN_HEADER]
+  if (typeof fromHeader === 'string' && fromHeader.length > 0) {
+    return fromHeader
+  }
+
+  const data = response.data
+  if (data && typeof data === 'object' && 'cart_token' in data) {
+    const bodyToken = (data as { cart_token?: unknown }).cart_token
+    if (typeof bodyToken === 'string' && bodyToken.length > 0) {
+      return bodyToken
+    }
+  }
+
+  return null
 }
 
 async function refreshAccessToken(): Promise<string> {
@@ -74,15 +106,32 @@ export const http = axios.create({
 })
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = getAuthBridge().getAccessToken()
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  const accessToken = getAuthBridge().getAccessToken()
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`
+    return config
   }
+
+  if (isCartApiUrl(config.url) && !isCartMergeUrl(config.url)) {
+    const cartToken = getCartBridge().getCartToken()
+    if (cartToken) {
+      config.headers[CART_TOKEN_HEADER] = cartToken
+    }
+  }
+
   return config
 })
 
 http.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (isCartApiUrl(response.config.url)) {
+      const cartToken = readResponseCartToken(response)
+      if (cartToken) {
+        getCartBridge().setCartToken(cartToken)
+      }
+    }
+    return response
+  },
   async (error: AxiosError) => {
     const original = error.config as RetryableRequestConfig | undefined
     if (!original || error.response?.status !== 401) {

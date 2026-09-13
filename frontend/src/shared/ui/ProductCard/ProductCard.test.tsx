@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { CART_COPY, FAVORITE_COPY } from '@shared/lib/copy'
 import { ProductCard } from '@shared/ui/ProductCard'
 
 describe('ProductCard', () => {
@@ -45,8 +46,8 @@ describe('ProductCard', () => {
       />,
     )
 
-    await user.click(screen.getByRole('button', { name: 'В корзину' }))
-    await user.click(screen.getByRole('button', { name: 'В избранное' }))
+    await user.click(screen.getByRole('button', { name: CART_COPY.add }))
+    await user.click(screen.getByRole('button', { name: FAVORITE_COPY.add }))
 
     expect(onAddToCart).toHaveBeenCalledWith('p1')
     expect(onToggleFavorite).toHaveBeenCalledWith('p1')
@@ -65,7 +66,7 @@ describe('ProductCard', () => {
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'В корзину' })).toBeDisabled()
-    expect(screen.getByText('Нет в наличии')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: CART_COPY.add })).toBeDisabled()
+    expect(screen.getByText(CART_COPY.outOfStock)).toBeInTheDocument()
   })
 })

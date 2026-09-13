@@ -19,4 +19,5 @@ User-visible тексты UI, [docs/content/glossary.md](../content/glossary.md)
 ## Источники истины
 
 - [docs/content/glossary.md](../content/glossary.md)
+- Код UI-строк: `frontend/src/shared/lib/copy/`
 - Skill: `.cursor/skills/product-voice/SKILL.md`

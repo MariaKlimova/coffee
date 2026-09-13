@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+set -e
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR || true)
+
+has_frontend=0
+has_backend=0
+
+if printf '%s\n' "$STAGED" | grep -q '^frontend/'; then
+  has_frontend=1
+fi
+if printf '%s\n' "$STAGED" | grep -q '^backend/'; then
+  has_backend=1
+fi
+
+if [ "$has_frontend" -eq 1 ]; then
+  echo "→ frontend: lint-staged (eslint)"
+  npx lint-staged
+  echo "→ frontend: typecheck"
+  npm --prefix frontend run typecheck
+fi
+
+if [ "$has_backend" -eq 1 ]; then
+  if ! command -v ruff >/dev/null 2>&1; then
+    echo "error: ruff не найден — поставь backend deps (pip install -r backend/requirements/dev.txt)" >&2
+    exit 1
+  fi
+  if ! command -v black >/dev/null 2>&1; then
+    echo "error: black не найден — поставь backend deps" >&2
+    exit 1
+  fi
+  echo "→ backend: ruff check"
+  (cd backend && ruff check .)
+  echo "→ backend: black --check"
+  (cd backend && black --check .)
+fi
