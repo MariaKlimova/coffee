@@ -555,7 +555,22 @@ paths:
     post:
       tags: [Orders]
       summary: Create order from current cart
+      description: |
+        Creates a `pending` order from the current cart (authenticated user cart
+        via JWT, or guest cart via `X-Cart-Token`). Snapshots product names and
+        prices into order lines, then clears cart items. Guests must provide
+        `guest_email` and `guest_phone`.
+
+        For guest checkout the client must send an **existing** `X-Cart-Token`
+        for a non-empty cart. Missing or unknown tokens create a new empty cart
+        and the request fails with 400. Unlike cart endpoints, this response
+        does **not** set an `X-Cart-Token` header.
+
+        Fails if the cart is empty or any line product is out of stock.
       operationId: createOrder
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/OrderCartToken"
       requestBody:
         required: true
         content:
@@ -564,21 +579,28 @@ paths:
               $ref: "#/components/schemas/OrderCreate"
       responses:
         "201":
-          description: Order created
+          description: Order created (client should keep `id` for confirmation and payment)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Order"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
 
   /api/orders/{id}/:
     get:
       tags: [Orders]
       summary: Order detail
+      description: |
+        Returns an order when the caller may view it:
+        - authenticated owner or staff;
+        - anonymous caller for a **guest** order (`user` is null), keyed by UUID
+          (confirmation after checkout / handoff to payment).
+
+        User-owned orders are not readable anonymously. Unknown or forbidden
+        orders respond with 404.
       operationId: getOrder
+      security: []
       parameters:
         - $ref: "#/components/parameters/OrderId"
       responses:
@@ -588,8 +610,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Order"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -597,7 +617,14 @@ paths:
     post:
       tags: [Payments]
       summary: Create payment session for an order
+      description: |
+        Creates a YooKassa redirect payment for a pending order the caller may
+        access (authenticated owner/staff, or guest order by UUID). Returns
+        `payment_url` for the client redirect. Fails if the order is not
+        pending or already has a successful payment. Unknown/forbidden orders
+        respond with 404.
       operationId: createPayment
+      security: []
       requestBody:
         required: true
         content:
@@ -618,13 +645,18 @@ paths:
                 $ref: "#/components/schemas/PaymentSession"
         "400":
           $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/payments/webhook/:
     post:
       tags: [Payments]
       summary: Payment provider webhook
+      description: |
+        YooKassa HTTP notification. No JWT. Source IP must match documented
+        YooKassa ranges when `YOOKASSA_WEBHOOK_IP_CHECK` is enabled. The handler
+        re-fetches the payment from YooKassa and applies status changes
+        idempotently (`select_for_update`). Responds 200 quickly.
       operationId: paymentWebhook
       security: []
       requestBody:
@@ -633,7 +665,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: Provider-specific payload (draft)
+              description: Provider-specific notification payload
               additionalProperties: true
       responses:
         "200":
@@ -648,6 +680,12 @@ paths:
                     example: ok
         "400":
           $ref: "#/components/responses/BadRequest"
+        "403":
+          description: Untrusted webhook source (IP check failed)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
 components:
   securitySchemes:
@@ -700,6 +738,18 @@ components:
         new token in the `X-Cart-Token` response header. Unknown/stale tokens
         also create a new guest cart (new token in the response). Ignored for
         authenticated (JWT) requests.
+    OrderCartToken:
+      name: X-Cart-Token
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: >
+        Guest cart token for checkout. Must refer to an existing non-empty guest
+        cart. Missing or unknown tokens yield an empty cart and a 400 on create.
+        Ignored for authenticated (JWT) requests. Create-order responses do not
+        return this header.
     OrderId:
       name: id
       in: path
@@ -1094,20 +1144,42 @@ components:
 
     OrderCreate:
       type: object
-      required: [shipping_address]
+      required: [delivery_address]
       properties:
-        shipping_address:
-          type: object
-          required: [city, street, postal_code]
-          properties:
-            city:
-              type: string
-            street:
-              type: string
-            postal_code:
-              type: string
-            comment:
-              type: string
+        delivery_address:
+          type: string
+          description: Free-text delivery address (MVP)
+          minLength: 1
+        guest_email:
+          type: string
+          format: email
+          description: Required for guest checkout (no JWT)
+        guest_phone:
+          type: string
+          description: Required for guest checkout (no JWT)
+          minLength: 1
+          maxLength: 32
+
+    OrderItem:
+      type: object
+      required: [id, product_name, product_price, quantity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        product_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Catalog product id; null if the product was deleted
+        product_name:
+          type: string
+          description: Product name snapshotted at checkout
+        product_price:
+          $ref: "#/components/schemas/Money"
+        quantity:
+          type: integer
+          minimum: 1
 
     OrderListItem:
       type: object
@@ -1118,7 +1190,7 @@ components:
           format: uuid
         status:
           type: string
-          enum: [pending, paid, processing, shipped, completed, cancelled]
+          enum: [pending, paid, processing, shipped, delivered, cancelled]
         total:
           $ref: "#/components/schemas/Money"
         created_at:
@@ -1129,14 +1201,21 @@ components:
       allOf:
         - $ref: "#/components/schemas/OrderListItem"
         - type: object
+          required: [delivery_address, items, updated_at]
           properties:
+            delivery_address:
+              type: string
+            guest_email:
+              type: string
+              format: email
+              nullable: true
+            guest_phone:
+              type: string
+              nullable: true
             items:
               type: array
               items:
-                $ref: "#/components/schemas/CartItem"
-            shipping_address:
-              type: object
-              additionalProperties: true
+                $ref: "#/components/schemas/OrderItem"
             updated_at:
               type: string
               format: date-time
@@ -1153,7 +1232,7 @@ components:
           format: uuid
         status:
           type: string
-          enum: [pending, succeeded, failed]
+          enum: [pending, succeeded, failed, canceled]
         amount:
           $ref: "#/components/schemas/Money"
         payment_url:

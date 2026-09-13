@@ -1,6 +1,5 @@
 """Cart API tests for COFFEE-31."""
 
-from decimal import Decimal
 from uuid import uuid4
 
 import pytest
@@ -11,43 +10,9 @@ from rest_framework.test import APIClient
 
 from apps.cart.models import Cart, CartItem
 from apps.cart.services import CART_TOKEN_HEADER
-from apps.catalog.models import Category, Product
 from tests.helpers import auth_client
 
 User = get_user_model()
-
-
-@pytest.fixture
-def products(db) -> dict:
-    coffee = Category.objects.create(name="Кофе", slug="coffee")
-    cheap = Product.objects.create(
-        name="Дешёвый кофе",
-        slug="cheap-coffee",
-        category=coffee,
-        short_description="Бюджетный вариант",
-        price=Decimal("500.00"),
-    )
-    pricey = Product.objects.create(
-        name="Дорогой кофе",
-        slug="pricey-coffee",
-        category=coffee,
-        short_description="Премиум зерно",
-        price=Decimal("1500.00"),
-    )
-    unavailable = Product.objects.create(
-        name="Нет в наличии",
-        slug="out-of-stock",
-        category=coffee,
-        short_description="Временно недоступен",
-        price=Decimal("900.00"),
-        in_stock=False,
-    )
-    return {
-        "coffee": coffee,
-        "cheap": cheap,
-        "pricey": pricey,
-        "unavailable": unavailable,
-    }
 
 
 def _token_from(response) -> str:
