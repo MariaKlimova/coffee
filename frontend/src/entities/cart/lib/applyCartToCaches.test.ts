@@ -5,6 +5,7 @@ import type { Cart } from '../api/cartApi.typings'
 import { cartKeys } from '../model/cartQueryOptions'
 import {
   applyCartAddToCaches,
+  applyCartItemUpsertToCaches,
   applyCartRemoveToCaches,
   applyCartUpdateToCaches,
 } from './applyCartToCaches'
@@ -61,6 +62,42 @@ describe('applyCartToCaches', () => {
     const cart = queryClient.getQueryData(cartKeys.detail()) as Cart
     expect(cart.items_count).toBe(2)
     expect(cart.items).toHaveLength(1)
+  })
+
+  it('upserts a cart item from the API response by product id', () => {
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(cartKeys.detail(), {
+      ...structuredClone(baseCart),
+      items: [],
+      items_count: 1,
+      total: '0.00',
+    })
+
+    const newItem = {
+      id: 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+      product: {
+        id: '22222222-2222-2222-2222-222222222222',
+        name: 'Бразилия',
+        slug: 'brazil',
+        short_description: '',
+        price: '300.00',
+        old_price: null,
+        category: 'coffee' as const,
+        in_stock: true,
+        image_url: null,
+        is_favorite: false,
+      },
+      quantity: 1,
+      line_total: '300.00',
+    }
+
+    applyCartItemUpsertToCaches(queryClient, newItem)
+
+    const cart = queryClient.getQueryData(cartKeys.detail()) as Cart
+    expect(cart.items).toHaveLength(1)
+    expect(cart.items[0]).toEqual(newItem)
+    expect(cart.items_count).toBe(1)
+    expect(cart.total).toBe('300.00')
   })
 
   it('updates quantity for a line by id', () => {

@@ -41,10 +41,6 @@ If nested ternary:
 
 - **blocking**: «Вложенные тернарные операторы запрещены».
 
-If в **новом или изменённом** коде комментарии / JSDoc на английском (кроме устоявшихся имён API/OpenAPI полей вроде `cart_token`):
-
-- **recommendation** (при массовом английском в hunk — **blocking**): «Комментарии и JSDoc пиши на русском».
-
 ---
 
 ## БЭМ
@@ -53,7 +49,6 @@ When reviewing `frontend/src/shared/ui/**`, `frontend/src/features/**/ui/**`:
 
 - Компонент = папка + `index.ts`; нет одиночных `.tsx` без папки
 - Снаружи только импорт из `index.ts`
-- User-visible тексты — из `@shared/lib/copy`, не литералы в JSX
 
 If новый UI-блок добавлен одним файлом без папки:
 
@@ -63,19 +58,14 @@ If новый UI-блок добавлен одним файлом без пап
 
 ## Product voice и copy
 
-When reviewing UI / pages / features / `shared/ui`:
+When reviewing UI / pages / features:
 
-- User-visible строки — только из `frontend/src/shared/lib/copy/` (`AUTH_COPY`, `CART_COPY`, …)
-- Формулировки согласовать с `docs/content/glossary.md`
-- Не плодить локальные `*_COPY` / литералы в JSX, дублирующие shared copy
+- User-visible строки не должны быть разбросаны техжаргоном API
+- Повторяющиеся формулировки — согласовать с `docs/content/glossary.md`
 
-If новая или изменённая user-visible строка захардкожена вне `shared/lib/copy` (не stub-скелет):
+If захардкожена user-visible строка с API-жаргоном или дубль уже существующей фразы без glossary:
 
-- **blocking**: «UI-copy только из `@shared/lib/copy` (product-voice, glossary)».
-
-If API-жаргон в UI или формулировка расходится с glossary:
-
-- **blocking** или **recommendation** (по серьёзности): «Согласуй copy с glossary и `shared/lib/copy`».
+- **blocking** или **recommendation** (по серьёзности): «Вынеси/согласуй copy (product-voice, glossary)».
 
 Допустимы: stub-страницы с коротким названием экрана на этапе скелета; отмечай recommendation, не блокируй скелет без нужды.
 
@@ -158,9 +148,8 @@ Code Review **обязан** заполнить таблицу «Чистота 
 
 | Путь | Фокус |
 |------|--------|
-| `frontend/src/shared/ui/**`, `features/**/ui/**` | БЭМ, tokens, product-voice, copy из `shared/lib/copy` |
-| `frontend/src/pages/**`, `app/**` | FSD, composition, copy |
-| `frontend/src/shared/lib/copy/**` | единый UI-copy, glossary |
+| `frontend/src/shared/ui/**`, `features/**/ui/**` | БЭМ, tokens, product-voice |
+| `frontend/src/pages/**`, `app/**` | FSD, composition |
 | `frontend/src/shared/api/**` | OpenAPI client |
 | `backend/**` | django-api, OpenAPI, secrets |
 | `docs/api/**` | контракт |

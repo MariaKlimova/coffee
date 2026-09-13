@@ -12,7 +12,9 @@ export function SimilarProducts({
   onSelect,
   disabled = false,
   onToggleFavorite,
+  getCartQuantity,
   onAddToCart,
+  onCartQuantityChange,
 }: SimilarProductsProps) {
   const relatedQuery = useRelatedProducts(slug, { enabled: Boolean(slug) })
 
@@ -63,6 +65,7 @@ export function SimilarProducts({
           <div key={item.id} className={styles['SimilarProducts-Item']}>
             <ProductCard
               {...toProductCardProps(item)}
+              cartQuantity={getCartQuantity?.(item.id) ?? 0}
               onExpand={() => {
                 if (disabled) {
                   return
@@ -74,6 +77,9 @@ export function SimilarProducts({
               }}
               onAddToCart={(productId) => {
                 onAddToCart?.(productId)
+              }}
+              onCartQuantityChange={(productId, quantity) => {
+                onCartQuantityChange?.(productId, quantity)
               }}
             />
           </div>

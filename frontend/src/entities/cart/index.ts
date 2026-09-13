@@ -8,6 +8,7 @@ export type {
 } from './api/cartApi.typings'
 export {
   applyCartAddToCaches,
+  applyCartItemUpsertToCaches,
   applyCartRemoveToCaches,
   applyCartUpdateToCaches,
 } from './lib/applyCartToCaches'

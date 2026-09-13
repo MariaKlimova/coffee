@@ -12,6 +12,7 @@ import styles from '../UiKitPage.module.css'
 
 export function UiKitPageProductSection() {
   const [favorite, setFavorite] = useState(false)
+  const [cartQuantity, setCartQuantity] = useState(0)
   const [expanded, setExpanded] = useState<'coffee' | 'machines' | null>('coffee')
 
   return (
@@ -27,10 +28,16 @@ export function UiKitPageProductSection() {
           price="1 290 ₽"
           oldPrice="1 490 ₽"
           isFavorite={favorite}
+          cartQuantity={cartQuantity}
           onToggleFavorite={() => {
             setFavorite((value) => !value)
           }}
-          onAddToCart={() => undefined}
+          onAddToCart={() => {
+            setCartQuantity(1)
+          }}
+          onCartQuantityChange={(_id, quantity) => {
+            setCartQuantity(Math.max(0, quantity))
+          }}
           onExpand={() => {
             setExpanded('coffee')
           }}
