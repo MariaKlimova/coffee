@@ -4,6 +4,7 @@ import { RootLayout } from '@app/layouts/RootLayout'
 import { RequireAuth } from '@app/routes/RequireAuth'
 import { CartPage } from '@pages/CartPage'
 import { CheckoutPage } from '@pages/CheckoutPage'
+import { CheckoutResultPage } from '@pages/CheckoutResultPage'
 import { CoffeePage } from '@pages/CoffeePage'
 import { FavoritesPage } from '@pages/FavoritesPage'
 import { HomePage } from '@pages/HomePage'
@@ -24,6 +25,7 @@ const appRoutes: RouteObject[] = [
       { path: APP_ROUTES.product, element: <ProductPage /> },
       { path: APP_ROUTES.cart, element: <CartPage /> },
       { path: APP_ROUTES.checkout, element: <CheckoutPage /> },
+      { path: APP_ROUTES.checkoutResult, element: <CheckoutResultPage /> },
       { path: APP_ROUTES.login, element: <LoginPage /> },
       { path: APP_ROUTES.register, element: <RegisterPage /> },
       {

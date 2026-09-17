@@ -1,7 +1,7 @@
 """Payments API tests for COFFEE-36."""
 
 from decimal import Decimal
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -12,6 +12,7 @@ from rest_framework.test import APIClient
 
 from apps.orders.models import Order
 from apps.payments.models import Payment
+from apps.payments.services import build_payment_return_url
 from apps.payments.yookassa import YooKassaError
 from tests.helpers import auth_client
 
@@ -19,6 +20,26 @@ User = get_user_model()
 
 PROVIDER_ID = "yoo-payment-test-001"
 CONFIRM_URL = "https://yoomoney.ru/checkout/payments/v2/contract?orderId=test"
+
+
+@override_settings(YOOKASSA_RETURN_URL="http://localhost:5174/checkout/result")
+def test_build_payment_return_url_appends_order_id() -> None:
+    order_id = UUID("11111111-1111-1111-1111-111111111111")
+    assert (
+        build_payment_return_url(order_id)
+        == "http://localhost:5174/checkout/result?order_id=11111111-1111-1111-1111-111111111111"
+    )
+
+
+@override_settings(
+    YOOKASSA_RETURN_URL="http://localhost:5174/checkout/result?utm=test",
+)
+def test_build_payment_return_url_keeps_existing_query() -> None:
+    order_id = UUID("11111111-1111-1111-1111-111111111111")
+    url = build_payment_return_url(order_id)
+    assert url.startswith("http://localhost:5174/checkout/result?")
+    assert "utm=test" in url
+    assert "order_id=11111111-1111-1111-1111-111111111111" in url
 
 
 def _make_order(
@@ -34,8 +55,11 @@ def _make_order(
     )
 
 
-def _mock_create_payment(monkeypatch, provider_id: str = PROVIDER_ID) -> None:
+def _mock_create_payment(monkeypatch, provider_id: str = PROVIDER_ID) -> list[dict]:
+    calls: list[dict] = []
+
     def fake_create(**kwargs):
+        calls.append(kwargs)
         return {
             "id": provider_id,
             "status": "pending",
@@ -51,6 +75,32 @@ def _mock_create_payment(monkeypatch, provider_id: str = PROVIDER_ID) -> None:
     monkeypatch.setattr(
         "apps.payments.yookassa.create_payment",
         fake_create,
+    )
+    return calls
+
+
+@pytest.mark.django_db
+@override_settings(YOOKASSA_RETURN_URL="http://localhost:5174/checkout/result")
+def test_create_payment_passes_return_url_with_order_id(
+    api_client: APIClient,
+    user,
+    monkeypatch,
+) -> None:
+    calls = _mock_create_payment(monkeypatch)
+    order = _make_order(user=user)
+    auth_client(api_client, user)
+
+    response = api_client.post(
+        reverse("payment-create"),
+        {"order_id": str(order.id)},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert len(calls) == 1
+    assert (
+        calls[0]["return_url"]
+        == f"http://localhost:5174/checkout/result?order_id={order.id}"
     )
 
 

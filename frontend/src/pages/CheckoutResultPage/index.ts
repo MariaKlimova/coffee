@@ -1,0 +1,1 @@
+export { CheckoutResultPage } from './CheckoutResultPage'

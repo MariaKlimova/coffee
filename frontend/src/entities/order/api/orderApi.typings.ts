@@ -11,6 +11,17 @@ export interface OrderCreate {
 }
 
 /**
+ * Статус заказа (`Order.status` в OpenAPI).
+ */
+export type OrderStatus =
+  | 'pending'
+  | 'paid'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+
+/**
  * Позиция заказа со снимком цены (`OrderItem` в OpenAPI).
  */
 export interface OrderItem {
@@ -33,7 +44,7 @@ export interface Order {
   /** UUID заказа. */
   id: string
   /** Статус заказа. */
-  status: string
+  status: OrderStatus
   /** Итого — decimal-строка в рублях. */
   total: string
   /** Время создания (ISO). */

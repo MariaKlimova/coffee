@@ -73,6 +73,7 @@ describe('CheckoutPage', () => {
   beforeEach(() => {
     adapter.mockReset()
     http.defaults.adapter = adapter
+    sessionStorage.clear()
     useCartStore.setState({ cartToken: 'guest-token' })
     useAuthStore.setState({
       status: 'guest',
@@ -84,6 +85,7 @@ describe('CheckoutPage', () => {
 
   afterEach(() => {
     delete http.defaults.adapter
+    sessionStorage.clear()
     vi.restoreAllMocks()
   })
 
@@ -171,6 +173,7 @@ describe('CheckoutPage', () => {
       expect(assign).toHaveBeenCalledWith('https://pay.example/session')
     })
     expect(orderCalls).toBe(1)
+    expect(sessionStorage.getItem('coffee:pendingOrderId')).toBe('order-1')
   })
 
   it('hides guest fields for authenticated users', async () => {

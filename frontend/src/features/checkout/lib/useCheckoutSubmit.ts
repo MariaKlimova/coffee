@@ -5,6 +5,7 @@ import { cartKeys } from '@entities/cart'
 import { createOrder, createPayment } from '@entities/order'
 
 import { mapCheckoutApiError } from './mapCheckoutApiError'
+import { writePendingOrderId } from './pendingOrderId'
 import {
   hasCheckoutFieldErrors,
   validateCheckoutForm,
@@ -80,6 +81,7 @@ export function useCheckoutSubmit({
       const order = await createOrder(payload)
       await queryClient.invalidateQueries({ queryKey: cartKeys.all })
       const payment = await createPayment(order.id)
+      writePendingOrderId(order.id)
       redirectToPayment(payment.payment_url)
     } catch (error) {
       const view = mapCheckoutApiError(error)
