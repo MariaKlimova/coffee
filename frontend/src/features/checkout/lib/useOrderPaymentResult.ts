@@ -3,12 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { cartKeys } from '@entities/cart'
-import {
-  createPayment,
-  useOrder,
-  type Order,
-  type OrderStatus,
-} from '@entities/order'
+import { createPayment, useOrder, type Order, type OrderStatus } from '@entities/order'
 import { ORDER_RESULT_COPY } from '@shared/lib/copy'
 
 import {
@@ -27,13 +22,7 @@ export const ORDER_RESULT_POLL_TIMEOUT_MS = 30_000
  * Состояние экрана результата оплаты для UI.
  */
 export type OrderResultView =
-  | 'missing'
-  | 'loading'
-  | 'error'
-  | 'success'
-  | 'pending'
-  | 'delayed'
-  | 'failed'
+  'missing' | 'loading' | 'error' | 'success' | 'pending' | 'delayed' | 'failed'
 
 /**
  * Параметры хука результата оплаты.
@@ -101,8 +90,6 @@ export function useOrderPaymentResult({
   const [retryError, setRetryError] = useState<string | undefined>()
 
   useEffect(() => {
-    setPollTimedOut(false)
-    cartInvalidatedRef.current = false
     if (!orderId) {
       return
     }
@@ -133,12 +120,7 @@ export function useOrderPaymentResult({
     }
   }, [orderQuery.isSuccess, orderQuery.data, queryClient])
 
-  const view = resolveView(
-    orderId,
-    orderQuery.data,
-    orderQuery.isError,
-    pollTimedOut,
-  )
+  const view = resolveView(orderId, orderQuery.data, orderQuery.isError, pollTimedOut)
 
   async function retryPayment(): Promise<void> {
     if (!orderId || isRetrying) {

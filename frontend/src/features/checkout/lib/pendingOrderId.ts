@@ -37,9 +37,7 @@ export function clearPendingOrderId(): void {
 /**
  * Резолвит order_id: сначала `?order_id=` из return_url, иначе sessionStorage.
  */
-export function resolveOrderIdFromReturn(
-  searchParams: URLSearchParams,
-): string | null {
+export function resolveOrderIdFromReturn(searchParams: URLSearchParams): string | null {
   const fromQuery = searchParams.get('order_id')?.trim()
   if (fromQuery) {
     return fromQuery

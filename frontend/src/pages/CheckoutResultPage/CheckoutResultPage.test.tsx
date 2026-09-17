@@ -144,7 +144,9 @@ describe('CheckoutResultPage', () => {
     expect(
       await screen.findByRole('heading', { name: ORDER_RESULT_COPY.successTitle }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: ORDER_RESULT_COPY.goHome })).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: ORDER_RESULT_COPY.goHome }),
+    ).toBeInTheDocument()
 
     await waitFor(() => {
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: cartKeys.all })
