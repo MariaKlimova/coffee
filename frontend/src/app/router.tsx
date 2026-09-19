@@ -1,4 +1,4 @@
-import { createBrowserRouter, type RouteObject } from 'react-router-dom'
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 
 import { RootLayout } from '@app/layouts/RootLayout'
 import { RequireAuth } from '@app/routes/RequireAuth'
@@ -7,9 +7,10 @@ import { CheckoutPage } from '@pages/CheckoutPage'
 import { CheckoutResultPage } from '@pages/CheckoutResultPage'
 import { CoffeePage } from '@pages/CoffeePage'
 import { FavoritesPage } from '@pages/FavoritesPage'
-import { HomePage } from '@pages/HomePage'
 import { LoginPage } from '@pages/LoginPage'
 import { MachinesPage } from '@pages/MachinesPage'
+import { OrderDetailPage } from '@pages/OrderDetailPage'
+import { OrdersPage } from '@pages/OrdersPage'
 import { ProductPage } from '@pages/ProductPage'
 import { ProfilePage } from '@pages/ProfilePage'
 import { RegisterPage } from '@pages/RegisterPage'
@@ -19,7 +20,10 @@ const appRoutes: RouteObject[] = [
   {
     element: <RootLayout />,
     children: [
-      { path: APP_ROUTES.home, element: <HomePage /> },
+      {
+        path: APP_ROUTES.home,
+        element: <Navigate to={APP_ROUTES.coffee} replace />,
+      },
       { path: APP_ROUTES.coffee, element: <CoffeePage /> },
       { path: APP_ROUTES.machines, element: <MachinesPage /> },
       { path: APP_ROUTES.product, element: <ProductPage /> },
@@ -33,6 +37,8 @@ const appRoutes: RouteObject[] = [
         children: [
           { path: APP_ROUTES.favorites, element: <FavoritesPage /> },
           { path: APP_ROUTES.profile, element: <ProfilePage /> },
+          { path: APP_ROUTES.orders, element: <OrdersPage /> },
+          { path: APP_ROUTES.orderDetail, element: <OrderDetailPage /> },
         ],
       },
     ],

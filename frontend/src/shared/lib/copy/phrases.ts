@@ -6,3 +6,5 @@ export const RETRY = 'Попробовать ещё раз'
 export const CLOSE = 'Закрыть'
 export const GO_TO_CATALOG = 'В каталог'
 export const BACK_TO_CATALOG = 'Вернуться в каталог'
+/** Ошибка загрузки заказа (деталка и результат оплаты). */
+export const LOAD_ORDER_ERROR = 'Не удалось загрузить заказ'

@@ -8,6 +8,13 @@ export { CATALOG_COPY } from './catalog'
 export { CHECKOUT_COPY } from './checkout'
 export { FAVORITE_COPY, FAVORITES_PAGE_COPY } from './favorite'
 export { FOOTER_COPY, NAV_COPY } from './nav'
+export { ORDER_DETAIL_COPY, ORDER_STATUS_COPY, ORDERS_PAGE_COPY } from './orders'
 export { ORDER_RESULT_COPY } from './orderResult'
-export { BACK_TO_CATALOG, CLOSE, GO_TO_CATALOG, RETRY } from './phrases'
+export {
+  BACK_TO_CATALOG,
+  CLOSE,
+  GO_TO_CATALOG,
+  LOAD_ORDER_ERROR,
+  RETRY,
+} from './phrases'
 export { PRODUCT_PAGE_COPY } from './product'

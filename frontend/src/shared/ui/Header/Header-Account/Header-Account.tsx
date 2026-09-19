@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { APP_ROUTES } from '@shared/config'
 import { cx } from '@shared/lib/cx'
 import { Button } from '@shared/ui/Button'
 
@@ -71,7 +72,7 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
         <ul id={menuId} className={styles['Header-AccountMenu']} role="menu">
           <li role="none">
             <Link
-              to="/profile"
+              to={APP_ROUTES.profile}
               role="menuitem"
               className={styles['Header-AccountItem']}
               onClick={() => {
@@ -83,7 +84,7 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
           </li>
           <li role="none">
             <Link
-              to="/#orders"
+              to={APP_ROUTES.orders}
               role="menuitem"
               className={styles['Header-AccountItem']}
               onClick={() => {

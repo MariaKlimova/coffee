@@ -2,9 +2,9 @@
  * Canonical in-app paths. Storefront, header, router and product entity read from here.
  */
 export const APP_ROUTES = {
-  /** Home / landing. */
+  /** Root URL — redirects to the coffee catalog. */
   home: '/',
-  /** Coffee category storefront. */
+  /** Coffee category storefront (main storefront). */
   coffee: '/coffee',
   /** Machines category storefront. */
   machines: '/machines',
@@ -24,8 +24,12 @@ export const APP_ROUTES = {
   checkoutResult: '/checkout/result',
   /** Profile (auth). */
   profile: '/profile',
-  /** Contacts anchor on the home page. */
-  contacts: '/#contacts',
+  /** Orders list (auth). */
+  orders: '/orders',
+  /** Order detail pattern for the router (auth). */
+  orderDetail: '/orders/:id',
+  /** Contacts anchor (пока без отдельной страницы). */
+  contacts: '/coffee#contacts',
   /** Design-system playground (DEV only). */
   uiKit: '/dev/ui-kit',
 } as const
@@ -37,3 +41,10 @@ export const CATEGORY_PATHS = {
   coffee: APP_ROUTES.coffee,
   machines: APP_ROUTES.machines,
 } as const
+
+/**
+ * Путь деталки заказа по UUID.
+ */
+export function orderDetailPath(orderId: string): string {
+  return `${APP_ROUTES.orders}/${orderId}`
+}

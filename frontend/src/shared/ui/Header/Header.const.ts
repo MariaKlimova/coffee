@@ -5,9 +5,9 @@ import type { HeaderNavItem } from './Header.typings'
 
 /** Primary navigation links. */
 export const HEADER_NAV_ITEMS: HeaderNavItem[] = [
-  { to: APP_ROUTES.home, label: NAV_COPY.home },
   { to: APP_ROUTES.coffee, label: NAV_COPY.coffee },
   { to: APP_ROUTES.machines, label: NAV_COPY.machines },
+  { to: APP_ROUTES.orders, label: NAV_COPY.orders },
   { to: APP_ROUTES.contacts, label: NAV_COPY.contacts },
 ]
 
