@@ -3,14 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { cartKeys } from '@entities/cart'
-import { createPayment, useOrder, type Order, type OrderStatus } from '@entities/order'
-import { ORDER_RESULT_COPY } from '@shared/lib/copy'
+import { useOrder, type Order, type OrderStatus } from '@entities/order'
 
-import {
-  clearPendingOrderId,
-  resolveOrderIdFromReturn,
-  writePendingOrderId,
-} from './pendingOrderId'
+import { clearPendingOrderId, resolveOrderIdFromReturn } from './pendingOrderId'
+import { usePayOrder } from './usePayOrder'
 
 /** Интервал поллинга статуса, пока заказ `pending`. */
 export const ORDER_RESULT_POLL_INTERVAL_MS = 2_500
@@ -75,9 +71,7 @@ function resolveView(
  * Резолв order_id, поллинг статуса, инвалидация корзины и retry оплаты.
  */
 export function useOrderPaymentResult({
-  redirectToPayment = (paymentUrl) => {
-    window.location.assign(paymentUrl)
-  },
+  redirectToPayment,
 }: UseOrderPaymentResultOptions = {}) {
   const [searchParams] = useSearchParams()
   const queryClient = useQueryClient()
@@ -86,8 +80,11 @@ export function useOrderPaymentResult({
 
   const [pollTimedOut, setPollTimedOut] = useState(false)
   const cartInvalidatedRef = useRef(false)
-  const [isRetrying, setIsRetrying] = useState(false)
-  const [retryError, setRetryError] = useState<string | undefined>()
+  const {
+    payOrder,
+    isPaying: isRetrying,
+    error: retryError,
+  } = usePayOrder({ redirectToPayment })
 
   useEffect(() => {
     if (!orderId) {
@@ -123,19 +120,10 @@ export function useOrderPaymentResult({
   const view = resolveView(orderId, orderQuery.data, orderQuery.isError, pollTimedOut)
 
   async function retryPayment(): Promise<void> {
-    if (!orderId || isRetrying) {
+    if (!orderId) {
       return
     }
-    setRetryError(undefined)
-    setIsRetrying(true)
-    try {
-      writePendingOrderId(orderId)
-      const payment = await createPayment(orderId)
-      redirectToPayment(payment.payment_url)
-    } catch {
-      setRetryError(ORDER_RESULT_COPY.retryPaymentError)
-      setIsRetrying(false)
-    }
+    await payOrder(orderId)
   }
 
   return {

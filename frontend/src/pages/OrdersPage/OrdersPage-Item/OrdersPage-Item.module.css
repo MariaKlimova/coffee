@@ -1,0 +1,76 @@
+.OrdersPage-Item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-md);
+  align-items: center;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  color: inherit;
+}
+
+.OrdersPage-Item:hover .OrdersPage-Item-Number {
+  color: var(--color-primary);
+}
+
+.OrdersPage-Item:focus-visible {
+  outline: none;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring);
+}
+
+.OrdersPage-Item-Main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+
+.OrdersPage-Item-Number {
+  font-family: var(--font-display);
+  font-size: var(--text-display-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.OrdersPage-Item-Date {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}
+
+.OrdersPage-Item-Total {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .OrdersPage-Item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'main total'
+      'badge total';
+  }
+
+  .OrdersPage-Item-Main {
+    grid-area: main;
+  }
+
+  .OrdersPage-Item-Status {
+    grid-area: badge;
+  }
+
+  .OrdersPage-Item-Total {
+    grid-area: total;
+    align-self: start;
+  }
+}

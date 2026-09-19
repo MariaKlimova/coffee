@@ -1,6 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
-import { orderDetailQueryOptions } from './orderQueryOptions'
+import { useAuthStore } from '@entities/user'
+
+import type { OrderListParams } from '../api/orderApi.typings'
+import { orderDetailQueryOptions, orderListQueryOptions } from './orderQueryOptions'
 
 /**
  * Параметры `useOrder`: интервал поллинга и условие остановки.
@@ -16,6 +19,20 @@ export interface UseOrderOptions {
    * Если `true`, refetchInterval отключается.
    */
   stopPolling?: boolean
+}
+
+/**
+ * Пагинированный список заказов авторизованного пользователя.
+ * Для гостя запрос не уходит.
+ */
+export function useOrders(params: OrderListParams = {}) {
+  const status = useAuthStore((state) => state.status)
+
+  return useQuery({
+    ...orderListQueryOptions(params),
+    enabled: status === 'authenticated',
+    placeholderData: keepPreviousData,
+  })
 }
 
 /**

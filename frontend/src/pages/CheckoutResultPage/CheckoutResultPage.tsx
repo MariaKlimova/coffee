@@ -1,10 +1,11 @@
+import { formatOrderNumberLabel } from '@entities/order'
 import { selectIsAuthenticated, useAuthStore } from '@entities/user'
 import { useOrderPaymentResult } from '@features/checkout'
 import { APP_ROUTES } from '@shared/config/routes'
 import { ORDER_RESULT_COPY } from '@shared/lib/copy'
 import { Button, EmptyState } from '@shared/ui'
 
-import { formatOrderNumberLabel, ORDERS_HREF } from './CheckoutResultPage.const'
+import { ORDERS_HREF } from './CheckoutResultPage.const'
 import styles from './CheckoutResultPage.module.css'
 
 /**
@@ -18,13 +19,13 @@ export function CheckoutResultPage() {
   const successCta = isAuthenticated ? (
     <Button to={ORDERS_HREF}>{ORDER_RESULT_COPY.goToOrders}</Button>
   ) : (
-    <Button to={APP_ROUTES.home}>{ORDER_RESULT_COPY.goHome}</Button>
+    <Button to={APP_ROUTES.coffee}>{ORDER_RESULT_COPY.goHome}</Button>
   )
 
   const delayedCta = isAuthenticated ? (
     <Button to={ORDERS_HREF}>{ORDER_RESULT_COPY.goToOrders}</Button>
   ) : (
-    <Button to={APP_ROUTES.home}>{ORDER_RESULT_COPY.goHome}</Button>
+    <Button to={APP_ROUTES.coffee}>{ORDER_RESULT_COPY.goHome}</Button>
   )
 
   if (view === 'missing') {
@@ -33,7 +34,7 @@ export function CheckoutResultPage() {
         <EmptyState
           title={ORDER_RESULT_COPY.missingTitle}
           description={ORDER_RESULT_COPY.missingDescription}
-          action={<Button to={APP_ROUTES.home}>{ORDER_RESULT_COPY.goHome}</Button>}
+          action={<Button to={APP_ROUTES.coffee}>{ORDER_RESULT_COPY.goHome}</Button>}
         />
       </section>
     )

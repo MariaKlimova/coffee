@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { getUserDisplayName, useAuthStore } from '@entities/user'
 import { AUTH_COPY, AuthCard } from '@features/auth'
+import { APP_ROUTES } from '@shared/config'
 import { Button } from '@shared/ui/Button'
 
 import styles from './ProfilePage.module.css'
@@ -31,7 +32,7 @@ export function ProfilePage() {
     setIsLoggingOut(true)
     try {
       await logout()
-      void navigate('/', { replace: true })
+      void navigate(APP_ROUTES.coffee, { replace: true })
     } finally {
       setIsLoggingOut(false)
     }

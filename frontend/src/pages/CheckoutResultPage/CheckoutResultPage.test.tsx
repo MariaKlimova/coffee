@@ -185,7 +185,7 @@ describe('CheckoutResultPage', () => {
 
     expect(
       await screen.findByRole('link', { name: ORDER_RESULT_COPY.goToOrders }),
-    ).toBeInTheDocument()
+    ).toHaveAttribute('href', '/orders')
   })
 
   it('shows pending then delayed after poll timeout', async () => {

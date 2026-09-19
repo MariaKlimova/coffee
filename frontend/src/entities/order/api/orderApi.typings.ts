@@ -33,9 +33,9 @@ export interface OrderItem {
 }
 
 /**
- * Созданный заказ (`Order` в OpenAPI).
+ * Строка списка заказов (`OrderListItem` в OpenAPI).
  */
-export interface Order {
+export interface OrderListItem {
   /** UUID заказа. */
   id: string
   /** Статус заказа. */
@@ -44,6 +44,22 @@ export interface Order {
   total: string
   /** Время создания (ISO). */
   created_at: string
+}
+
+/**
+ * Параметры пагинации `GET /api/orders/`.
+ */
+export interface OrderListParams {
+  /** Номер страницы (с 1). */
+  page?: number
+  /** Размер страницы (по умолчанию 20, макс. 100). */
+  page_size?: number
+}
+
+/**
+ * Созданный заказ (`Order` в OpenAPI).
+ */
+export interface Order extends OrderListItem {
   /** Адрес доставки. */
   delivery_address: string
   /** Email гостя, если заказ без аккаунта. */

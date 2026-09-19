@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 
+import { APP_ROUTES } from '@shared/config'
 import { cx } from '@shared/lib/cx'
 import { HeartIcon } from '@shared/ui/icons'
 
@@ -37,7 +38,7 @@ export function Header({
   return (
     <header className={cx(styles.Header, className)}>
       <div className={styles['Header-Inner']}>
-        <Link to="/" className={styles['Header-Brand']}>
+        <Link to={APP_ROUTES.coffee} className={styles['Header-Brand']}>
           Coffee Shop
         </Link>
 

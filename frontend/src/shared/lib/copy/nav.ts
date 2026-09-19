@@ -2,9 +2,9 @@
  * Подписи основной навигации (Header).
  */
 export const NAV_COPY = {
-  home: 'Главная',
   coffee: 'Кофе',
   machines: 'Кофемашины',
+  orders: 'Заказы',
   contacts: 'Контакты',
 } as const
 

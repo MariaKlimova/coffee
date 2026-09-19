@@ -14,6 +14,10 @@ describe('Header', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Войти' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Заказы' })).toHaveAttribute(
+      'href',
+      '/orders',
+    )
   })
 
   it('shows account menu for an authenticated user', async () => {
@@ -27,8 +31,14 @@ describe('Header', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Маша' }))
-    expect(screen.getByRole('menuitem', { name: 'Профиль' })).toBeInTheDocument()
-    expect(screen.getByRole('menuitem', { name: 'Мои заказы' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Профиль' })).toHaveAttribute(
+      'href',
+      '/profile',
+    )
+    expect(screen.getByRole('menuitem', { name: 'Мои заказы' })).toHaveAttribute(
+      'href',
+      '/orders',
+    )
 
     await user.click(screen.getByRole('menuitem', { name: 'Выйти' }))
     expect(onLogout).toHaveBeenCalledTimes(1)

@@ -1,3 +1,5 @@
+import { LOAD_ORDER_ERROR, RETRY } from './phrases'
+
 /**
  * Пользовательские строки страницы результата оплаты (product-voice).
  */
@@ -31,9 +33,9 @@ export const ORDER_RESULT_COPY = {
   /** Подсказка без order_id. */
   missingDescription: 'Вернись с оплаты по ссылке или открой Мои заказы',
   /** Ошибка загрузки заказа. */
-  loadErrorTitle: 'Не удалось загрузить заказ',
+  loadErrorTitle: LOAD_ORDER_ERROR,
   /** Кнопка повтора загрузки. */
-  retryLoad: 'Попробовать ещё раз',
+  retryLoad: RETRY,
   /** Ошибка повторного создания платежа. */
   retryPaymentError: 'Не удалось перейти к оплате. Попробуй ещё раз',
   /** Aria для ожидания. */

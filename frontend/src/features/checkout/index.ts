@@ -18,6 +18,8 @@ export type {
   OrderResultView,
   UseOrderPaymentResultOptions,
 } from './lib/useOrderPaymentResult'
+export { usePayOrder } from './lib/usePayOrder'
+export type { UsePayOrderOptions } from './lib/usePayOrder'
 export {
   hasCheckoutFieldErrors,
   validateCheckoutForm,
