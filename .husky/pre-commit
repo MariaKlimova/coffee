@@ -21,6 +21,13 @@ if [ "$has_frontend" -eq 1 ]; then
 fi
 
 if [ "$has_backend" -eq 1 ]; then
+  ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+  BACKEND_VENV_BIN="$ROOT/backend/.venv/bin"
+  if [ -d "$BACKEND_VENV_BIN" ]; then
+    PATH="$BACKEND_VENV_BIN:$PATH"
+    export PATH
+  fi
+
   if ! command -v ruff >/dev/null 2>&1; then
     echo "error: ruff не найден — поставь backend deps (pip install -r backend/requirements/dev.txt)" >&2
     exit 1

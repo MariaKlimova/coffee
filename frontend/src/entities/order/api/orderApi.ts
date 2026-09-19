@@ -16,6 +16,14 @@ export async function createOrder(payload: OrderCreate): Promise<Order> {
 }
 
 /**
+ * Загружает заказ по UUID (`GET /api/orders/{id}/`).
+ */
+export async function getOrder(orderId: string): Promise<Order> {
+  const { data } = await http.get<Order>(`/api/orders/${orderId}/`)
+  return data
+}
+
+/**
  * Создаёт платёжную сессию ЮKassa и возвращает URL для редиректа.
  */
 export async function createPayment(orderId: string): Promise<PaymentSession> {

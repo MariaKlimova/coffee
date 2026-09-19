@@ -5,6 +5,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
 
 from django.conf import settings
@@ -24,6 +25,20 @@ from apps.payments import yookassa
 from apps.payments.models import Payment
 
 logger = logging.getLogger(__name__)
+
+
+def build_payment_return_url(order_id: UUID) -> str:
+    """
+    Append ``order_id`` to ``YOOKASSA_RETURN_URL`` for the storefront result page.
+
+    Preserves any existing query string on the configured base URL.
+    """
+    base = settings.YOOKASSA_RETURN_URL
+    parsed = urlparse(base)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query["order_id"] = str(order_id)
+    return urlunparse(parsed._replace(query=urlencode(query)))
+
 
 # https://yookassa.ru/developers/using-api/webhooks
 YOOKASSA_IP_NETWORKS = (
@@ -116,6 +131,7 @@ def create_payment_session(request: Request, order_id: UUID) -> Payment:
             amount=order.total_amount,
             order_id=str(order.id),
             description=f"Order {order.id}",
+            return_url=build_payment_return_url(order.id),
             idempotence_key=idempotence_key,
         )
     except yookassa.YooKassaError as exc:

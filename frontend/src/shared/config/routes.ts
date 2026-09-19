@@ -20,6 +20,8 @@ export const APP_ROUTES = {
   favorites: '/favorites',
   /** Checkout (guest + auth). */
   checkout: '/checkout',
+  /** Payment return / order result after YooKassa. */
+  checkoutResult: '/checkout/result',
   /** Profile (auth). */
   profile: '/profile',
   /** Contacts anchor on the home page. */
