@@ -19,18 +19,12 @@ import styles from './OrdersPage-Item.module.css'
  */
 export function OrdersPageItem({ order }: OrdersPageItemProps) {
   return (
-    <Link
-      to={orderDetailPath(order.id)}
-      className={styles['OrdersPage-Item']}
-    >
+    <Link to={orderDetailPath(order.id)} className={styles['OrdersPage-Item']}>
       <div className={styles['OrdersPage-Item-Main']}>
         <span className={styles['OrdersPage-Item-Number']}>
           {formatOrderNumberLabel(ORDERS_PAGE_COPY.orderNumber, order.id)}
         </span>
-        <time
-          className={styles['OrdersPage-Item-Date']}
-          dateTime={order.created_at}
-        >
+        <time className={styles['OrdersPage-Item-Date']} dateTime={order.created_at}>
           {formatOrderDate(order.created_at)}
         </time>
       </div>

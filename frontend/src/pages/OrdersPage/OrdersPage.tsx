@@ -98,9 +98,7 @@ export function OrdersPage() {
           title={ORDERS_PAGE_COPY.emptyTitle}
           description={ORDERS_PAGE_COPY.emptyDescription}
           action={
-            <Button to={DEFAULT_CATALOG_ROUTE}>
-              {ORDERS_PAGE_COPY.goToCatalog}
-            </Button>
+            <Button to={DEFAULT_CATALOG_ROUTE}>{ORDERS_PAGE_COPY.goToCatalog}</Button>
           }
         />
       ) : null}

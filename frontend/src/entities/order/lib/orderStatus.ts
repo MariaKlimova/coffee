@@ -25,9 +25,7 @@ export function getOrderStatusLabel(status: OrderStatus | string): string {
 /**
  * Variant Badge для статуса; по умолчанию neutral.
  */
-export function getOrderStatusBadgeVariant(
-  status: OrderStatus | string,
-): BadgeVariant {
+export function getOrderStatusBadgeVariant(status: OrderStatus | string): BadgeVariant {
   if (status in ORDER_STATUS_BADGE_VARIANT) {
     return ORDER_STATUS_BADGE_VARIANT[status as OrderStatus]
   }

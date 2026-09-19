@@ -56,18 +56,12 @@ export function OrderDetailPage() {
       <section className={styles.OrderDetailPage}>
         <EmptyState
           title={
-            notFound
-              ? ORDER_DETAIL_COPY.notFoundTitle
-              : ORDER_DETAIL_COPY.errorTitle
+            notFound ? ORDER_DETAIL_COPY.notFoundTitle : ORDER_DETAIL_COPY.errorTitle
           }
-          description={
-            notFound ? ORDER_DETAIL_COPY.notFoundDescription : undefined
-          }
+          description={notFound ? ORDER_DETAIL_COPY.notFoundDescription : undefined}
           action={
             notFound ? (
-              <Button to={APP_ROUTES.orders}>
-                {ORDER_DETAIL_COPY.backToOrders}
-              </Button>
+              <Button to={APP_ROUTES.orders}>{ORDER_DETAIL_COPY.backToOrders}</Button>
             ) : (
               <Button
                 type="button"
@@ -117,10 +111,7 @@ export function OrderDetailPage() {
             {getOrderStatusLabel(order.status)}
           </Badge>
         </div>
-        <time
-          className={styles['OrderDetailPage-Date']}
-          dateTime={order.created_at}
-        >
+        <time className={styles['OrderDetailPage-Date']} dateTime={order.created_at}>
           {formatOrderDate(order.created_at)}
         </time>
       </div>

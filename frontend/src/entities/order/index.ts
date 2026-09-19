@@ -12,10 +12,7 @@ export type {
 export { formatOrderDate } from './lib/formatOrderDate'
 export { formatOrderItemsCount } from './lib/formatOrderItemsCount'
 export { formatOrderNumberLabel } from './lib/formatOrderNumberLabel'
-export {
-  getOrderStatusBadgeVariant,
-  getOrderStatusLabel,
-} from './lib/orderStatus'
+export { getOrderStatusBadgeVariant, getOrderStatusLabel } from './lib/orderStatus'
 export { useOrder, useOrders } from './model/orderQueries'
 export type { UseOrderOptions } from './model/orderQueries'
 export {

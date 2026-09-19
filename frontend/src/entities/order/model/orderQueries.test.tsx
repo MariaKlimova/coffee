@@ -94,10 +94,9 @@ describe('useOrders', () => {
       defaultOptions: { queries: { retry: false } },
     })
 
-    const { result } = renderHook(
-      () => useOrders({ page: 2, page_size: 20 }),
-      { wrapper: createWrapper(queryClient) },
-    )
+    const { result } = renderHook(() => useOrders({ page: 2, page_size: 20 }), {
+      wrapper: createWrapper(queryClient),
+    })
 
     await waitFor(() => {
       expect(result.current.data?.results).toEqual([order])
@@ -106,7 +105,9 @@ describe('useOrders', () => {
     const config = adapter.mock.calls[0][0] as InternalAxiosRequestConfig
     expect(config.url).toContain('/api/orders/')
     expect(config.params).toMatchObject({ page: '2', page_size: '20' })
-    expect(queryClient.getQueryData(orderKeys.list({ page: 2, page_size: 20 }))).toEqual({
+    expect(
+      queryClient.getQueryData(orderKeys.list({ page: 2, page_size: 20 })),
+    ).toEqual({
       count: 1,
       next: null,
       previous: null,
