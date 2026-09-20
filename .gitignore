@@ -35,12 +35,9 @@ build/
 .DS_Store
 Thumbs.db
 
-# IDE / editors
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
+# Vercel
+.vercel/
+
 
 # Uploaded media (product images, etc.)
 backend/media/
