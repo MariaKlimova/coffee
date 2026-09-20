@@ -13,6 +13,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, ["http://localhost:5174"]),
     YOOKASSA_WEBHOOK_IP_CHECK=(bool, True),
+    SERVE_MEDIA=(bool, False),
 )
 
 environ.Env.read_env(BASE_DIR / ".env")
@@ -105,6 +106,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # static = CSS/JS we ship; media = files admins/users upload at runtime.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# Render (and similar PaaS) have no nginx for /media — serve via Django for MVP.
+# Prefer object storage (S3/R2) before real traffic; free-tier disk is ephemeral.
+SERVE_MEDIA = env("SERVE_MEDIA")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

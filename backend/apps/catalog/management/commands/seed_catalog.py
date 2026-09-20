@@ -340,7 +340,18 @@ class Command(BaseCommand):
                     "attributes": item.get("attributes", {}),
                 },
             )
-            if was_created or not product.images.exists():
+            # Re-upload when missing in DB or on disk (Render free disk is
+            # ephemeral across deploys; Postgres keeps ImageField paths).
+            needs_image = was_created or not product.images.exists()
+            if not needs_image:
+                existing = product.images.filter(is_main=True).first()
+                if existing is None:
+                    existing = product.images.first()
+                if existing is None or not existing.image:
+                    needs_image = True
+                elif not existing.image.storage.exists(existing.image.name):
+                    needs_image = True
+            if needs_image:
                 product.images.all().delete()
                 ProductImage.objects.create(
                     product=product,
