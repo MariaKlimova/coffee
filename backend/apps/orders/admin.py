@@ -3,9 +3,10 @@
 from django.contrib import admin
 
 from apps.orders.models import Order, OrderItem
+from config.admin import NoAddDeleteAdminMixin, ReadOnlyAdminMixin
 
 
-class OrderItemInline(admin.TabularInline):
+class OrderItemInline(ReadOnlyAdminMixin, admin.TabularInline):
     """Inline line snapshots on the order change page."""
 
     model = OrderItem
@@ -20,7 +21,7 @@ class OrderItemInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(NoAddDeleteAdminMixin, admin.ModelAdmin):
     """Browse orders by user, guest contact, or status."""
 
     list_display = (
@@ -39,12 +40,14 @@ class OrderAdmin(admin.ModelAdmin):
         "guest_phone",
         "delivery_address",
     )
-    readonly_fields = ("id", "created_at", "updated_at", "total_amount")
+    # All transitions wait for a validated service; deleting the parent would
+    # also delete its protected order lines and payment history by cascade.
+    readonly_fields = ("id", "created_at", "updated_at", "total_amount", "status")
     inlines = [OrderItemInline]
 
 
 @admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
+class OrderItemAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Browse individual order lines."""
 
     list_display = (
@@ -56,4 +59,11 @@ class OrderItemAdmin(admin.ModelAdmin):
         "product",
     )
     search_fields = ("product_name", "order__id")
-    readonly_fields = ("id",)
+    readonly_fields = (
+        "id",
+        "order",
+        "product",
+        "product_name",
+        "product_price",
+        "quantity",
+    )
