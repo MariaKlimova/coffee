@@ -122,6 +122,7 @@
 |-------|----------|------------|
 | `--layout-max-width` | `1120px` | Контентная колонка |
 | `--layout-gutter` | `var(--space-lg)` | Боковые отступы |
+| `--layout-gutter-mobile` | `var(--space-md)` | Поля шапки, контента и подвала на узком экране |
 | `--layout-columns-gap` | `var(--space-md)` | Зазор в сетке карточек |
 | `--grid-card-min` | `16rem` | Минимальная колонка сетки карточек |
 | `--expanded-pane-basis` | `380px` | Базовая ширина колонки в расширенной карточке |
@@ -160,6 +161,9 @@
 | `--size-skeleton-line-lg` | `16px` | Высота строки-заголовка скелетона |
 | `--size-empty-max` | `28rem` | Максимальная ширина пустого состояния |
 | `--size-toast-max` | `22rem` | Максимальная ширина тоста |
+| `--size-header-account-max` | `8rem` | Максимальная ширина имени в шапке |
+| `--size-header-account-mobile-max` | `5rem` | Максимальная ширина имени на узком экране |
+| `--size-header-anchor-offset` | `10rem` | Отступ якоря контактов с учётом двух строк sticky-шапки |
 | `--size-header` | `64px` | Высота sticky-шапки |
 | `--size-counter` | `18px` | Кружок счётчика в шапке |
 | `--size-search-max` | `24rem` | Максимальная ширина поиска в шапке |

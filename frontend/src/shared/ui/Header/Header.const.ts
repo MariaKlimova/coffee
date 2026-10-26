@@ -8,7 +8,7 @@ export const HEADER_NAV_ITEMS: HeaderNavItem[] = [
   { to: APP_ROUTES.coffee, label: NAV_COPY.coffee },
   { to: APP_ROUTES.machines, label: NAV_COPY.machines },
   { to: APP_ROUTES.orders, label: NAV_COPY.orders },
-  { to: APP_ROUTES.contacts, label: NAV_COPY.contacts },
+  { to: '#contacts', label: NAV_COPY.contacts },
 ]
 
 /** Maximum numeric value shown in header counters before clamping. */
