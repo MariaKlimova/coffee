@@ -41,3 +41,6 @@ Thumbs.db
 
 # Uploaded media (product images, etc.)
 backend/media/
+
+# Isolated task checkouts (managed from the main checkout)
+worktrees/

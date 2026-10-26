@@ -109,12 +109,13 @@ npm run dev
 | `backend-ci` | ruff, black --check, pytest (+ Postgres service) |
 | `frontend-ci` | lint, typecheck, test, build |
 | `commitlint` | Conventional Commits в истории PR |
+| `agent-config` | общие skills Codex/Cursor, локальные ссылки и тесты валидатора |
 
 ## Ветка `main`
 
 Прямой push в `main` запрещён (в том числе для админов): изменения только через pull request. Перед merge обязательны зелёные checks: `lint-format-test`, `lint-typecheck-test-build`, `conventional-commits`.
 
-## Как работать с агентами в Cursor
+## Как работать с агентами в Codex и Cursor
 
 Карта ролей и handoff: [AGENTS.md](AGENTS.md).  
 Описание каждой роли: [docs/agents/](docs/agents/).
@@ -123,10 +124,27 @@ npm run dev
 |------------|------|
 | Rules | `.cursor/rules/` |
 | Skills (bem, product-voice, tokens, django, fsd) | `.cursor/skills/` |
-| Code Review subagent | `.cursor/agents/code-review.md` (`/code-review`) |
+| Skills Codex | `.agents/skills/` — ссылки на те же папки, без копий |
+| Code Review | `.cursor/skills/coffee-review/`, роль `.cursor/agents/code-review.md` |
+| QA с отчётом в Jira | `.cursor/skills/coffee-qa/`, роль `.cursor/agents/qa-tester.md` |
+| Полный цикл COFFEE-задачи | `.cursor/skills/coffee-task/` |
 | Контракт findings | `.cursor/BUGBOT.md` |
 
 Пример: задача «добавь эндпоинт» для frontend-агента → отказ и handoff на [backend-django](docs/agents/backend-django.md).
+
+Примеры запросов: «Возьми COFFEE-50 по coffee-task», «Проведи coffee-review текущего
+diff», «Прими COFFEE-50 по coffee-qa и запиши результат в Jira». Codex: `$coffee-task`,
+`$coffee-review`, `$coffee-qa`; Cursor: выбрать соответствующий skill через `/`.
+Приёмка включает PASS/FAIL/BLOCKED-комментарий с ревизией, покрытием AC и evidence;
+недоступный обязательный browser-сценарий остаётся BLOCKED. Для Jira нужен подключённый
+Jira/Atlassian connector; credentials из соседних проектов не копируются.
+
+Codex не применяет `.cursor/rules/*.mdc` автоматически — читать правила по таблице
+в `AGENTS.md`. Файлы ролей не регистрируют Codex-subagents: workflow передаёт их
+доступному механизму делегации. После добавления skill создать относительную ссылку
+в `.agents/skills/` и выполнить `npm run check:agents`. Поддержку repo skills и symlinks
+описывает [OpenAI](https://learn.chatgpt.com/docs/build-skills), discovery Cursor —
+[документация Cursor](https://cursor.com/help/customization/skills).
 
 ## Контрибьюция
 

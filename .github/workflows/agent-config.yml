@@ -1,0 +1,20 @@
+name: agent-config
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  agent-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate shared skills and references
+        run: python3 scripts/check_agent_setup.py
+      - name: Test discovery validation
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'

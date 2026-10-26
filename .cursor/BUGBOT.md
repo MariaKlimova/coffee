@@ -154,6 +154,19 @@ Code Review **обязан** заполнить таблицу «Чистота 
 | `backend/**` | django-api, OpenAPI, secrets |
 | `docs/api/**` | контракт |
 | `docs/design/**`, `docs/content/**` | tokens, glossary |
+| `.cursor/**`, `.agents/skills/**`, `AGENTS.md` | discovery обоих инструментов, ссылки и контракты review/QA |
+
+## Общие skills Codex/Cursor
+
+При изменениях skills/rules/agent setup выполнять `python3 scripts/check_agent_setup.py`
+и тесты валидатора. `.cursor/skills` — единственный источник; `.agents/skills`
+содержит соответствующие относительные ссылки, без копий и drift. Проверить name,
+frontmatter, локальные references через оба пути и актуальность команд Coffee.
+
+Неподключённый новому инструменту skill, сломанная ссылка, чужие PRA/runtime пути,
+выдуманный Jira tool или ложный PASS при непроверенном обязательном AC — **blocking**.
+Не переносить из соседних проектов разрешения на secrets, публикацию и удаление.
+Файл агента не означает автоматическую регистрацию в Codex или запущенный Bugbot.
 
 ---
 
