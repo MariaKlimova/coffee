@@ -33,7 +33,9 @@ export function Footer({ className }: FooterProps) {
         </nav>
 
         <div className={styles['Footer-Column']}>
-          <p className={styles['Footer-Title']}>Контакты</p>
+          <p id="contacts" className={styles['Footer-Title']}>
+            Контакты
+          </p>
           <ul className={styles['Footer-List']}>
             {FOOTER_CONTACTS.map((item) => (
               <li key={item.label} className={styles['Footer-Contact']}>
