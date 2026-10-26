@@ -6,9 +6,16 @@
 
 .RootLayout-Main {
   flex: 1 0 auto;
+  min-width: 0;
   box-sizing: border-box;
   width: 100%;
   max-width: var(--layout-max-width);
   margin: 0 auto;
   padding: var(--space-lg) var(--layout-gutter) var(--space-2xl);
+}
+
+@media (max-width: 63.999rem) {
+  .RootLayout-Main {
+    padding: var(--space-md) var(--layout-gutter-mobile) var(--space-xl);
+  }
 }

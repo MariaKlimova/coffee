@@ -1,41 +1,25 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
+import { AUTH_COPY, ORDERS_PAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { Button } from '@shared/ui/Button'
 
+import { useHeaderDisclosure } from '../lib'
 import type { HeaderAccountProps } from './Header-Account.typings'
 import styles from './Header-Account.module.css'
 
 export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps) {
-  const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const { open, setOpen, rootRef, triggerRef, closeAndRestoreFocus } =
+    useHeaderDisclosure()
+  const menuRef = useRef<HTMLUListElement>(null)
   const menuId = useId()
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
+    if (open) {
+      menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus()
     }
   }, [open])
 
@@ -44,12 +28,12 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
       <Button
         variant="secondary"
         size="sm"
-        className={className}
+        className={cx(styles['Header-AccountTrigger'], className)}
         onClick={() => {
-          void navigate('/login')
+          void navigate(APP_ROUTES.login)
         }}
       >
-        Войти
+        {AUTH_COPY.loginSubmit}
       </Button>
     )
   }
@@ -57,6 +41,8 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
   return (
     <div ref={rootRef} className={cx(styles['Header-Account'], className)}>
       <button
+        ref={triggerRef}
+        id={`${menuId}-trigger`}
         type="button"
         className={styles['Header-AccountTrigger']}
         aria-haspopup="menu"
@@ -66,20 +52,41 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
           setOpen((value) => !value)
         }}
       >
-        {user.name}
+        <span className={styles['Header-AccountName']} title={user.name}>
+          {user.name}
+        </span>
       </button>
       {open ? (
-        <ul id={menuId} className={styles['Header-AccountMenu']} role="menu">
+        <ul
+          ref={menuRef}
+          id={menuId}
+          className={styles['Header-AccountMenu']}
+          role="menu"
+          aria-labelledby={`${menuId}-trigger`}
+          onKeyDown={(event) => {
+            const items = Array.from(
+              event.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+            )
+            const index = items.indexOf(document.activeElement as HTMLElement)
+            let nextIndex = index
+            if (event.key === 'ArrowDown') nextIndex = (index + 1) % items.length
+            else if (event.key === 'ArrowUp')
+              nextIndex = (index - 1 + items.length) % items.length
+            else if (event.key === 'Home') nextIndex = 0
+            else if (event.key === 'End') nextIndex = items.length - 1
+            else return
+            event.preventDefault()
+            items[nextIndex]?.focus()
+          }}
+        >
           <li role="none">
             <Link
               to={APP_ROUTES.profile}
               role="menuitem"
               className={styles['Header-AccountItem']}
-              onClick={() => {
-                setOpen(false)
-              }}
+              onClick={closeAndRestoreFocus}
             >
-              Профиль
+              {AUTH_COPY.profileTitle}
             </Link>
           </li>
           <li role="none">
@@ -87,11 +94,9 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
               to={APP_ROUTES.orders}
               role="menuitem"
               className={styles['Header-AccountItem']}
-              onClick={() => {
-                setOpen(false)
-              }}
+              onClick={closeAndRestoreFocus}
             >
-              Мои заказы
+              {ORDERS_PAGE_COPY.title}
             </Link>
           </li>
           <li role="none">
@@ -100,11 +105,11 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
               role="menuitem"
               className={styles['Header-AccountItem']}
               onClick={() => {
-                setOpen(false)
+                closeAndRestoreFocus()
                 onLogout?.()
               }}
             >
-              Выйти
+              {AUTH_COPY.logout}
             </button>
           </li>
         </ul>

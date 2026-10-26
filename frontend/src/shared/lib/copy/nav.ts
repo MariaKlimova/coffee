@@ -2,6 +2,8 @@
  * Подписи основной навигации (Header).
  */
 export const NAV_COPY = {
+  menu: 'Меню',
+  primaryNavigation: 'Основная навигация',
   coffee: 'Кофе',
   machines: 'Кофемашины',
   orders: 'Заказы',

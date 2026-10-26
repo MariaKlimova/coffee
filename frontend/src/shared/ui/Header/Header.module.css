@@ -38,42 +38,17 @@
   border-radius: var(--radius-sm);
 }
 
-.Header-Nav {
-  flex-shrink: 0;
-}
-
-.Header-NavList {
+.Header-SearchRow {
   display: flex;
+  flex: 1;
   align-items: center;
-  gap: var(--space-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  gap: var(--space-md);
+  min-width: 0;
 }
 
-.Header-NavLink {
-  display: inline-flex;
-  padding: var(--space-2xs) var(--space-xs);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  line-height: var(--leading-tight);
-  text-decoration: none;
-}
-
-.Header-NavLink:hover {
-  color: var(--color-primary);
-}
-
-.Header-NavLink:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-}
-
-.Header-NavLink--active {
-  color: var(--color-primary);
+.Header-SearchSlot {
+  flex: 1;
+  min-width: 0;
 }
 
 .Header-Actions {
@@ -82,4 +57,26 @@
   align-items: center;
   gap: var(--space-sm);
   margin-left: auto;
+}
+
+@media (max-width: 63.999rem) {
+  .Header-Inner {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--layout-gutter-mobile);
+  }
+
+  .Header-Brand {
+    min-width: 0;
+  }
+
+  .Header-SearchRow {
+    order: 1;
+    flex-basis: 100%;
+    gap: var(--space-xs);
+  }
+
+  .Header-Actions {
+    gap: var(--space-xs);
+  }
 }

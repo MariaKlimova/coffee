@@ -1,13 +1,14 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
+import { CART_PAGE_COPY, FAVORITES_PAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { HeartIcon } from '@shared/ui/icons'
 
 import { HeaderAccount } from './Header-Account'
 import { HeaderCounterLink } from './Header-CounterLink'
 import { HeaderSearch } from './Header-Search'
-import { HEADER_NAV_ITEMS } from './Header.const'
+import { HeaderNavigation } from './Header-Navigation'
 import type { HeaderProps } from './Header.typings'
 import styles from './Header.module.css'
 
@@ -42,48 +43,23 @@ export function Header({
           Coffee Shop
         </Link>
 
-        <nav className={styles['Header-Nav']} aria-label="Основная навигация">
-          <ul className={styles['Header-NavList']}>
-            {HEADER_NAV_ITEMS.map((item) => {
-              const isHashLink = item.to.includes('#')
-              return (
-                <li key={item.to}>
-                  {isHashLink ? (
-                    <a href={item.to} className={styles['Header-NavLink']}>
-                      {item.label}
-                    </a>
-                  ) : (
-                    <NavLink
-                      to={item.to}
-                      className={({ isActive }) =>
-                        cx(
-                          styles['Header-NavLink'],
-                          isActive && styles['Header-NavLink--active'],
-                        )
-                      }
-                      end={item.to === '/'}
-                    >
-                      {item.label}
-                    </NavLink>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </nav>
-
-        <HeaderSearch onSubmit={onSearchSubmit} />
+        <div className={styles['Header-SearchRow']}>
+          <HeaderNavigation />
+          <div className={styles['Header-SearchSlot']}>
+            <HeaderSearch onSubmit={onSearchSubmit} />
+          </div>
+        </div>
 
         <div className={styles['Header-Actions']}>
           <HeaderCounterLink
-            to="/favorites"
-            label="Избранное"
+            to={APP_ROUTES.favorites}
+            label={FAVORITES_PAGE_COPY.title}
             count={favoritesCount}
             icon={<HeartIcon />}
           />
           <HeaderCounterLink
-            to="/cart"
-            label="Корзина"
+            to={APP_ROUTES.cart}
+            label={CART_PAGE_COPY.title}
             count={cartCount}
             icon={<CartIcon />}
           />

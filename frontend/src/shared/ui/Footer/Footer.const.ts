@@ -9,7 +9,7 @@ import type {
 /** Utility links in the footer. */
 export const FOOTER_LINKS: FooterLinkItem[] = [
   { href: '/#delivery', label: FOOTER_COPY.delivery },
-  { href: '/#contacts', label: FOOTER_COPY.contacts },
+  { href: '#contacts', label: FOOTER_COPY.contacts },
   { href: '/#privacy', label: FOOTER_COPY.privacy },
 ]
 
