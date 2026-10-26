@@ -4,6 +4,7 @@
   "description": "Internet shop for coffee and coffee machines",
   "scripts": {
     "prepare": "husky",
+    "check:agents": "python3 scripts/check_agent_setup.py",
     "dev": "docker compose -f infra/docker-compose.yml up --build",
     "dev:down": "docker compose -f infra/docker-compose.yml down",
     "dev:reset": "docker compose -f infra/docker-compose.yml down -v && docker compose -f infra/docker-compose.yml up --build"

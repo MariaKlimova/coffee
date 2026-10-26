@@ -50,7 +50,10 @@ diff и выдать структурированные findings по `.cursor/B
 ## 2. Как получить diff
 
 1. Base: `main` (или указанный пользователем).
-2. `git diff <base>...HEAD` и `git diff --name-only <base>...HEAD` (или uncommitted).
+2. Для всей задачи: `git diff <base>...HEAD`, staged/unstaged diff и новые
+   untracked файлы задачи из `git status --short`. Один `base...HEAD` не включает
+   незакоммиченную реализацию. Для явно выбранного PR/uncommitted scope
+   ограничиться запросом пользователя; чужие изменения отделить.
 3. Классифицируй файлы по «Зоны ревью» в BUGBOT.md.
 4. Для finding читай контекст вокруг hunk.
 5. Обязательные проходы: дубли → copy/tokens → мёртвый код → **чистота кода (отдельная таблица)**.
@@ -68,7 +71,8 @@ Severity — см. BUGBOT «Дублирование кода».
 
 ### Hardcoded copy / tokens
 
-- User-visible строки вне `frontend/src/shared/lib/copy/` → finding (blocking, кроме stub-скелета)
+- User-visible строки вне `frontend/src/shared/lib/copy/` → проверить по BUGBOT
+  и product-voice; severity по фактическому нарушению, учитывать stub-исключения
 - User-visible API-жаргон или расхождение с glossary → finding (product-voice)
 - hex/rgb/магические px вне tokens → blocking (design-tokens)
 - Stub page titles на скелете — recommendation, не обязательно blocking
@@ -85,6 +89,16 @@ Grep usages новых export; orphan files; commented blocks ≥3 lines.
 
 Отдельный проход по кандидатам (≥20 LOC net, hooks/lib/views, файлы ≥250 строк).
 Заполни таблицу «Чистота кода» **всегда** (даже при 0 findings).
+
+### Подключение skills Codex/Cursor
+
+Если diff затрагивает skills, agent/rules или их подключение, проверить
+`python3 scripts/check_agent_setup.py` и тесты валидатора по `AGENTS.md`.
+Сверить одинаковый inventory, реальные относительные symlinks, name/frontmatter
+и references через оба discovery-пути. Не считать упоминание в AGENTS подключением.
+Новый skill без подключения или со сломанной ссылкой — blocking по BUGBOT.
+Проверить также поведение workflow: независимость review/QA, полный dirty scope,
+правдивый BLOCKED и отсутствие незапрошенных Jira/production операций.
 
 ---
 
@@ -122,6 +136,16 @@ Grep usages новых export; orphan files; commented blocks ≥3 lines.
 ### Что проверено и чисто
 
 Bullet-список зон без findings.
+
+### Проверки и ограничения
+
+Фактически выполненные команды и результаты; при изменениях инструкций — inventory
+и validator Codex/Cursor. Отделить браузер/реальный backend/deployed проверки,
+которых не было. Наличие файлов инструкций не доказывает запуск review/QA/CI.
+
+### Вердикт
+
+`request changes` при blocking; иначе `approve`. Полные findings сохраняются.
 
 ---
 
