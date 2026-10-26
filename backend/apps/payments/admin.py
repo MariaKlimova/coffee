@@ -3,10 +3,11 @@
 from django.contrib import admin
 
 from apps.payments.models import Payment
+from config.admin import ReadOnlyAdminMixin
 
 
 @admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
+class PaymentAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
     """Browse payment attempts by order and provider id."""
 
     list_display = (
@@ -21,7 +22,9 @@ class PaymentAdmin(admin.ModelAdmin):
     search_fields = ("id", "provider_payment_id", "order__id")
     readonly_fields = (
         "id",
+        "order",
         "provider_payment_id",
+        "status",
         "amount",
         "confirmation_url",
         "raw_payload",
