@@ -4,4 +4,3 @@ set -o errexit
 pip install -r requirements/prod.txt
 python manage.py collectstatic --noinput
 python manage.py migrate --noinput
-python manage.py seed_catalog
