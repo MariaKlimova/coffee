@@ -1,4 +1,4 @@
-import { LOAD_ORDER_ERROR, RETRY } from './phrases'
+import { LOAD_ORDER_ERROR, ORDER_CREATED, RETRY } from './phrases'
 
 /**
  * Пользовательские строки страницы результата оплаты (product-voice).
@@ -6,6 +6,13 @@ import { LOAD_ORDER_ERROR, RETRY } from './phrases'
 export const ORDER_RESULT_COPY = {
   /** Заголовок экрана успеха. */
   successTitle: 'Заказ оплачен',
+  /** Ссылка провайдера не получена или переход был прерван. */
+  recoveryTitle: ORDER_CREATED,
+  /** Не обещаем списание или обработку платежа без подтверждения провайдера. */
+  recoveryDescription:
+    'Не удалось перейти к оплате. Попробуй ещё раз — новый заказ создавать не нужно',
+  /** Загрузка заказа до определения состояния оплаты. */
+  loadingDescription: 'Загружаем заказ',
   /** Подпись с номером заказа; `{id}` — короткий или полный id. */
   orderNumber: 'Номер заказа: {id}',
   /** CTA для авторизованного пользователя. */

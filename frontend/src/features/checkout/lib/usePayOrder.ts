@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { createPayment } from '@entities/order'
 import { CHECKOUT_COPY } from '@shared/lib/copy'
 
-import { writePendingOrderId } from './pendingOrderId'
+import {
+  clearPaymentRecoveryOrderId,
+  writePaymentRecoveryOrderId,
+} from './pendingOrderId'
 
 /**
  * Параметры хука оплаты существующего заказа.
@@ -24,20 +27,24 @@ export function usePayOrder({
 }: UsePayOrderOptions = {}) {
   const [isPaying, setIsPaying] = useState(false)
   const [error, setError] = useState<string | undefined>()
+  const payingRef = useRef(false)
 
   async function payOrder(orderId: string): Promise<void> {
-    if (!orderId || isPaying) {
+    if (!orderId || payingRef.current) {
       return
     }
     setError(undefined)
+    payingRef.current = true
     setIsPaying(true)
     try {
-      writePendingOrderId(orderId)
+      writePaymentRecoveryOrderId(orderId)
       const payment = await createPayment(orderId)
       redirectToPayment(payment.payment_url)
+      clearPaymentRecoveryOrderId()
     } catch {
       setError(CHECKOUT_COPY.paymentError)
       setIsPaying(false)
+      payingRef.current = false
     }
   }
 

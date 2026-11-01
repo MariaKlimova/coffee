@@ -6,6 +6,7 @@ import { cartKeys } from '@entities/cart'
 import { useOrder, type Order, type OrderStatus } from '@entities/order'
 
 import { clearPendingOrderId, resolveOrderIdFromReturn } from './pendingOrderId'
+import { resolvePaymentRecoveryOrderId } from './paymentRecovery'
 import { usePayOrder } from './usePayOrder'
 
 /** Интервал поллинга статуса, пока заказ `pending`. */
@@ -18,7 +19,14 @@ export const ORDER_RESULT_POLL_TIMEOUT_MS = 30_000
  * Состояние экрана результата оплаты для UI.
  */
 export type OrderResultView =
-  'missing' | 'loading' | 'error' | 'success' | 'pending' | 'delayed' | 'failed'
+  | 'missing'
+  | 'loading'
+  | 'error'
+  | 'success'
+  | 'pending'
+  | 'delayed'
+  | 'failed'
+  | 'recovery'
 
 /**
  * Параметры хука результата оплаты.
@@ -42,6 +50,7 @@ function resolveView(
   order: Order | undefined,
   isError: boolean,
   pollTimedOut: boolean,
+  needsPaymentRecovery: boolean,
 ): OrderResultView {
   if (!orderId) {
     return 'missing'
@@ -59,6 +68,9 @@ function resolveView(
     return 'failed'
   }
   if (order.status === 'pending') {
+    if (needsPaymentRecovery) {
+      return 'recovery'
+    }
     if (pollTimedOut) {
       return 'delayed'
     }
@@ -77,6 +89,9 @@ export function useOrderPaymentResult({
   const queryClient = useQueryClient()
   /** Стабильный id: не сбрасываем UI после clearPendingOrderId при успехе. */
   const [orderId] = useState(() => resolveOrderIdFromReturn(searchParams))
+  const [needsPaymentRecovery] = useState(() =>
+    Boolean(resolvePaymentRecoveryOrderId(searchParams)),
+  )
 
   const [pollTimedOut, setPollTimedOut] = useState(false)
   const cartInvalidatedRef = useRef(false)
@@ -107,17 +122,22 @@ export function useOrderPaymentResult({
     if (!orderQuery.isSuccess || !orderQuery.data) {
       return
     }
-    if (cartInvalidatedRef.current) {
-      return
+    if (!cartInvalidatedRef.current) {
+      cartInvalidatedRef.current = true
+      void queryClient.invalidateQueries({ queryKey: cartKeys.all })
     }
-    cartInvalidatedRef.current = true
-    void queryClient.invalidateQueries({ queryKey: cartKeys.all })
     if (isPaidLikeStatus(orderQuery.data.status)) {
       clearPendingOrderId()
     }
   }, [orderQuery.isSuccess, orderQuery.data, queryClient])
 
-  const view = resolveView(orderId, orderQuery.data, orderQuery.isError, pollTimedOut)
+  const view = resolveView(
+    orderId,
+    orderQuery.data,
+    orderQuery.isError,
+    pollTimedOut,
+    needsPaymentRecovery,
+  )
 
   async function retryPayment(): Promise<void> {
     if (!orderId) {

@@ -1,3 +1,5 @@
+import { ORDER_CREATED } from './phrases'
+
 /**
  * Пользовательские строки страницы оформления заказа (product-voice, glossary).
  */
@@ -10,6 +12,13 @@ export const CHECKOUT_COPY = {
   phoneLabel: 'Телефон',
   pay: 'Оплатить',
   paying: 'Оформляем оплату',
+  orderCreated: ORDER_CREATED,
+  startingPayment: 'Переходим к оплате — это может занять несколько секунд',
+  savedOrderTitle: 'У тебя есть неоплаченный заказ',
+  savedOrderDescription:
+    'Вернись к его оплате или оформи новый заказ из текущей корзины',
+  resumePayment: 'Продолжить оплату',
+  newOrder: 'Оформить новый заказ',
   addressRequired: 'Укажи адрес доставки',
   emailRequired: 'Укажи почту',
   emailInvalid: 'Проверь адрес почты',

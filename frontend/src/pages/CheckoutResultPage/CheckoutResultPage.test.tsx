@@ -9,8 +9,11 @@ import { cartKeys } from '@entities/cart'
 import { useAuthStore } from '@entities/user'
 import {
   ORDER_RESULT_POLL_TIMEOUT_MS,
+  ORDER_RESULT_POLL_INTERVAL_MS,
   PENDING_ORDER_ID_KEY,
   writePendingOrderId,
+  writePaymentRecoveryOrderId,
+  readPaymentRecoveryOrderId,
 } from '@features/checkout'
 import { http } from '@shared/api'
 import { ORDER_RESULT_COPY } from '@shared/lib/copy'
@@ -284,5 +287,105 @@ describe('CheckoutResultPage', () => {
     expect(
       screen.getByRole('button', { name: ORDER_RESULT_COPY.retryLoad }),
     ).toBeInTheDocument()
+  })
+
+  it('keeps a guest recovery order visible after retry also fails, including after reload', async () => {
+    writePaymentRecoveryOrderId(orderId)
+    let paymentCalls = 0
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.method === 'get' && config.url === `/api/orders/${orderId}/`) {
+        return jsonResponse(config, 200, orderPayload('pending'))
+      }
+      if (config.method === 'post' && config.url === '/api/payments/create/') {
+        paymentCalls += 1
+        expect(JSON.parse(config.data)).toEqual({ order_id: orderId })
+        throw new AxiosError('timeout', AxiosError.ECONNABORTED)
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`)
+    })
+    const { unmount } = renderResult('/checkout/result')
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.recoveryTitle }),
+    ).toBeInTheDocument()
+    await userEvent.click(
+      screen.getByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+    )
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      ORDER_RESULT_COPY.retryPaymentError,
+    )
+    expect(paymentCalls).toBe(1)
+    expect(readPaymentRecoveryOrderId()).toBe(orderId)
+    unmount()
+    renderResult('/checkout/result')
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.recoveryTitle }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+    ).toBeEnabled()
+    expect(paymentCalls).toBe(1)
+  })
+
+  it('does not offer payment recovery when the order cannot be accessed', async () => {
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.method === 'get') {
+        throw new AxiosError(
+          'not found',
+          AxiosError.ERR_BAD_REQUEST,
+          config,
+          undefined,
+          jsonResponse(config, 404, { detail: 'not found' }),
+        )
+      }
+      throw new Error('No payment should be attempted')
+    })
+    renderResult(`/checkout/result?order_id=${orderId}&payment=recovery`)
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.loadErrorTitle }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+    ).not.toBeInTheDocument()
+    expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
+  })
+
+  it('clears saved recovery when the confirmed order is already paid', async () => {
+    writePaymentRecoveryOrderId(orderId)
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, orderPayload('paid')),
+    )
+    renderResult(`/checkout/result?order_id=${orderId}&payment=recovery`)
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.successTitle }),
+    ).toBeInTheDocument()
+    expect(readPaymentRecoveryOrderId()).toBeNull()
+    expect(sessionStorage.getItem(PENDING_ORDER_ID_KEY)).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('updates recovery to paid if a timed-out provider request later completes', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    writePaymentRecoveryOrderId(orderId)
+    let orderReads = 0
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      orderReads += 1
+      return jsonResponse(
+        config,
+        200,
+        orderPayload(orderReads === 1 ? 'pending' : 'paid'),
+      )
+    })
+    renderResult('/checkout/result')
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.recoveryTitle }),
+    ).toBeInTheDocument()
+    await vi.advanceTimersByTimeAsync(ORDER_RESULT_POLL_INTERVAL_MS)
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.successTitle }),
+    ).toBeInTheDocument()
+    expect(sessionStorage.getItem(PENDING_ORDER_ID_KEY)).toBeNull()
+    expect(readPaymentRecoveryOrderId()).toBeNull()
   })
 })

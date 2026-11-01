@@ -1,11 +1,19 @@
 export { mapCheckoutApiError } from './lib/mapCheckoutApiError'
+export {
+  paymentRecoveryPath,
+  paymentRecoverySearch,
+  resolvePaymentRecoveryOrderId,
+} from './lib/paymentRecovery'
 export type { CheckoutErrorView } from './lib/mapCheckoutApiError'
 export {
   clearPendingOrderId,
+  clearPaymentRecoveryOrderId,
   PENDING_ORDER_ID_KEY,
   readPendingOrderId,
+  readPaymentRecoveryOrderId,
   resolveOrderIdFromReturn,
   writePendingOrderId,
+  writePaymentRecoveryOrderId,
 } from './lib/pendingOrderId'
 export { useCheckoutSubmit } from './lib/useCheckoutSubmit'
 export type { UseCheckoutSubmitOptions } from './lib/useCheckoutSubmit'
