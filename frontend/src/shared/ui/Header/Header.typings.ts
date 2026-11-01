@@ -28,6 +28,18 @@ export interface HeaderProps {
   user?: HeaderUser | null
   /** Search form submit handler. */
   onSearchSubmit?: (query: string) => void
+  /** Применение каждого изменения текста без ожидания отправки формы. */
+  onSearchChange?: (query: string) => void
+  /** Запрос, сохранённый в URL каталога. */
+  searchQuery?: string
+  /** Запись истории, при смене которой поле восстанавливается из URL. */
+  searchLocationKey?: string
+  /** Доступное имя формы с областью поиска. */
+  searchScope?: string
+  /** Query string поиска для переходов между категориями. */
+  catalogSearch?: string
+  /** Очистка поискового запроса в каталоге. */
+  onSearchClear?: () => void
   /** Logout handler for the account menu. */
   onLogout?: () => void
   /** Optional extra class name. */

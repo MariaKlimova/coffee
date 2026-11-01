@@ -21,6 +21,7 @@ import styles from './CatalogPage.module.css'
 export function CatalogPage({ category }: CatalogPageProps) {
   const {
     params,
+    setSearch,
     setFilters,
     setPage,
     expandProduct,
@@ -34,6 +35,7 @@ export function CatalogPage({ category }: CatalogPageProps) {
     page: params.page,
     page_size: CATALOG_PAGE_SIZE,
     ordering: params.ordering,
+    search: params.search,
   }
   if (params.inStockOnly) {
     listParams.in_stock = true
@@ -56,7 +58,12 @@ export function CatalogPage({ category }: CatalogPageProps) {
       : null
 
   useEffect(() => {
-    if (!productsQuery.isSuccess || !params.product || !productsQuery.data) {
+    if (
+      !productsQuery.isSuccess ||
+      productsQuery.isPlaceholderData ||
+      !params.product ||
+      !productsQuery.data
+    ) {
       return
     }
     const onCurrentPage = productsQuery.data.results.some(
@@ -65,7 +72,13 @@ export function CatalogPage({ category }: CatalogPageProps) {
     if (!onCurrentPage) {
       clearProduct()
     }
-  }, [productsQuery.isSuccess, productsQuery.data, params.product, clearProduct])
+  }, [
+    productsQuery.isSuccess,
+    productsQuery.isPlaceholderData,
+    productsQuery.data,
+    params.product,
+    clearProduct,
+  ])
 
   return (
     <section className={styles.CatalogPage}>
@@ -82,7 +95,13 @@ export function CatalogPage({ category }: CatalogPageProps) {
           />
         </aside>
 
-        <div className={styles['CatalogPage-Content']}>
+        <div
+          className={styles['CatalogPage-Content']}
+          aria-busy={productsQuery.isFetching}
+        >
+          {productsQuery.isFetching && !showInitialSkeleton ? (
+            <p role="status">{CATALOG_COPY.loadingLabel}</p>
+          ) : null}
           {productsQuery.isError ? (
             <EmptyState
               title={CATALOG_COPY.errorTitle}
@@ -116,11 +135,21 @@ export function CatalogPage({ category }: CatalogPageProps) {
           {!productsQuery.isError && !showInitialSkeleton && products.length === 0 ? (
             <EmptyState
               title={CATALOG_COPY.emptyTitle}
-              description={CATALOG_COPY.emptyDescription}
+              description={
+                params.search
+                  ? CATALOG_COPY.searchEmptyDescription
+                  : CATALOG_COPY.emptyDescription
+              }
               action={
-                <Button type="button" onClick={resetFilters}>
-                  {CATALOG_COPY.resetFilters}
-                </Button>
+                params.search ? (
+                  <Button type="button" onClick={() => setSearch('')}>
+                    {CATALOG_COPY.clearSearch}
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={resetFilters}>
+                    {CATALOG_COPY.resetFilters}
+                  </Button>
+                )
               }
             />
           ) : null}

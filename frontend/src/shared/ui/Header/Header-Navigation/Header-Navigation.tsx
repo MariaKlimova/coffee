@@ -1,14 +1,16 @@
 import { useEffect, useId, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 
+import { APP_ROUTES } from '@shared/config'
 import { NAV_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 
 import { HEADER_NAV_ITEMS } from '../Header.const'
 import { useHeaderDisclosure } from '../lib'
+import type { HeaderNavigationProps } from './Header-Navigation.typings'
 import styles from './Header-Navigation.module.css'
 
-export function HeaderNavigation() {
+export function HeaderNavigation({ catalogSearch = '' }: HeaderNavigationProps) {
   const { open, setOpen, rootRef, triggerRef, closeAndRestoreFocus } =
     useHeaderDisclosure()
   const navigationId = useId()
@@ -75,7 +77,11 @@ export function HeaderNavigation() {
                 </a>
               ) : (
                 <NavLink
-                  to={item.to}
+                  to={
+                    item.to === APP_ROUTES.coffee || item.to === APP_ROUTES.machines
+                      ? `${item.to}${catalogSearch}`
+                      : item.to
+                  }
                   className={({ isActive }) =>
                     cx(
                       styles['Header-NavigationLink'],

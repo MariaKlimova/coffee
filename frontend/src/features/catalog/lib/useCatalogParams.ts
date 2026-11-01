@@ -20,6 +20,16 @@ export function useCatalogParams() {
   const [searchParams, setSearchParams] = useSearchParams()
   const params = parseCatalogParams(searchParams)
 
+  function setSearch(search: string): void {
+    // URL хранит текст набора; parser нормализует только применённый API-фильтр.
+    const next = new URLSearchParams(searchParams)
+    if (search) next.set('search', search)
+    else next.delete('search')
+    next.delete('page')
+    next.delete('product')
+    setSearchParams(next, { replace: true })
+  }
+
   function setFilters(patch: CatalogFilterPatch): void {
     commitParams(
       setSearchParams,
@@ -111,6 +121,7 @@ export function useCatalogParams() {
     commitParams(
       setSearchParams,
       {
+        search: params.search,
         inStockOnly: false,
         ordering: DEFAULT_ORDERING,
         page: 1,
@@ -122,6 +133,7 @@ export function useCatalogParams() {
 
   return {
     params,
+    setSearch,
     setFilters,
     setPage,
     expandProduct,

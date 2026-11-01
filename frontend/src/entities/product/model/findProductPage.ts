@@ -26,6 +26,8 @@ export interface FindProductPageParams {
   price_min?: string
   /** Maximum price filter as a RUB decimal string. */
   price_max?: string
+  /** Поисковый запрос для проверяемой выдачи. */
+  search?: string
 }
 
 /**
@@ -40,6 +42,7 @@ export async function findProductPage({
   in_stock,
   price_min,
   price_max,
+  search,
 }: FindProductPageParams): Promise<number | null> {
   let page = 1
   let maxPages = MAX_SCANNED_PAGES
@@ -54,6 +57,7 @@ export async function findProductPage({
         in_stock,
         price_min,
         price_max,
+        search,
       }),
     )
 

@@ -32,6 +32,7 @@ export function useOpenSimilarProduct(category: ProductCategorySlug) {
         in_stock: params.inStockOnly ? true : undefined,
         price_min: params.priceMin,
         price_max: params.priceMax,
+        search: params.search,
       })
 
       if (filteredPage !== null) {
@@ -56,7 +57,9 @@ export function useOpenSimilarProduct(category: ProductCategorySlug) {
 
       openProductAt({ slug, page: unfilteredPage, resetFilters: true })
       showToast({
-        message: CATALOG_COPY.filtersResetToast,
+        message: params.search
+          ? CATALOG_COPY.searchAndFiltersResetToast
+          : CATALOG_COPY.filtersResetToast,
         variant: 'info',
       })
     } catch {

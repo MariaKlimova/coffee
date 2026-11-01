@@ -27,6 +27,7 @@ export function parseCatalogParams(searchParams: URLSearchParams): CatalogParams
   const productRaw = searchParams.get('product')
 
   return {
+    search: searchParams.get('search')?.trim() || undefined,
     priceMin: parsePriceInput(searchParams.get('price_min')),
     priceMax: parsePriceInput(searchParams.get('price_max')),
     inStockOnly: inStockRaw === 'true' || inStockRaw === '1',
@@ -41,6 +42,10 @@ export function parseCatalogParams(searchParams: URLSearchParams): CatalogParams
  */
 export function buildCatalogSearchParams(params: CatalogParams): URLSearchParams {
   const next = new URLSearchParams()
+
+  if (params.search?.trim()) {
+    next.set('search', params.search.trim())
+  }
 
   if (params.priceMin) {
     next.set('price_min', params.priceMin)

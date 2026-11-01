@@ -46,6 +46,20 @@ describe('findProductPage', () => {
     fetchProducts.mockReset()
   })
 
+  it('locates similar products inside the current search results', async () => {
+    fetchProducts.mockResolvedValue(page(['target'], false))
+    await findProductPage({
+      queryClient: createQueryClient(),
+      slug: 'target',
+      category: 'coffee',
+      ordering: '-created_at',
+      search: 'Эфиопия',
+    })
+    expect(fetchProducts).toHaveBeenCalledWith(
+      expect.objectContaining({ search: 'Эфиопия' }),
+    )
+  })
+
   it('returns 1 when the slug is on the first page', async () => {
     fetchProducts.mockResolvedValue(page(['a', 'target'], false))
 

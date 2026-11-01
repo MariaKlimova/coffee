@@ -436,76 +436,86 @@ describe('CatalogPage', () => {
     expect(await screen.findByText('Описание Бразилии')).toBeInTheDocument()
   })
 
-  it('resets filters and shows a toast when a similar product is filtered out', async () => {
-    const user = userEvent.setup()
-    const expensiveRelated = {
-      ...secondItem,
-      name: 'Дорогая Бразилия',
-      slug: 'brazil-expensive',
-      price: '24990.00',
-    }
-    const expensiveDetail = {
-      ...detail,
-      ...expensiveRelated,
-      description: 'Описание дорогой Бразилии',
-    }
-
-    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
-      const params = config.params as Record<string, string> | undefined
-
-      if (isRelatedUrl(config.url, 'ethiopia-yirgacheffe')) {
-        return jsonResponse(config, 200, [expensiveRelated])
+  it.each([undefined, 'эфиопия'])(
+    'resets filters and search (%s) when a similar product is excluded',
+    async (search) => {
+      const user = userEvent.setup()
+      const expensiveRelated = {
+        ...secondItem,
+        name: 'Дорогая Бразилия',
+        slug: 'brazil-expensive',
+        price: '24990.00',
       }
-      if (isRelatedUrl(config.url, 'brazil-expensive')) {
-        return jsonResponse(config, 200, [])
-      }
-      if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
-        return jsonResponse(config, 200, detail)
-      }
-      if (isProductDetailUrl(config.url, 'brazil-expensive')) {
-        return jsonResponse(config, 200, expensiveDetail)
+      const expensiveDetail = {
+        ...detail,
+        ...expensiveRelated,
+        description: 'Описание дорогой Бразилии',
       }
 
-      if (params?.price_max === '10000') {
+      adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+        const params = config.params as Record<string, string> | undefined
+
+        if (isRelatedUrl(config.url, 'ethiopia-yirgacheffe')) {
+          return jsonResponse(config, 200, [expensiveRelated])
+        }
+        if (isRelatedUrl(config.url, 'brazil-expensive')) {
+          return jsonResponse(config, 200, [])
+        }
+        if (isProductDetailUrl(config.url, 'ethiopia-yirgacheffe')) {
+          return jsonResponse(config, 200, detail)
+        }
+        if (isProductDetailUrl(config.url, 'brazil-expensive')) {
+          return jsonResponse(config, 200, expensiveDetail)
+        }
+
+        if (params?.price_max === '10000' || params?.search) {
+          return jsonResponse(config, 200, {
+            count: 1,
+            next: null,
+            previous: null,
+            results: [listItem],
+          })
+        }
+
         return jsonResponse(config, 200, {
-          count: 1,
+          count: 2,
           next: null,
           previous: null,
-          results: [listItem],
+          results: [listItem, expensiveRelated],
         })
-      }
-
-      return jsonResponse(config, 200, {
-        count: 2,
-        next: null,
-        previous: null,
-        results: [listItem, expensiveRelated],
       })
-    })
 
-    const { router } = renderCatalog(
-      '/coffee?price_max=10000&product=ethiopia-yirgacheffe',
-    )
+      const { router } = renderCatalog(
+        `/coffee?price_max=10000&product=ethiopia-yirgacheffe${search ? `&search=${search}` : ''}`,
+      )
 
-    expect(await screen.findByText('Полное описание кофе')).toBeInTheDocument()
-    expect(
-      await screen.findByRole('heading', { name: 'Похожие товары' }),
-    ).toBeInTheDocument()
+      expect(await screen.findByText('Полное описание кофе')).toBeInTheDocument()
+      expect(
+        await screen.findByRole('heading', { name: 'Похожие товары' }),
+      ).toBeInTheDocument()
 
-    const similarStrip = screen.getByRole('region', { name: 'Лента похожих товаров' })
-    await user.click(
-      within(similarStrip).getByRole('button', { name: 'Дорогая Бразилия' }),
-    )
+      const similarStrip = screen.getByRole('region', {
+        name: 'Лента похожих товаров',
+      })
+      await user.click(
+        within(similarStrip).getByRole('button', { name: 'Дорогая Бразилия' }),
+      )
 
-    await waitFor(() => {
-      expect(router.state.location.search).toContain('product=brazil-expensive')
-    })
-    expect(router.state.location.search).not.toContain('price_max')
-    expect(
-      await screen.findByText('Сбросили фильтры, чтобы показать товар'),
-    ).toBeInTheDocument()
-    expect(await screen.findByText('Описание дорогой Бразилии')).toBeInTheDocument()
-  })
+      await waitFor(() => {
+        expect(router.state.location.search).toContain('product=brazil-expensive')
+      })
+      expect(router.state.location.search).not.toContain('price_max')
+      expect(router.state.location.search).not.toContain('search=')
+      expect(
+        await screen.findByText(
+          search
+            ? 'Сбросили поиск и фильтры, чтобы показать товар'
+            : 'Сбросили фильтры, чтобы показать товар',
+        ),
+      ).toBeInTheDocument()
+      expect(await screen.findByText('Описание дорогой Бразилии')).toBeInTheDocument()
+    },
+  )
 
   it('toggles favorite in the grid optimistically for an authenticated user', async () => {
     const user = userEvent.setup()
