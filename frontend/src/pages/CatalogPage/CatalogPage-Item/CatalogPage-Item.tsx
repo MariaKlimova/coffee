@@ -124,7 +124,7 @@ export function CatalogPageItem({
   } as ExpandedProductCardProps
 
   return (
-    <div ref={rootRef}>
+    <div ref={rootRef} className={styles['CatalogPage-ItemExpanded']}>
       {/* React 19 hoists this into <head>: works for deep links and in-grid expand alike. */}
       <title>{buildProductTitle(detailQuery.data.name)}</title>
       <ExpandedProductCard {...expandedCardProps} />

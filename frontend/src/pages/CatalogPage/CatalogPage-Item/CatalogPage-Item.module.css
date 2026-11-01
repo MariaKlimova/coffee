@@ -1,3 +1,8 @@
+.CatalogPage-ItemExpanded {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
 .CatalogPage-ItemSkeleton {
   grid-column: 1 / -1;
 }
