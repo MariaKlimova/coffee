@@ -12,3 +12,9 @@ select = ["E", "F", "I", "UP"]
 [tool.black]
 target-version = ["py312"]
 line-length = 88
+
+[tool.vercel]
+entrypoint = "config.vercel_wsgi:application"
+
+[tool.vercel.scripts]
+build = "python manage.py check --settings=config.settings.vercel --deploy --fail-level ERROR"

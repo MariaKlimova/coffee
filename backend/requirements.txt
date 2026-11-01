@@ -1,0 +1,2 @@
+# Manifest discovered from the separate Vercel backend project root.
+-r requirements/prod.txt

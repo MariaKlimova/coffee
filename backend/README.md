@@ -26,3 +26,9 @@ backend и frontend, а не вечный источник истины. При 
 npx @redocly/cli@1 lint docs/api/openapi.yaml --config docs/api/redocly.yaml
 ```
 
+## Отдельный стенд Vercel + Neon
+
+Packaging backend-проекта и порядок переноса описаны в
+[runbook](../docs/deployment/vercel-neon.md). Использовать корень `backend/` и
+`config.settings.vercel`; корневой Vercel-проект frontend не перенастраивать.
+Миграции и demo seed запускаются явно, отдельно от сборки и обработки запросов.
