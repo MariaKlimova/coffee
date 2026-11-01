@@ -13,6 +13,6 @@ export const cartKeys = {
 export function cartQueryOptions() {
   return queryOptions({
     queryKey: cartKeys.detail(),
-    queryFn: fetchCart,
+    queryFn: ({ signal }) => fetchCart(signal),
   })
 }

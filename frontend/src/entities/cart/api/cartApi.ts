@@ -11,8 +11,8 @@ import type {
 /**
  * Загружает текущую гостевую или пользовательскую корзину.
  */
-export async function fetchCart(): Promise<Cart> {
-  const { data } = await http.get<Cart>('/api/cart/')
+export async function fetchCart(signal?: AbortSignal): Promise<Cart> {
+  const { data } = await http.get<Cart>('/api/cart/', { signal })
   return data
 }
 
