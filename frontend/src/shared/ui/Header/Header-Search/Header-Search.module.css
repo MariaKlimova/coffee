@@ -6,4 +6,22 @@
 
 .Header-SearchField {
   width: 100%;
+  min-width: 0;
+}
+
+.Header-SearchControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.Header-SearchButton {
+  flex-shrink: 0;
+  width: var(--control-height-md);
+  padding: var(--space-xs);
+}
+
+.Header-SearchButton svg {
+  width: var(--size-control-icon);
+  height: var(--size-control-icon);
 }

@@ -3,6 +3,15 @@ import { describe, expect, it } from 'vitest'
 import { buildCatalogSearchParams, parseCatalogParams } from './catalogSearchParams'
 
 describe('catalogSearchParams', () => {
+  it('normalizes search and preserves it when serializing catalog state', () => {
+    const params = parseCatalogParams(new URLSearchParams('search=++Эфиопия++'))
+    expect(params.search).toBe('Эфиопия')
+    expect(buildCatalogSearchParams(params).get('search')).toBe('Эфиопия')
+    expect(parseCatalogParams(new URLSearchParams('search=+++')).search).toBeUndefined()
+    expect(buildCatalogSearchParams({ ...params, search: '  ' }).has('search')).toBe(
+      false,
+    )
+  })
   it('parses valid filter and expand params', () => {
     const params = parseCatalogParams(
       new URLSearchParams(
@@ -11,6 +20,7 @@ describe('catalogSearchParams', () => {
     )
 
     expect(params).toEqual({
+      search: undefined,
       priceMin: '100',
       priceMax: '5000',
       inStockOnly: true,
@@ -26,6 +36,7 @@ describe('catalogSearchParams', () => {
     )
 
     expect(params).toEqual({
+      search: undefined,
       priceMin: undefined,
       priceMax: undefined,
       inStockOnly: false,

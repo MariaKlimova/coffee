@@ -4,6 +4,8 @@ import type { ProductOrdering } from '@entities/product'
  * Catalog UI state mirrored in the URL query string.
  */
 export interface CatalogParams {
+  /** Поисковый запрос без крайних пробелов; undefined, если поиск не задан. */
+  search?: string
   /** Minimum price filter as a decimal string, or undefined when unset. */
   priceMin?: string
   /** Maximum price filter as a decimal string, or undefined when unset. */

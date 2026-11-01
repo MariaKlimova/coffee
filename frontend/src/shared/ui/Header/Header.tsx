@@ -33,20 +33,36 @@ export function Header({
   cartCount = 0,
   user = null,
   onSearchSubmit,
+  onSearchChange,
+  searchQuery,
+  searchLocationKey,
+  searchScope,
+  catalogSearch = '',
+  onSearchClear,
   onLogout,
   className,
 }: HeaderProps) {
   return (
     <header className={cx(styles.Header, className)}>
       <div className={styles['Header-Inner']}>
-        <Link to={APP_ROUTES.coffee} className={styles['Header-Brand']}>
+        <Link
+          to={`${APP_ROUTES.coffee}${catalogSearch}`}
+          className={styles['Header-Brand']}
+        >
           Coffee Shop
         </Link>
 
         <div className={styles['Header-SearchRow']}>
-          <HeaderNavigation />
+          <HeaderNavigation catalogSearch={catalogSearch} />
           <div className={styles['Header-SearchSlot']}>
-            <HeaderSearch onSubmit={onSearchSubmit} />
+            <HeaderSearch
+              query={searchQuery}
+              locationKey={searchLocationKey}
+              scope={searchScope}
+              onSubmit={onSearchSubmit}
+              onChange={onSearchChange}
+              onClear={onSearchClear}
+            />
           </div>
         </div>
 
