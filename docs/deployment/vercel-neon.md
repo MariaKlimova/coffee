@@ -5,6 +5,9 @@
 Старый Render, его БД и существующий frontend `coffee-shop` сохраняются.
 Текущий статус старых данных неизвестен: `/api/health/` не читает БД.
 
+Для недоступного из браузера отдельного staging API домена подготовлен
+[ограниченный same-origin proxy COFFEE-70](staging-api-proxy.md).
+
 ## Бюджет и границы
 
 На 01.11.2026 [Vercel Hobby](https://vercel.com/docs/plans/hobby) — бесплатный

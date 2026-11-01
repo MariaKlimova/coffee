@@ -1,0 +1,52 @@
+{
+  "issue": "COFFEE-70",
+  "addRoute": {
+    "teamId": "team_0UzX2haAGEQFdTiDaNELNV3q",
+    "projectId": "prj_ypWNyEkBt3dWGAPxQZ3Tv4QtML7M",
+    "requestBody": {
+      "position": { "placement": "start" },
+      "route": {
+        "name": "COFFEE-70 staging API proxy",
+        "description": "Only the stable staging storefront proxies /api/ to the existing staging API; caching disabled.",
+        "enabled": true,
+        "srcSyntax": "regex",
+        "route": {
+          "src": "^/api/(.*)$",
+          "dest": "https://coffee-api-staging-mariaklimovas-projects.vercel.app/api/$1",
+          "caseSensitive": true,
+          "has": [
+            {
+              "type": "host",
+              "value": "^coffee-shop-staging-mariaklimovas-projects\\.vercel\\.app$"
+            }
+          ],
+          "respectOriginCacheControl": false,
+          "headers": {
+            "Cache-Control": "private, no-store",
+            "CDN-Cache-Control": "no-store",
+            "Vercel-CDN-Cache-Control": "no-store",
+            "x-vercel-enable-rewrite-caching": "0"
+          }
+        }
+      }
+    }
+  },
+  "environmentChanges": [
+    {
+      "teamId": "team_0UzX2haAGEQFdTiDaNELNV3q",
+      "projectId": "prj_wKMKtr1996KtVQGhP4CvMjbAA9vp",
+      "key": "ALLOWED_HOSTS",
+      "target": ["production"],
+      "previousValue": "coffee-api-staging-mariaklimovas-projects.vercel.app",
+      "value": "coffee-api-staging-mariaklimovas-projects.vercel.app,coffee-shop-staging-mariaklimovas-projects.vercel.app"
+    },
+    {
+      "teamId": "team_0UzX2haAGEQFdTiDaNELNV3q",
+      "projectId": "prj_ypWNyEkBt3dWGAPxQZ3Tv4QtML7M",
+      "key": "VITE_API_BASE_URL",
+      "target": ["production"],
+      "previousValue": "https://coffee-api-staging-mariaklimovas-projects.vercel.app",
+      "value": "/"
+    }
+  ]
+}

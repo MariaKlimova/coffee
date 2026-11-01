@@ -207,6 +207,19 @@ describe('http interceptors', () => {
 
     expect(data).toEqual({ me: true })
     expect(postSpy).toHaveBeenCalledTimes(1)
+    const [refreshUrl, refreshBody, refreshConfig] = postSpy.mock.calls[0]
+    expect(refreshUrl).toBe('/api/auth/refresh/')
+    expect(refreshBody).toEqual({ refresh: 'refresh-valid' })
+    const refreshRequestUrl = axios.getUri({ ...refreshConfig, url: refreshUrl })
+    const configuredBaseURL =
+      import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
+    const expectedRefreshUrl = new URL(
+      'api/auth/refresh/',
+      new URL(`${configuredBaseURL.replace(/\/$/, '')}/`, window.location.origin),
+    )
+    expect(new URL(refreshRequestUrl, window.location.origin).href).toBe(
+      expectedRefreshUrl.href,
+    )
     expect(accessToken).toBe('access-new')
     expect(adapter).toHaveBeenCalledTimes(2)
     const retryConfig = adapter.mock.calls[1][0] as InternalAxiosRequestConfig

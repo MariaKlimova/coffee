@@ -85,9 +85,10 @@ async function refreshAccessToken(): Promise<string> {
   }
 
   const { data } = await axios.post<{ access: string }>(
-    `${baseURL}/api/auth/refresh/`,
+    '/api/auth/refresh/',
     { refresh },
     {
+      baseURL,
       headers: { Accept: 'application/json' },
     },
   )
