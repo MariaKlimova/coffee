@@ -16,7 +16,7 @@
 | `AWS_S3_ENDPOINT_URL` | Endpoint провайдера с `https://`; пусто для AWS S3 |
 | `AWS_S3_REGION_NAME` | Регион из настроек провайдера |
 | `AWS_S3_ADDRESSING_STYLE` | `auto` по умолчанию, либо `path` / `virtual` |
-| `AWS_S3_CUSTOM_DOMAIN` | Необязательный публичный CDN hostname без схемы, пути и завершающего `/` |
+| `AWS_S3_CUSTOM_DOMAIN` | Необязательный публичный CDN ASCII hostname без пробелов, схемы, пути и завершающего `/` |
 | `SERVE_MEDIA` | Только локальная раздача filesystem через Django; выключена при S3 |
 
 Неполный S3-конфиг и неизвестный `MEDIA_STORAGE` останавливают запуск.

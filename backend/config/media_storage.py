@@ -2,7 +2,8 @@
 
 from urllib.parse import urlsplit
 
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.validators import DomainNameValidator
 
 
 def media_storage(env) -> dict:
@@ -37,8 +38,13 @@ def media_storage(env) -> dict:
             raise ImproperlyConfigured("AWS_S3_ENDPOINT_URL must be an HTTP(S) URL.")
 
     domain = env.str("AWS_S3_CUSTOM_DOMAIN", default="")
-    if domain and any(character in domain for character in "/:?#@"):
-        raise ImproperlyConfigured("AWS_S3_CUSTOM_DOMAIN must contain only a hostname.")
+    if domain:
+        try:
+            DomainNameValidator(accept_idna=False)(domain)
+        except ValidationError as exc:
+            raise ImproperlyConfigured(
+                "AWS_S3_CUSTOM_DOMAIN must contain only a valid ASCII hostname."
+            ) from exc
     addressing_style = env.str("AWS_S3_ADDRESSING_STYLE", default="auto")
     if addressing_style not in {"auto", "path", "virtual"}:
         raise ImproperlyConfigured(

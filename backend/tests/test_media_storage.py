@@ -58,13 +58,43 @@ def test_invalid_s3_configuration_fails_closed(s3_env, monkeypatch, key, value):
         media_storage(s3_env)
 
 
-def test_custom_domain_gives_stable_public_https_url(s3_env, monkeypatch):
-    monkeypatch.setenv("AWS_S3_CUSTOM_DOMAIN", "cdn.example.test")
+@pytest.mark.parametrize("domain", ["cdn.example.test", "cdn-1.example.test"])
+def test_custom_domain_gives_stable_public_https_url(s3_env, monkeypatch, domain):
+    monkeypatch.setenv("AWS_S3_CUSTOM_DOMAIN", domain)
     config = media_storage(s3_env)
     storage = S3Storage(**config["OPTIONS"])
     assert storage.url("products/test image.png") == (
-        "https://cdn.example.test/products/test%20image.png"
+        f"https://{domain}/products/test%20image.png"
     )
+
+
+@pytest.mark.parametrize(
+    "domain",
+    [
+        " cdn.example.test ",
+        "cdn.example.test\n",
+        "cdn.example.test\r",
+        "cdn.example.test\t",
+        "cdn.example.test\x1f",
+        "cdn.example.test\x7f",
+        "cdn.example.test\u00a0",
+        "cdn example.test",
+        "cdn_example.test",
+        "-cdn.example.test",
+        "cdn-.example.test",
+        "cdn..example.test",
+        "cdn.example.test/path",
+        "cdn.example.test:443",
+        "cdn.example.test?query",
+        "cdn.example.test#fragment",
+        f"{'a' * 64}.example.test",
+        ".".join(["a" * 63] * 4) + ".test",
+    ],
+)
+def test_custom_domain_rejects_malformed_hostnames(s3_env, monkeypatch, domain):
+    monkeypatch.setenv("AWS_S3_CUSTOM_DOMAIN", domain)
+    with pytest.raises(ImproperlyConfigured, match="AWS_S3_CUSTOM_DOMAIN"):
+        media_storage(s3_env)
 
 
 @pytest.mark.django_db
