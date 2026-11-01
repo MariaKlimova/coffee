@@ -5,7 +5,11 @@ export interface SimilarProductsProps {
   /** Slug of the currently expanded product. */
   slug: string
   /** Opens another product from the strip. */
-  onSelect: (slug: string) => void
+  onSelect?: (slug: string) => void
+  /** Ссылка на отдельную страницу похожего товара. */
+  productHref?: (slug: string) => string
+  /** Состояние возврата из исходного каталога. */
+  linkState?: unknown
   /** When true, clicks on cards are ignored (resolve in flight). */
   disabled?: boolean
   /** Favorite toggle for cards in the strip (product UUID + current flag). */

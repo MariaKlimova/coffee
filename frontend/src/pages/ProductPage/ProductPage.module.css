@@ -7,3 +7,15 @@
 .ProductPage-Loading {
   max-width: var(--size-empty-max);
 }
+
+.ProductPage-Back {
+  align-self: flex-start;
+  color: var(--color-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+
+.ProductPage-Back:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}

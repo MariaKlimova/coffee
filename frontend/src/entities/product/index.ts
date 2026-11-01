@@ -12,14 +12,7 @@ export type {
 export { toExpandedCardProps } from './lib/toExpandedCardProps'
 export { toProductCardProps } from './lib/toProductCardProps'
 export { resolveProductImages } from './lib/resolveProductImages'
-export { findProductPage } from './model/findProductPage'
-export type { FindProductPageParams } from './model/findProductPage'
-export {
-  useProduct,
-  useProductPageNumber,
-  useProducts,
-  useRelatedProducts,
-} from './model/productQueries'
+export { useProduct, useProducts, useRelatedProducts } from './model/productQueries'
 export { productKeys } from './model/productQueryOptions'
 export {
   CATALOG_PAGE_SIZE,

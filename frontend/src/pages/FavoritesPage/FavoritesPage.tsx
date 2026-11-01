@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
 import { useFavorites } from '@entities/favorite'
 import {
@@ -20,7 +20,6 @@ import styles from './FavoritesPage.module.css'
  * Authenticated favorites grid with pagination and optimistic unfavorite.
  */
 export function FavoritesPage() {
-  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const page = parsePageNumber(searchParams.get('page'))
   const { toggleFavorite } = useToggleFavorite()
@@ -122,9 +121,7 @@ export function FavoritesPage() {
                 key={product.id}
                 {...toProductCardProps(product)}
                 cartQuantity={getQuantity(product.id)}
-                onExpand={() => {
-                  void navigate(`/product/${product.slug}`)
-                }}
+                href={`/product/${encodeURIComponent(product.slug)}`}
                 onToggleFavorite={(productId) => {
                   toggleFavorite(productId, product.is_favorite)
                 }}

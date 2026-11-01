@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 
-import { CART_COPY, CLOSE, FAVORITE_COPY } from '@shared/lib/copy'
+import { CART_COPY, CLOSE, FAVORITE_COPY, PRODUCT_PAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
+import { Badge } from '@shared/ui/Badge'
 import { Button } from '@shared/ui/Button'
 import { HeartIcon } from '@shared/ui/icons'
 import { ImageCarousel } from '@shared/ui/ImageCarousel'
@@ -51,6 +52,9 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
     price,
     oldPrice,
     onClose,
+    presentation = 'inline',
+    cartQuantity = 0,
+    onCartQuantityChange,
     isFavorite = false,
     onToggleFavorite,
     inStock = true,
@@ -61,11 +65,14 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
     ...rest
   } = props
 
+  const inCart = cartQuantity > 0 && Boolean(onCartQuantityChange)
   const titleId = `${id}-expanded-title`
   const quantityId = `${id}-quantity`
   const [quantity, setQuantity] = useState(1)
+  const displayedQuantity = inCart ? cartQuantity : quantity
 
   useEffect(() => {
+    if (!onClose) return
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onClose()
@@ -80,9 +87,24 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
   return (
     <article
       {...rest}
-      className={cx(styles.ExpandedProductCard, className)}
+      className={cx(
+        styles.ExpandedProductCard,
+        presentation === 'page' && styles['ExpandedProductCard--page'],
+        className,
+      )}
       aria-labelledby={titleId}
     >
+      {presentation === 'page' ? (
+        <h1
+          className={cx(
+            styles['ExpandedProductCard-Title'],
+            styles['ExpandedProductCard-PageTitle'],
+          )}
+          id={titleId}
+        >
+          {title}
+        </h1>
+      ) : null}
       <div className={styles['ExpandedProductCard-Media']}>
         <ImageCarousel images={images} alt={title} size="expanded" />
       </div>
@@ -102,14 +124,16 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
               <HeartIcon filled={isFavorite} />
             </button>
           ) : null}
-          <button
-            type="button"
-            className={styles['ExpandedProductCard-Close']}
-            aria-label={CLOSE}
-            onClick={onClose}
-          >
-            <CloseIcon />
-          </button>
+          {onClose ? (
+            <button
+              type="button"
+              className={styles['ExpandedProductCard-Close']}
+              aria-label={CLOSE}
+              onClick={onClose}
+            >
+              <CloseIcon />
+            </button>
+          ) : null}
         </div>
 
         <p
@@ -122,9 +146,11 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
         >
           {categoryLabel}
         </p>
-        <h2 className={styles['ExpandedProductCard-Title']} id={titleId}>
-          {title}
-        </h2>
+        {presentation === 'inline' ? (
+          <h2 className={styles['ExpandedProductCard-Title']} id={titleId}>
+            {title}
+          </h2>
+        ) : null}
         <p className={styles['ExpandedProductCard-Description']}>{description}</p>
         <div className={styles['ExpandedProductCard-PriceRow']}>
           {oldPrice ? (
@@ -132,6 +158,8 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
           ) : null}
           <span className={styles['ExpandedProductCard-Price']}>{price}</span>
         </div>
+
+        {!inStock ? <Badge>{CART_COPY.outOfStock}</Badge> : null}
 
         {onAddToCart ? (
           <div className={styles['ExpandedProductCard-CartRow']}>
@@ -144,9 +172,10 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
                 type="button"
                 className={styles['ExpandedProductCard-QtyButton']}
                 aria-label={CART_COPY.decreaseQty}
-                disabled={!inStock || quantity <= 1}
+                disabled={!inStock || (!inCart && quantity <= 1)}
                 onClick={() => {
-                  setQuantity((value) => Math.max(1, value - 1))
+                  if (inCart) onCartQuantityChange?.(id, cartQuantity - 1)
+                  else setQuantity((value) => Math.max(1, value - 1))
                 }}
               >
                 −
@@ -156,7 +185,7 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
                 className={styles['ExpandedProductCard-QtyValue']}
                 aria-live="polite"
               >
-                {quantity}
+                {displayedQuantity}
               </span>
               <button
                 type="button"
@@ -164,30 +193,35 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
                 aria-label={CART_COPY.increaseQty}
                 disabled={!inStock}
                 onClick={() => {
-                  setQuantity((value) => value + 1)
+                  if (inCart) onCartQuantityChange?.(id, cartQuantity + 1)
+                  else setQuantity((value) => value + 1)
                 }}
               >
                 +
               </button>
             </div>
-            <Button
-              className={styles['ExpandedProductCard-AddToCart']}
-              disabled={!inStock}
-              onClick={() => {
-                onAddToCart(id, quantity)
-              }}
-            >
-              {CART_COPY.addCta}
-            </Button>
+            {!inCart ? (
+              <Button
+                className={styles['ExpandedProductCard-AddToCart']}
+                disabled={!inStock}
+                onClick={() => {
+                  onAddToCart(id, quantity)
+                }}
+              >
+                {CART_COPY.addCta}
+              </Button>
+            ) : null}
           </div>
         ) : null}
 
-        <p className={styles['ExpandedProductCard-AttrsTitle']}>Характеристики</p>
+        <p className={styles['ExpandedProductCard-AttrsTitle']}>
+          {PRODUCT_PAGE_COPY.attributesTitle}
+        </p>
 
         {category === 'coffee' ? (
           <>
             <p className={styles['ExpandedProductCard-Origin']}>
-              Страна: {attributes.originCountry}
+              {PRODUCT_PAGE_COPY.countryLabel}: {attributes.originCountry}
             </p>
             {COFFEE_SCALES.map((scale) => (
               <ScaleRow

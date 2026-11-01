@@ -106,3 +106,9 @@
   width: var(--size-dot-active);
   background: var(--color-primary);
 }
+
+.ImageCarousel-Link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

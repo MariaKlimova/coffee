@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 import { CART_COPY, FAVORITE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { Badge } from '@shared/ui/Badge'
@@ -23,6 +25,8 @@ export function ProductCard({
   onAddToCart,
   onCartQuantityChange,
   onExpand,
+  href,
+  linkState,
   className,
   ...rest
 }: ProductCardProps) {
@@ -41,10 +45,17 @@ export function ProductCard({
       <div
         className={styles['ProductCard-Media']}
         onClick={() => {
-          onExpand?.(id)
+          if (!href) onExpand?.(id)
         }}
       >
-        <ImageCarousel images={images} alt={title} size="card" />
+        <ImageCarousel
+          images={images}
+          alt={title}
+          size="card"
+          imageHref={href}
+          imageLinkState={linkState}
+          onImageOpen={() => onExpand?.(id)}
+        />
         {!inStock ? (
           <Badge className={styles['ProductCard-Badge']}>{CART_COPY.outOfStock}</Badge>
         ) : null}
@@ -65,17 +76,24 @@ export function ProductCard({
       <div className={styles['ProductCard-Body']}>
         <p className={styles['ProductCard-Category']}>{categoryLabel}</p>
         <h3 className={styles['ProductCard-Title']}>
-          {/* Кнопка растянута псевдоэлементом на всю карточку: раскрытие доступно
-              и мышью по любому месту, и с клавиатуры одним таб-стопом. */}
-          <button
-            type="button"
-            className={styles['ProductCard-Expand']}
-            onClick={() => {
-              onExpand?.(id)
-            }}
-          >
-            {title}
-          </button>
+          {href ? (
+            <Link
+              to={href}
+              state={linkState}
+              className={styles['ProductCard-Expand']}
+              onClick={() => onExpand?.(id)}
+            >
+              {title}
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className={styles['ProductCard-Expand']}
+              onClick={() => onExpand?.(id)}
+            >
+              {title}
+            </button>
+          )}
         </h3>
         {description ? (
           <p className={styles['ProductCard-Description']}>{description}</p>

@@ -16,12 +16,10 @@ export interface CatalogParams {
   ordering: ProductOrdering
   /** 1-based page number. */
   page: number
-  /** Expanded product slug (`?product=`), or null when none. */
-  product: string | null
 }
 
 /**
- * Filter fields that can be updated without touching expand state directly.
+ * Фильтры каталога, обновляемые независимо от страницы.
  */
 export interface CatalogFilterPatch {
   /** Minimum price filter as a decimal string, or undefined to clear. */

@@ -264,3 +264,26 @@
     animation: none;
   }
 }
+
+.ExpandedProductCard--page {
+  animation: none;
+}
+
+.ExpandedProductCard--page .ExpandedProductCard-Title {
+  overflow-wrap: anywhere;
+}
+
+.ExpandedProductCard--page .ExpandedProductCard-MachineValue {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ExpandedProductCard--page .ExpandedProductCard-MachineRow {
+  grid-template-columns: var(--size-icon-md) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.ExpandedProductCard-PageTitle {
+  flex: 1 1 100%;
+  min-width: 0;
+  margin: 0 0 var(--space-md);
+}

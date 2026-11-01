@@ -10,6 +10,8 @@ import styles from './SimilarProducts.module.css'
 export function SimilarProducts({
   slug,
   onSelect,
+  productHref,
+  linkState,
   disabled = false,
   onToggleFavorite,
   getCartQuantity,
@@ -65,12 +67,14 @@ export function SimilarProducts({
           <div key={item.id} className={styles['SimilarProducts-Item']}>
             <ProductCard
               {...toProductCardProps(item)}
+              href={productHref?.(item.slug)}
+              linkState={linkState}
               cartQuantity={getCartQuantity?.(item.id) ?? 0}
               onExpand={() => {
                 if (disabled) {
                   return
                 }
-                onSelect(item.slug)
+                onSelect?.(item.slug)
               }}
               onToggleFavorite={(productId) => {
                 onToggleFavorite?.(productId, item.is_favorite)

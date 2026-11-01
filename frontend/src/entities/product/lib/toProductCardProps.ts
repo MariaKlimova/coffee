@@ -9,7 +9,7 @@ import { resolveProductImages } from './resolveProductImages'
  * Maps a list item DTO to ProductCard props.
  *
  * `id` is the product UUID (for cart/favorites callbacks later).
- * Expand/URL state must use `slug` separately — do not pass card `id` into `?product=`.
+ * Ссылка на товар строится по slug отдельно от UUID для действий с корзиной.
  */
 export function toProductCardProps(
   product: ProductListItem,
