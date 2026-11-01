@@ -6,6 +6,8 @@ from pathlib import Path
 import environ
 from corsheaders.defaults import default_headers
 
+from config.media_storage import media_storage
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
@@ -106,9 +108,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # static = CSS/JS we ship; media = files admins/users upload at runtime.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
-# Render (and similar PaaS) have no nginx for /media — serve via Django for MVP.
-# Prefer object storage (S3/R2) before real traffic; free-tier disk is ephemeral.
-SERVE_MEDIA = env("SERVE_MEDIA")
+MEDIA_STORAGE = env.str("MEDIA_STORAGE", default="filesystem")
+STORAGES = {
+    "default": media_storage(env),
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+# Local fallback only. Object storage serves public media independently of Django.
+SERVE_MEDIA = env("SERVE_MEDIA") and MEDIA_STORAGE == "filesystem"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
