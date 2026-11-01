@@ -3,6 +3,7 @@ import type { ProductCardProps } from '@shared/ui'
 
 import type { ProductListItem } from '../api/productApi.typings'
 import { CATEGORY_LABELS } from '../product.const'
+import { resolveProductImages } from './resolveProductImages'
 
 /**
  * Maps a list item DTO to ProductCard props.
@@ -29,7 +30,7 @@ export function toProductCardProps(
     categoryLabel: CATEGORY_LABELS[product.category],
     title: product.name,
     description: product.short_description,
-    images: product.image_url ? [product.image_url] : [],
+    images: resolveProductImages(product),
     price: formatMoney(product.price),
     oldPrice: product.old_price ? formatMoney(product.old_price) : undefined,
     inStock: product.in_stock,

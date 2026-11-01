@@ -11,6 +11,7 @@ export type {
 } from './api/productApi.typings'
 export { toExpandedCardProps } from './lib/toExpandedCardProps'
 export { toProductCardProps } from './lib/toProductCardProps'
+export { resolveProductImages } from './lib/resolveProductImages'
 export { findProductPage } from './model/findProductPage'
 export type { FindProductPageParams } from './model/findProductPage'
 export {
