@@ -44,7 +44,13 @@ Build не вызывает `migrate`, `seed_catalog`, `createsuperuser`, экс
 или запись в S3. `collectstatic` работает со staticfiles backend, не с media.
 Секреты и дампы исключены из upload и function bundle. Dependency manifest
 описывает только runtime; тестовые инструменты устанавливаются через
-`requirements/dev.txt`. Установка и выбор версии Python описаны в
+`requirements/dev.txt`. В `backend/vercel.json` явно задан Install Command
+`uv pip install -r requirements.txt`: native Python adapter иначе выбирает
+`pyproject.toml`, который у нас содержит настройки инструментов, а не список
+зависимостей. Так обе платформы используют один requirements-контракт, без
+дублирования пакетов в `[project.dependencies]`. Команда выполняется в созданном
+платформой virtualenv; сборка по-прежнему не меняет БД или media.
+Установка и выбор версии Python описаны в
 [Python runtime docs](https://vercel.com/docs/functions/runtimes/python).
 
 ## Контракт окружений
