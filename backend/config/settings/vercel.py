@@ -93,6 +93,9 @@ if globals().get("STORAGES", {}).get("default", {}).get("BACKEND") != (
     "storages.backends.s3.S3Storage"
 ):
     raise ImproperlyConfigured("Integrate COFFEE-41 S3 storage before deploying Vercel")
+_storage_endpoint = env("AWS_S3_ENDPOINT_URL", default="")  # noqa: F405
+if _storage_endpoint and urlsplit(_storage_endpoint).scheme != "https":
+    raise ImproperlyConfigured("Vercel S3 storage must use an HTTPS endpoint")
 
 YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", default="")  # noqa: F405
 YOOKASSA_SECRET_KEY = env("YOOKASSA_SECRET_KEY", default="")  # noqa: F405

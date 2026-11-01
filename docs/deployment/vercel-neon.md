@@ -71,6 +71,8 @@ application production mode.
 Основной пример env ведётся в `backend/.env.example` задачей COFFEE-41. Не
 создавать второй пример с расходящимися ключами. Конфигурация Vercel отказывается
 работать с filesystem media и без фактического S3 backend COFFEE-41.
+В serverless-среде S3 endpoint допускается только по HTTPS; локальный HTTP MinIO
+из контракта COFFEE-41 остаётся доступен через dev settings.
 
 Разделение ресурсов — обязательная часть настройки, не свойство имени переменной:
 отдельные DB/branches и роли, secrets, buckets и доступы для Preview и рабочего
