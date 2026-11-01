@@ -12,7 +12,7 @@ describe('catalogSearchParams', () => {
       false,
     )
   })
-  it('parses valid filter and expand params', () => {
+  it('parses valid filters and ignores legacy expansion in catalog state', () => {
     const params = parseCatalogParams(
       new URLSearchParams(
         'price_min=100&price_max=5000&in_stock=true&ordering=price&page=2&product=ethiopia',
@@ -26,7 +26,6 @@ describe('catalogSearchParams', () => {
       inStockOnly: true,
       ordering: 'price',
       page: 2,
-      product: 'ethiopia',
     })
   })
 
@@ -42,7 +41,6 @@ describe('catalogSearchParams', () => {
       inStockOnly: false,
       ordering: '-created_at',
       page: 1,
-      product: null,
     })
   })
 
@@ -51,7 +49,6 @@ describe('catalogSearchParams', () => {
       inStockOnly: false,
       ordering: '-created_at',
       page: 1,
-      product: null,
     })
 
     expect(search.toString()).toBe('')
@@ -64,7 +61,6 @@ describe('catalogSearchParams', () => {
       inStockOnly: true,
       ordering: '-price',
       page: 3,
-      product: 'essenza-mini',
     })
 
     expect(search.get('price_min')).toBe('100.00')
@@ -72,6 +68,5 @@ describe('catalogSearchParams', () => {
     expect(search.get('in_stock')).toBe('true')
     expect(search.get('ordering')).toBe('-price')
     expect(search.get('page')).toBe('3')
-    expect(search.get('product')).toBe('essenza-mini')
   })
 })

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "django",
+  "installCommand": "uv pip install -r requirements.txt",
+  "functions": {
+    "config/vercel_wsgi.py": {
+      "maxDuration": 30,
+      "excludeFiles": "{tests/**,.env,.env.*,media/**,.pytest_cache/**,.ruff_cache/**}"
+    }
+  }
+}

@@ -27,6 +27,8 @@ class YooKassaError(Exception):
 def _auth_header() -> str:
     shop_id = settings.YOOKASSA_SHOP_ID
     secret = settings.YOOKASSA_SECRET_KEY
+    if not shop_id.strip() or not secret.strip():
+        raise YooKassaError("YooKassa is not configured.")
     token = base64.b64encode(f"{shop_id}:{secret}".encode()).decode()
     return f"Basic {token}"
 
@@ -53,17 +55,18 @@ def _request(
     try:
         with urlopen(req, timeout=30) as resp:
             raw = resp.read().decode()
-            if not raw:
-                return {}
-            return json.loads(raw)
+            provider = json.loads(raw) if raw else {}
+            if settings.YOOKASSA_TEST_ONLY and (
+                not isinstance(provider, dict) or provider.get("test") is not True
+            ):
+                raise YooKassaError("YooKassa returned a non-test payment.")
+            return provider
     except HTTPError as exc:
-        detail = exc.read().decode(errors="replace")[:500]
         logger.warning(
-            "YooKassa HTTP %s on %s %s: %s",
+            "YooKassa HTTP %s on %s %s",
             exc.code,
             method,
             path,
-            detail,
         )
         raise YooKassaError(
             f"YooKassa request failed with HTTP {exc.code}.",

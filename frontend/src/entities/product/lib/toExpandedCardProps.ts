@@ -7,6 +7,7 @@ import type {
   Product,
 } from '../api/productApi.typings'
 import { CATEGORY_LABELS, MISSING_ATTRIBUTE } from '../product.const'
+import { resolveProductImages } from './resolveProductImages'
 
 type ExpandedCardMappedProps =
   | Omit<
@@ -64,17 +65,12 @@ function mapMachineAttributes(attributes: MachineApiAttributes | undefined) {
  * Maps a product detail DTO to ExpandedProductCard props (without handlers/slots).
  */
 export function toExpandedCardProps(product: Product): ExpandedCardMappedProps {
-  let images = (product.images ?? []).map((image) => image.url)
-  if (images.length === 0 && product.image_url) {
-    images = [product.image_url]
-  }
-
   const base = {
     id: product.id,
     categoryLabel: CATEGORY_LABELS[product.category],
     title: product.name,
     description: product.description || product.short_description,
-    images,
+    images: resolveProductImages(product),
     price: formatMoney(product.price),
     oldPrice: product.old_price ? formatMoney(product.old_price) : undefined,
     isFavorite: product.is_favorite,

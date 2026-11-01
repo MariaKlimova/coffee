@@ -26,16 +26,15 @@ urlpatterns = [
     ),
 ]
 
-# Development: Django's static() helper (no-op when DEBUG=False).
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-# PaaS without nginx (e.g. Render): serve seed/upload media via Django.
-# Prefer S3/R2 before real traffic; free-tier disk is ephemeral across deploys.
-elif settings.SERVE_MEDIA:
-    urlpatterns += [
-        re_path(
-            r"^media/(?P<path>.*)$",
-            serve,
-            {"document_root": settings.MEDIA_ROOT},
-        ),
-    ]
+# Local media routes belong only to the filesystem backend, including in DEBUG.
+if settings.MEDIA_STORAGE == "filesystem":
+    if settings.DEBUG:
+        urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    elif settings.SERVE_MEDIA:
+        urlpatterns += [
+            re_path(
+                r"^media/(?P<path>.*)$",
+                serve,
+                {"document_root": settings.MEDIA_ROOT},
+            ),
+        ]

@@ -47,11 +47,11 @@ export function CheckoutResultPage() {
           className={styles['CheckoutResultPage-Pending']}
           role="status"
           aria-live="polite"
-          aria-label={ORDER_RESULT_COPY.pendingStatusLabel}
+          aria-label={ORDER_RESULT_COPY.loadingDescription}
         >
           <div className={styles['CheckoutResultPage-Spinner']} aria-hidden />
           <p className={styles['CheckoutResultPage-PendingText']}>
-            {ORDER_RESULT_COPY.pendingDescription}
+            {ORDER_RESULT_COPY.loadingDescription}
           </p>
         </div>
       </section>
@@ -120,14 +120,27 @@ export function CheckoutResultPage() {
     )
   }
 
-  if (view === 'failed') {
+  if (view === 'failed' || view === 'recovery') {
     return (
       <section className={styles.CheckoutResultPage}>
         <EmptyState
-          title={ORDER_RESULT_COPY.failedTitle}
-          description={ORDER_RESULT_COPY.failedDescription}
+          title={
+            view === 'recovery'
+              ? ORDER_RESULT_COPY.recoveryTitle
+              : ORDER_RESULT_COPY.failedTitle
+          }
+          description={
+            view === 'recovery'
+              ? ORDER_RESULT_COPY.recoveryDescription
+              : ORDER_RESULT_COPY.failedDescription
+          }
           action={
             <div className={styles['CheckoutResultPage-Actions']}>
+              {order ? (
+                <p className={styles['CheckoutResultPage-OrderId']}>
+                  {formatOrderNumberLabel(ORDER_RESULT_COPY.orderNumber, order.id)}
+                </p>
+              ) : null}
               <Button
                 type="button"
                 loading={isRetrying}
@@ -140,7 +153,9 @@ export function CheckoutResultPage() {
                   : ORDER_RESULT_COPY.tryAgain}
               </Button>
               {retryError ? (
-                <p className={styles['CheckoutResultPage-Error']}>{retryError}</p>
+                <p className={styles['CheckoutResultPage-Error']} role="alert">
+                  {retryError}
+                </p>
               ) : null}
             </div>
           }

@@ -6,6 +6,9 @@ Django + Django REST Framework API для Coffee Shop.
 
 См. корневой [README.md](../README.md) (Docker Compose или native).
 
+Постоянные изображения, S3 environment и ручной безопасный seed:
+[`docs/media-storage.md`](../docs/media-storage.md).
+
 ## API-контракт
 
 Черновой OpenAPI-контракт (планирование Epic 2–7):
@@ -26,3 +29,9 @@ backend и frontend, а не вечный источник истины. При 
 npx @redocly/cli@1 lint docs/api/openapi.yaml --config docs/api/redocly.yaml
 ```
 
+## Отдельный стенд Vercel + Neon
+
+Packaging backend-проекта и порядок переноса описаны в
+[runbook](../docs/deployment/vercel-neon.md). Использовать корень `backend/` и
+`config.settings.vercel`; корневой Vercel-проект frontend не перенастраивать.
+Миграции и demo seed запускаются явно, отдельно от сборки и обработки запросов.

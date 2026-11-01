@@ -31,6 +31,10 @@ export interface ProductCardProps extends Omit<HTMLAttributes<HTMLElement>, 'id'
    * Quantity change from the card stepper. Pass `0` to remove the line from the cart.
    */
   onCartQuantityChange?: (id: string, quantity: number) => void
-  /** Expand handler for the card surface. */
+  /** Ссылка на страницу товара; без неё остаётся кнопка UI Kit. */
+  href?: string
+  /** Состояние React Router для возврата к исходному списку. */
+  linkState?: unknown
+  /** Действие перед открытием товара. */
   onExpand?: (id: string) => void
 }

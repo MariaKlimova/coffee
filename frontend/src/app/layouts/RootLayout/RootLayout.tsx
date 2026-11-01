@@ -48,7 +48,6 @@ export function RootLayout() {
       inStockOnly: false,
       ordering: DEFAULT_ORDERING,
       page: 1,
-      product: null,
     })
     next.set('search', nextQuery)
     void navigate({

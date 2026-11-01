@@ -295,7 +295,9 @@ def _placeholder_png(color: tuple[int, int, int], name: str) -> SimpleUploadedFi
 class Command(BaseCommand):
     """Create demo catalog data for local/frontend development."""
 
-    help = "Seed catalog categories, products, and placeholder images"
+    help = (
+        "Add missing demo products with placeholders; leave existing products untouched"
+    )
 
     @transaction.atomic
     def handle(self, *args, **options) -> None:
@@ -327,7 +329,7 @@ class Command(BaseCommand):
     ) -> int:
         created = 0
         for item in items:
-            product, was_created = Product.objects.update_or_create(
+            product, was_created = Product.objects.get_or_create(
                 slug=item["slug"],
                 defaults={
                     "name": item["name"],
@@ -340,25 +342,14 @@ class Command(BaseCommand):
                     "attributes": item.get("attributes", {}),
                 },
             )
-            # Re-upload when missing in DB or on disk (Render free disk is
-            # ephemeral across deploys; Postgres keeps ImageField paths).
-            needs_image = was_created or not product.images.exists()
-            if not needs_image:
-                existing = product.images.filter(is_main=True).first()
-                if existing is None:
-                    existing = product.images.first()
-                if existing is None or not existing.image:
-                    needs_image = True
-                elif not existing.image.storage.exists(existing.image.name):
-                    needs_image = True
-            if needs_image:
-                product.images.all().delete()
+            # A matching slug may belong to the store owner, including products
+            # with no image or a missing object. Never "repair" their gallery.
+            if was_created:
                 ProductImage.objects.create(
                     product=product,
                     image=_placeholder_png(color, f"{product.slug}.png"),
                     order=0,
                     is_main=True,
                 )
-            if was_created:
                 created += 1
         return created

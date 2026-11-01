@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useCart } from '@entities/cart'
 import { useAuthStore } from '@entities/user'
-import { useCheckoutSubmit } from '@features/checkout'
+import {
+  paymentRecoveryPath,
+  paymentRecoverySearch,
+  resolvePaymentRecoveryOrderId,
+  useCheckoutSubmit,
+} from '@features/checkout'
 import { APP_ROUTES } from '@shared/config/routes'
 import { CART_PAGE_COPY, CHECKOUT_COPY } from '@shared/lib/copy'
 import { Button, EmptyState, useToast } from '@shared/ui'
@@ -18,6 +23,10 @@ import styles from './CheckoutPage.module.css'
  */
 export function CheckoutPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [recoveredOrderId] = useState(() => resolvePaymentRecoveryOrderId(searchParams))
+  const [recoverFromUrl] = useState(() => searchParams.get('payment') === 'recovery')
+  const [isNewCheckout, setIsNewCheckout] = useState(false)
   const { showToast } = useToast()
   const authStatus = useAuthStore((state) => state.status)
   const isGuest = authStatus === 'guest'
@@ -27,8 +36,19 @@ export function CheckoutPage() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
 
-  const { fieldErrors, formError, isSubmitting, clearFieldError, handleSubmit } =
-    useCheckoutSubmit({ isGuest })
+  const {
+    fieldErrors,
+    formError,
+    isSubmitting,
+    createdOrderId,
+    clearFieldError,
+    handleSubmit,
+  } = useCheckoutSubmit({
+    isGuest,
+    onOrderCreated: (orderId) => {
+      setSearchParams(paymentRecoverySearch(orderId), { replace: true })
+    },
+  })
 
   const items = cartQuery.data?.items ?? []
   const availableTotal = sumAvailableLineTotals(items)
@@ -37,15 +57,34 @@ export function CheckoutPage() {
   const isEmpty = cartQuery.isSuccess && !showInitialSkeleton && items.length === 0
 
   useEffect(() => {
-    if (!isEmpty) {
+    if (!isEmpty || isSubmitting || createdOrderId || recoveredOrderId) {
       return
     }
     showToast({ message: CHECKOUT_COPY.emptyCartToast, variant: 'info' })
     void navigate(APP_ROUTES.cart, { replace: true })
-  }, [isEmpty, navigate, showToast])
+  }, [isEmpty, isSubmitting, createdOrderId, recoveredOrderId, navigate, showToast])
 
   if (authStatus === 'idle' || authStatus === 'restoring') {
     return null
+  }
+
+  const shouldResumeSavedOrder = !isNewCheckout && (recoverFromUrl || isEmpty)
+  const recoveryOrderId =
+    (!isSubmitting ? createdOrderId : null) ??
+    (shouldResumeSavedOrder ? recoveredOrderId : null)
+  if (recoveryOrderId) {
+    return <Navigate to={paymentRecoveryPath(recoveryOrderId)} replace />
+  }
+
+  if (createdOrderId) {
+    return (
+      <section className={styles.CheckoutPage} role="status" aria-live="polite">
+        <EmptyState
+          title={CHECKOUT_COPY.orderCreated}
+          description={CHECKOUT_COPY.startingPayment}
+        />
+      </section>
+    )
   }
 
   if (cartQuery.isError) {
@@ -69,7 +108,7 @@ export function CheckoutPage() {
     )
   }
 
-  if (isEmpty) {
+  if (isEmpty && !isSubmitting) {
     return <Navigate to={APP_ROUTES.cart} replace />
   }
 
@@ -77,6 +116,32 @@ export function CheckoutPage() {
     return (
       <section className={styles.CheckoutPage}>
         <h1 className={styles['CheckoutPage-Title']}>{CHECKOUT_COPY.title}</h1>
+      </section>
+    )
+  }
+
+  if (recoveredOrderId && !isNewCheckout) {
+    return (
+      <section className={styles.CheckoutPage}>
+        <EmptyState
+          title={CHECKOUT_COPY.savedOrderTitle}
+          description={CHECKOUT_COPY.savedOrderDescription}
+          action={
+            <div className={styles['CheckoutPage-RecoveryActions']}>
+              <Button to={paymentRecoveryPath(recoveredOrderId)}>
+                {CHECKOUT_COPY.resumePayment}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsNewCheckout(true)
+                }}
+              >
+                {CHECKOUT_COPY.newOrder}
+              </Button>
+            </div>
+          }
+        />
       </section>
     )
   }

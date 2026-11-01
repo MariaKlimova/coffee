@@ -33,12 +33,6 @@ export const DEFAULT_CATALOG_ROUTE = CATEGORY_ROUTES.coffee
 export const CATALOG_PAGE_SIZE = 20
 
 /**
- * Safety limit for the deep-link page scan — guards against an endless
- * `next` chain if the backend ever paginates unexpectedly.
- */
-export const MAX_SCANNED_PAGES = 50
-
-/**
  * Placeholder shown when an optional product attribute is missing.
  */
 export const MISSING_ATTRIBUTE = '—'

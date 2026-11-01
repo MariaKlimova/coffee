@@ -53,7 +53,13 @@ interface ExpandedProductCardBase extends Omit<
   /** Optional previous price. */
   oldPrice?: string
   /** Close handler (× button or Escape). */
-  onClose: () => void
+  onClose?: () => void
+  /** Режим отдельной страницы: h1 без анимации раскрытия. */
+  presentation?: 'inline' | 'page'
+  /** Количество этого товара в корзине. */
+  cartQuantity?: number
+  /** Изменить количество существующей позиции корзины. */
+  onCartQuantityChange?: (id: string, quantity: number) => void
   /** Whether the product is in the user's favorites. */
   isFavorite?: boolean
   /** Favorite toggle; receives the product id passed to the card. */

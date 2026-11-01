@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { Navigate, useLocation } from 'react-router-dom'
 
 import {
   CATALOG_PAGE_SIZE,
@@ -11,6 +11,8 @@ import {
   CatalogFilters,
   CatalogPagination,
   useCatalogParams,
+  productPath,
+  useCatalogReturn,
 } from '@features/catalog'
 import { Button, EmptyState, ProductCardSkeleton } from '@shared/ui'
 
@@ -19,16 +21,8 @@ import type { CatalogPageProps } from './CatalogPage.typings'
 import styles from './CatalogPage.module.css'
 
 export function CatalogPage({ category }: CatalogPageProps) {
-  const {
-    params,
-    setSearch,
-    setFilters,
-    setPage,
-    expandProduct,
-    collapseProduct,
-    clearProduct,
-    resetFilters,
-  } = useCatalogParams()
+  const { params, setSearch, setFilters, setPage, resetFilters } = useCatalogParams()
+  const location = useLocation()
 
   const listParams: ProductListParams = {
     category,
@@ -52,33 +46,20 @@ export function CatalogPage({ category }: CatalogPageProps) {
   const count = productsQuery.data?.count ?? 0
   const skeletonCount = products.length > 0 ? products.length : CATALOG_PAGE_SIZE
   const showInitialSkeleton = productsQuery.isPending && !productsQuery.data
-  const expandedSlug =
-    params.product && products.some((item) => item.slug === params.product)
-      ? params.product
-      : null
+  const { productLinkState, rememberScroll } = useCatalogReturn(
+    productsQuery.isSuccess && !productsQuery.isPlaceholderData,
+  )
 
-  useEffect(() => {
-    if (
-      !productsQuery.isSuccess ||
-      productsQuery.isPlaceholderData ||
-      !params.product ||
-      !productsQuery.data
-    ) {
-      return
-    }
-    const onCurrentPage = productsQuery.data.results.some(
-      (item) => item.slug === params.product,
+  const legacySlug = new URLSearchParams(location.search).get('product')?.trim()
+  if (legacySlug) {
+    return (
+      <Navigate
+        replace
+        to={productPath(legacySlug, `${location.pathname}${location.search}`)}
+        state={productLinkState}
+      />
     )
-    if (!onCurrentPage) {
-      clearProduct()
-    }
-  }, [
-    productsQuery.isSuccess,
-    productsQuery.isPlaceholderData,
-    productsQuery.data,
-    params.product,
-    clearProduct,
-  ])
+  }
 
   return (
     <section className={styles.CatalogPage}>
@@ -161,9 +142,12 @@ export function CatalogPage({ category }: CatalogPageProps) {
                   <CatalogPageItem
                     key={product.id}
                     product={product}
-                    isExpanded={expandedSlug === product.slug}
-                    onExpand={expandProduct}
-                    onCollapse={collapseProduct}
+                    href={productPath(
+                      product.slug,
+                      `${location.pathname}${location.search}`,
+                    )}
+                    linkState={productLinkState}
+                    onOpen={rememberScroll}
                   />
                 ))}
               </div>

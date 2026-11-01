@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 
+import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
 import { CART_COPY, FAVORITE_COPY } from '@shared/lib/copy'
 import { ProductCard } from '@shared/ui/ProductCard'
 
@@ -119,5 +120,64 @@ describe('ProductCard', () => {
 
     await user.click(screen.getByRole('button', { name: CART_COPY.decreaseQty }))
     expect(onCartQuantityChange).toHaveBeenCalledWith('p1', 0)
+  })
+  it('keeps linked media, carousel controls, cart and favorites separate from title navigation', async () => {
+    const user = userEvent.setup()
+    const onOpen = vi.fn()
+    const { router, container } = renderWithProviders(
+      <ProductCard
+        id="linked"
+        categoryLabel="Кофе"
+        title="Эфиопия"
+        images={['/a.jpg', '/b.jpg']}
+        price="890 ₽"
+        href="/product/ethiopia"
+        onExpand={onOpen}
+      />,
+      { initialEntries: ['/coffee'] },
+    )
+    expect(container.querySelector('a button, button a, a a')).toBeNull()
+    await user.click(screen.getByRole('button', { name: 'Следующее фото' }))
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/b.jpg')
+    await user.click(screen.getByRole('button', { name: CART_COPY.add }))
+    await user.click(screen.getByRole('button', { name: FAVORITE_COPY.add }))
+    expect(router.state.location.pathname).toBe('/coffee')
+    expect(onOpen).not.toHaveBeenCalled()
+    const title = screen
+      .getAllByRole('link', { name: 'Эфиопия' })
+      .find((link) => link.tabIndex !== -1)!
+    title.focus()
+    await user.keyboard('{Enter}')
+    expect(router.state.location.pathname).toBe('/product/ethiopia')
+    expect(onOpen).toHaveBeenCalledOnce()
+  })
+
+  it('swipes linked media without navigating, then allows a normal image tap', async () => {
+    const user = userEvent.setup()
+    const onOpen = vi.fn()
+    const { router } = renderWithProviders(
+      <ProductCard
+        id="linked"
+        categoryLabel="Кофе"
+        title="Эфиопия"
+        images={['/a.jpg', '/b.jpg']}
+        price="890 ₽"
+        href="/product/ethiopia"
+        onExpand={onOpen}
+      />,
+      { initialEntries: ['/coffee'] },
+    )
+    const image = screen.getByRole('img')
+    fireEvent.touchStart(image, { changedTouches: [{ clientX: 220 }] })
+    fireEvent.touchEnd(image, { changedTouches: [{ clientX: 100 }] })
+    await user.click(image)
+    expect(router.state.location.pathname).toBe('/coffee')
+    expect(onOpen).not.toHaveBeenCalled()
+    expect(image).toHaveAttribute('src', '/b.jpg')
+    fireEvent.touchStart(image, { changedTouches: [{ clientX: 100 }] })
+    fireEvent.touchEnd(image, { changedTouches: [{ clientX: 100 }] })
+    await user.click(image)
+    expect(router.state.location.pathname).toBe('/product/ethiopia')
+    expect(onOpen).toHaveBeenCalledOnce()
   })
 })

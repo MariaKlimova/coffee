@@ -10,6 +10,9 @@ import type {
   PaymentSession,
 } from './orderApi.typings'
 
+/** Ограничение ожидания ссылки провайдера: заказ остаётся доступен для повтора. */
+const PAYMENT_CREATE_TIMEOUT_MS = 30_000
+
 function toQueryParams(params: OrderListParams): Record<string, string> {
   const query: Record<string, string> = {}
   if (params.page !== undefined && params.page > 1) {
@@ -54,6 +57,8 @@ export async function getOrder(orderId: string): Promise<Order> {
  */
 export async function createPayment(orderId: string): Promise<PaymentSession> {
   const body: PaymentCreate = { order_id: orderId }
-  const { data } = await http.post<PaymentSession>('/api/payments/create/', body)
+  const { data } = await http.post<PaymentSession>('/api/payments/create/', body, {
+    timeout: PAYMENT_CREATE_TIMEOUT_MS,
+  })
   return data
 }

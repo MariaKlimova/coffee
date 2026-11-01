@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 
+import { resolveProductImages } from '@entities/product'
 import { CART_COPY, CART_PAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { formatMoney } from '@shared/lib/formatMoney'
@@ -16,6 +17,7 @@ export function CartPageItem({ item, onQuantityChange, onRemove }: CartPageItemP
   const inStock = product.in_stock
   const quantityId = `${id}-quantity`
   const productHref = `/product/${product.slug}`
+  const imageUrl = resolveProductImages(product)[0]
 
   return (
     <article
@@ -26,12 +28,8 @@ export function CartPageItem({ item, onQuantityChange, onRemove }: CartPageItemP
       data-testid="cart-page-item"
     >
       <div className={styles['CartPage-Item-Media']}>
-        {product.image_url ? (
-          <img
-            className={styles['CartPage-Item-Image']}
-            src={product.image_url}
-            alt=""
-          />
+        {imageUrl ? (
+          <img className={styles['CartPage-Item-Image']} src={imageUrl} alt="" />
         ) : null}
       </div>
 

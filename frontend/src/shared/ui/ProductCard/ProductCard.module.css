@@ -96,6 +96,7 @@
   font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
   text-align: left;
+  text-decoration: none;
   color: var(--color-text);
   cursor: pointer;
 }
@@ -104,7 +105,7 @@
   position: absolute;
   inset: 0;
   z-index: var(--layer-card-surface);
-  content: "";
+  content: '';
 }
 
 .ProductCard-Expand:focus-visible {

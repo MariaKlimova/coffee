@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useAuthStore } from '@entities/user'
 import { CatalogPage } from '@pages/CatalogPage'
+import { ProductPage } from '@pages/ProductPage'
 import { http } from '@shared/api'
 import { CATALOG_COPY } from '@shared/lib/copy'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
@@ -37,6 +38,7 @@ function renderStore(path = '/coffee') {
         <Route element={<RootLayout />}>
           <Route path="/coffee" element={<CatalogPage category="coffee" />} />
           <Route path="/machines" element={<CatalogPage category="machines" />} />
+          <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/cart" element={<div>Корзина</div>} />
         </Route>
       </Routes>
@@ -54,6 +56,7 @@ describe('Поиск Header → URL → API', () => {
     rejectSearch = false
     pendingSearch = undefined
     adapter.mockReset()
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined)
     http.defaults.adapter = adapter
     useAuthStore.setState({
       status: 'guest',
@@ -109,10 +112,10 @@ describe('Поиск Header → URL → API', () => {
     )
   }
 
-  it('применяет каждый символ без Enter и сбрасывает страницу и раскрытый товар', async () => {
+  it('применяет каждый символ без Enter и сбрасывает страницу каталога', async () => {
     const user = userEvent.setup()
-    const { router } = renderStore('/coffee?page=2&product=ethiopia&price_min=100')
-    await screen.findByText('Описание Эфиопии')
+    const { router } = renderStore('/coffee?page=2&price_min=100')
+    await screen.findByRole('heading', { name: 'Эфиопия' })
 
     await user.type(screen.getByRole('searchbox'), '  эфиопия  ')
 
@@ -211,25 +214,22 @@ describe('Поиск Header → URL → API', () => {
     expect(screen.getByRole('searchbox')).toHaveValue('эфиопия новый ')
   })
 
-  it('Back/Forward восстанавливают поле при открытии товара и после live-изменения запроса', async () => {
+  it('Back/Forward сохраняют каталог и поиск при переходе на отдельную страницу', async () => {
     const user = userEvent.setup()
     const { router } = renderStore('/coffee?search=эфиопия')
-    await screen.findByRole('heading', { name: 'Эфиопия' })
-    await user.click(screen.getByRole('button', { name: 'Эфиопия' }))
+    const links = await screen.findAllByRole('link', { name: 'Эфиопия' })
+    await user.click(links[0])
     await screen.findByText('Описание Эфиопии')
+    expect(router.state.location.pathname).toBe('/product/ethiopia')
+    expect(screen.getByRole('searchbox')).toHaveValue('')
     await act(() => router.navigate(-1))
     expect(screen.getByRole('searchbox')).toHaveValue('эфиопия')
-    expect(router.state.location.search).not.toContain('product=')
+    expect(router.state.location.pathname).toBe('/coffee')
     await act(() => router.navigate(1))
-    expect(screen.getByRole('searchbox')).toHaveValue('эфиопия')
-    expect(router.state.location.search).toContain('product=ethiopia')
-    await user.type(screen.getByRole('searchbox'), ' новый')
-    expect(screen.getByRole('searchbox')).toHaveValue('эфиопия новый')
-    expect(router.state.location.search).not.toContain('product=')
-    await act(() => router.navigate(-1))
-    expect(screen.getByRole('searchbox')).toHaveValue('эфиопия')
-    await act(() => router.navigate(1))
-    expect(screen.getByRole('searchbox')).toHaveValue('эфиопия новый')
+    expect(router.state.location.pathname).toBe('/product/ethiopia')
+    await user.type(screen.getByRole('searchbox'), 'новый')
+    expect(router.state.location.pathname).toBe('/coffee')
+    expect(screen.getByRole('searchbox')).toHaveValue('новый')
   })
 
   it('обычный refetch и повторный render сохраняют введённый текст и фокус', async () => {

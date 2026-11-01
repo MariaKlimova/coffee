@@ -6,6 +6,8 @@ from pathlib import Path
 import environ
 from corsheaders.defaults import default_headers
 
+from config.media_storage import media_storage
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 env = environ.Env(
@@ -106,9 +108,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # static = CSS/JS we ship; media = files admins/users upload at runtime.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
-# Render (and similar PaaS) have no nginx for /media — serve via Django for MVP.
-# Prefer object storage (S3/R2) before real traffic; free-tier disk is ephemeral.
-SERVE_MEDIA = env("SERVE_MEDIA")
+MEDIA_STORAGE = env.str("MEDIA_STORAGE", default="filesystem")
+STORAGES = {
+    "default": media_storage(env),
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+# Local fallback only. Object storage serves public media independently of Django.
+SERVE_MEDIA = env("SERVE_MEDIA") and MEDIA_STORAGE == "filesystem"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -164,3 +170,7 @@ YOOKASSA_API_BASE = env(
 # Enforce documented YooKassa IP ranges on webhooks. Disable only for local
 # curl/ngrok debugging or pytest (set YOOKASSA_WEBHOOK_IP_CHECK=False).
 YOOKASSA_WEBHOOK_IP_CHECK = env("YOOKASSA_WEBHOOK_IP_CHECK")
+# Only strict Vercel settings can enable these boundaries. Local/legacy
+# deployments keep their direct-peer webhook verification and payment mode.
+YOOKASSA_TEST_ONLY = False
+YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY = False

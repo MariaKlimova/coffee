@@ -10,6 +10,12 @@ export interface ImageCarouselProps extends HTMLAttributes<HTMLDivElement> {
   images: string[]
   /** Accessible label for the current slide. */
   alt: string
+  /** Ссылка с изображения на отдельную страницу товара. */
+  imageHref?: string
+  /** Состояние возврата React Router. */
+  imageLinkState?: unknown
+  /** Действие перед переходом с изображения. */
+  onImageOpen?: () => void
   /** Frame size preset. Defaults to card. */
   size?: ImageCarouselSize
 }

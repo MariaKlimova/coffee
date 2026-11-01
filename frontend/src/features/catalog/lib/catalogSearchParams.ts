@@ -24,7 +24,6 @@ function parseOrdering(raw: string | null): ProductOrdering {
  */
 export function parseCatalogParams(searchParams: URLSearchParams): CatalogParams {
   const inStockRaw = searchParams.get('in_stock')
-  const productRaw = searchParams.get('product')
 
   return {
     search: searchParams.get('search')?.trim() || undefined,
@@ -33,7 +32,6 @@ export function parseCatalogParams(searchParams: URLSearchParams): CatalogParams
     inStockOnly: inStockRaw === 'true' || inStockRaw === '1',
     ordering: parseOrdering(searchParams.get('ordering')),
     page: parsePageNumber(searchParams.get('page')),
-    product: productRaw && productRaw.trim() ? productRaw.trim() : null,
   }
 }
 
@@ -61,9 +59,6 @@ export function buildCatalogSearchParams(params: CatalogParams): URLSearchParams
   }
   if (params.page > 1) {
     next.set('page', String(params.page))
-  }
-  if (params.product) {
-    next.set('product', params.product)
   }
 
   return next

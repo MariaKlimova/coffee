@@ -1,11 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 
 import { cartKeys } from '@entities/cart'
 import { createOrder, createPayment } from '@entities/order'
 
 import { mapCheckoutApiError } from './mapCheckoutApiError'
-import { writePendingOrderId } from './pendingOrderId'
+import {
+  clearPaymentRecoveryOrderId,
+  writePaymentRecoveryOrderId,
+} from './pendingOrderId'
 import {
   hasCheckoutFieldErrors,
   validateCheckoutForm,
@@ -19,6 +22,8 @@ import {
 export interface UseCheckoutSubmitOptions {
   /** Гость без JWT — нужны email и телефон. */
   isGuest: boolean
+  /** Сохраняет id в адресе страницы до обращения к провайдеру. */
+  onOrderCreated?: (orderId: string) => void
   /** Редирект на `payment_url` провайдера (подменяется в тестах). */
   redirectToPayment?: (paymentUrl: string) => void
 }
@@ -28,6 +33,7 @@ export interface UseCheckoutSubmitOptions {
  */
 export function useCheckoutSubmit({
   isGuest,
+  onOrderCreated,
   redirectToPayment = (paymentUrl) => {
     window.location.assign(paymentUrl)
   },
@@ -36,6 +42,8 @@ export function useCheckoutSubmit({
   const [fieldErrors, setFieldErrors] = useState<CheckoutFieldErrors>({})
   const [formError, setFormError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
+  const submittingRef = useRef(false)
 
   function clearFieldError(field: keyof CheckoutFieldErrors) {
     setFieldErrors((prev) => {
@@ -53,7 +61,7 @@ export function useCheckoutSubmit({
     values: CheckoutFormValues,
   ): Promise<void> {
     event.preventDefault()
-    if (isSubmitting) {
+    if (submittingRef.current || createdOrderId) {
       return
     }
 
@@ -65,6 +73,7 @@ export function useCheckoutSubmit({
     }
 
     setFieldErrors({})
+    submittingRef.current = true
     setIsSubmitting(true)
 
     try {
@@ -79,15 +88,19 @@ export function useCheckoutSubmit({
       }
 
       const order = await createOrder(payload)
-      await queryClient.invalidateQueries({ queryKey: cartKeys.all })
+      writePaymentRecoveryOrderId(order.id)
+      setCreatedOrderId(order.id)
+      onOrderCreated?.(order.id)
+      void queryClient.invalidateQueries({ queryKey: cartKeys.all })
       const payment = await createPayment(order.id)
-      writePendingOrderId(order.id)
       redirectToPayment(payment.payment_url)
+      clearPaymentRecoveryOrderId()
     } catch (error) {
       const view = mapCheckoutApiError(error)
       setFormError(view.formError)
       setFieldErrors(view.fieldErrors)
       setIsSubmitting(false)
+      submittingRef.current = false
     }
   }
 
@@ -95,6 +108,7 @@ export function useCheckoutSubmit({
     fieldErrors,
     formError,
     isSubmitting,
+    createdOrderId,
     clearFieldError,
     handleSubmit,
   }

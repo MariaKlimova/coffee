@@ -1,17 +1,19 @@
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route, Routes } from 'react-router-dom'
 
 import { useCartStore } from '@entities/cart'
 import { useAuthStore } from '@entities/user'
+import { writePaymentRecoveryOrderId } from '@features/checkout'
 import { http } from '@shared/api'
-import { CHECKOUT_COPY } from '@shared/lib/copy'
+import { CHECKOUT_COPY, ORDER_RESULT_COPY } from '@shared/lib/copy'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
 import { ToastProvider } from '@shared/ui'
 
 import { CheckoutPage } from './CheckoutPage'
+import { CheckoutResultPage } from '../CheckoutResultPage'
 
 function jsonResponse(
   config: InternalAxiosRequestConfig,
@@ -60,6 +62,7 @@ function renderCheckout(initialPath = '/checkout') {
     <ToastProvider>
       <Routes>
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout/result" element={<CheckoutResultPage />} />
         <Route path="/cart" element={<div>Cart page</div>} />
       </Routes>
     </ToastProvider>,
@@ -87,6 +90,7 @@ describe('CheckoutPage', () => {
     delete http.defaults.adapter
     sessionStorage.clear()
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('redirects to cart with toast when the cart is empty', async () => {
@@ -116,7 +120,13 @@ describe('CheckoutPage', () => {
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
       if (config.method === 'get' && config.url?.includes('/api/cart/')) {
-        return jsonResponse(config, 200, cartPayload)
+        return jsonResponse(
+          config,
+          200,
+          orderCalls > 0
+            ? { ...cartPayload, items: [], total: '0.00', items_count: 0 }
+            : cartPayload,
+        )
       }
       if (config.method === 'post' && config.url?.includes('/api/orders/')) {
         orderCalls += 1
@@ -309,5 +319,227 @@ describe('CheckoutPage', () => {
     await waitFor(() => {
       expect(assign).toHaveBeenCalledWith('https://pay.example/session')
     })
+  })
+
+  it.each([
+    ['guest', 'provider error'],
+    ['guest', 'timeout'],
+    ['authenticated', 'provider error'],
+    ['authenticated', 'timeout'],
+  ] as const)(
+    'preserves %s order after cart empties and payment %s; retries the same order',
+    async (authStatus, failure) => {
+      const user = userEvent.setup()
+      if (authStatus === 'authenticated') {
+        useAuthStore.setState({
+          status: authStatus,
+          accessToken: 'access',
+          refreshToken: 'refresh',
+          user: { id: 'u1', email: 'user@example.com' },
+        })
+      }
+      let orderCalls = 0
+      let paymentCalls = 0
+      let emptyCartReads = 0
+      let rejectPayment: ((error: Error) => void) | undefined
+      let resolveRetry: ((value: AxiosResponse) => void) | undefined
+      const order = {
+        id: 'order-recovery',
+        status: 'pending',
+        total: '1000.00',
+        items: [],
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        delivery_address: 'Москва',
+      }
+      adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+        if (config.method === 'get' && config.url === '/api/cart/') {
+          if (orderCalls) {
+            emptyCartReads += 1
+            return jsonResponse(config, 200, {
+              ...cartPayload,
+              items: [],
+              total: '0.00',
+              items_count: 0,
+            })
+          }
+          return jsonResponse(config, 200, cartPayload)
+        }
+        if (config.method === 'post' && config.url === '/api/orders/') {
+          orderCalls += 1
+          return jsonResponse(config, 201, order)
+        }
+        if (config.method === 'get' && config.url === `/api/orders/${order.id}/`) {
+          return jsonResponse(config, 200, order)
+        }
+        if (config.method === 'post' && config.url === '/api/payments/create/') {
+          paymentCalls += 1
+          expect(JSON.parse(config.data)).toEqual({ order_id: order.id })
+          expect(config.timeout).toBe(30_000)
+          expect(sessionStorage.getItem('coffee:pendingOrderId')).toBe(order.id)
+          if (paymentCalls === 1) {
+            return new Promise((_resolve, reject) => {
+              rejectPayment = reject
+            })
+          }
+          return new Promise((resolve) => {
+            resolveRetry = resolve
+          })
+        }
+        throw new Error(`Unexpected ${config.method} ${config.url}`)
+      })
+      const assign = vi.fn()
+      vi.stubGlobal('location', { ...window.location, assign })
+      const { router } = renderCheckout()
+      await screen.findByText(product.name)
+      await user.type(screen.getByLabelText(CHECKOUT_COPY.addressLabel), 'Москва')
+      if (authStatus === 'guest') {
+        await user.type(
+          screen.getByLabelText(CHECKOUT_COPY.emailLabel),
+          'guest@example.com',
+        )
+        await user.type(screen.getByLabelText(CHECKOUT_COPY.phoneLabel), '123')
+      }
+      await user.dblClick(screen.getByRole('button', { name: CHECKOUT_COPY.pay }))
+      await waitFor(() => {
+        expect(emptyCartReads).toBeGreaterThan(0)
+      })
+      expect(router.state.location.pathname).toBe('/checkout')
+      expect(router.state.location.search).toContain('order_id=order-recovery')
+      expect(screen.queryByText('Cart page')).not.toBeInTheDocument()
+      expect(screen.getByText(CHECKOUT_COPY.orderCreated)).toBeInTheDocument()
+      expect(orderCalls).toBe(1)
+      expect(paymentCalls).toBe(1)
+
+      await act(async () => {
+        rejectPayment?.(
+          new AxiosError(
+            'payment unavailable',
+            failure === 'timeout'
+              ? AxiosError.ECONNABORTED
+              : AxiosError.ERR_BAD_RESPONSE,
+          ),
+        )
+      })
+      expect(
+        await screen.findByRole('heading', { name: ORDER_RESULT_COPY.recoveryTitle }),
+      ).toBeInTheDocument()
+      expect(router.state.location.pathname).toBe('/checkout/result')
+      expect(screen.getByText(`Номер заказа: ${order.id}`)).toBeInTheDocument()
+      expect(screen.queryByText(ORDER_RESULT_COPY.pendingTitle)).not.toBeInTheDocument()
+      expect(
+        screen.getByText(ORDER_RESULT_COPY.recoveryDescription),
+      ).toBeInTheDocument()
+
+      await user.dblClick(
+        screen.getByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+      )
+      expect(paymentCalls).toBe(2)
+      expect(orderCalls).toBe(1)
+      await act(async () => {
+        resolveRetry?.(
+          jsonResponse({} as InternalAxiosRequestConfig, 201, {
+            payment_url: 'https://pay.example/recovered',
+          }),
+        )
+      })
+      expect(assign).toHaveBeenCalledWith('https://pay.example/recovered')
+    },
+  )
+
+  it.each(['session', 'query'] as const)(
+    'restores guest order on checkout reload from %s without creating an order',
+    async (source) => {
+      const orderId = 'order-reload'
+      if (source === 'session') writePaymentRecoveryOrderId(orderId)
+      adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+        if (config.method === 'get' && config.url === '/api/cart/') {
+          return jsonResponse(config, 200, {
+            ...cartPayload,
+            items: [],
+            total: '0.00',
+            items_count: 0,
+          })
+        }
+        if (config.method === 'get' && config.url === `/api/orders/${orderId}/`) {
+          return jsonResponse(config, 200, { id: orderId, status: 'pending' })
+        }
+        throw new Error(`Unexpected ${config.method} ${config.url}`)
+      })
+      const { router } = renderCheckout(
+        source === 'query'
+          ? `/checkout?order_id=${orderId}&payment=recovery`
+          : '/checkout',
+      )
+      expect(
+        await screen.findByRole('heading', { name: ORDER_RESULT_COPY.recoveryTitle }),
+      ).toBeInTheDocument()
+      expect(router.state.location.pathname).toBe('/checkout/result')
+      expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
+    },
+  )
+
+  it('lets the guest explicitly create a new order from a new cart while keeping the earlier order accessible', async () => {
+    const user = userEvent.setup()
+    writePaymentRecoveryOrderId('previous-order')
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.method === 'get' && config.url === '/api/cart/') {
+        return jsonResponse(config, 200, cartPayload)
+      }
+      if (config.method === 'post' && config.url === '/api/orders/') {
+        throw new AxiosError('unavailable', AxiosError.ERR_NETWORK)
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`)
+    })
+    renderCheckout()
+    expect(
+      await screen.findByRole('heading', { name: CHECKOUT_COPY.savedOrderTitle }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: CHECKOUT_COPY.resumePayment }),
+    ).toHaveAttribute(
+      'href',
+      '/checkout/result?order_id=previous-order&payment=recovery',
+    )
+    expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
+    await user.click(screen.getByRole('button', { name: CHECKOUT_COPY.newOrder }))
+    expect(await screen.findByLabelText(CHECKOUT_COPY.addressLabel)).toBeInTheDocument()
+    expect(sessionStorage.getItem('coffee:pendingOrderId')).toBe('previous-order')
+    await user.type(screen.getByLabelText(CHECKOUT_COPY.addressLabel), 'Москва')
+    await user.type(
+      screen.getByLabelText(CHECKOUT_COPY.emailLabel),
+      'guest@example.com',
+    )
+    await user.type(screen.getByLabelText(CHECKOUT_COPY.phoneLabel), '123')
+    await user.click(screen.getByRole('button', { name: CHECKOUT_COPY.pay }))
+    expect(await screen.findByText(CHECKOUT_COPY.formErrorGeneric)).toBeInTheDocument()
+    expect(sessionStorage.getItem('coffee:pendingOrderId')).toBe('previous-order')
+    expect(
+      adapter.mock.calls.filter(
+        ([config]) => config.method === 'post' && config.url === '/api/orders/',
+      ),
+    ).toHaveLength(1)
+  })
+
+  it('can resume the earlier order even with items in a new cart', async () => {
+    writePaymentRecoveryOrderId('previous-order')
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.method === 'get' && config.url === '/api/cart/') {
+        return jsonResponse(config, 200, cartPayload)
+      }
+      if (config.method === 'get' && config.url === '/api/orders/previous-order/') {
+        return jsonResponse(config, 200, { id: 'previous-order', status: 'pending' })
+      }
+      throw new Error(`Unexpected ${config.method} ${config.url}`)
+    })
+    const { router } = renderCheckout()
+    await userEvent.click(
+      await screen.findByRole('link', { name: CHECKOUT_COPY.resumePayment }),
+    )
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.recoveryTitle }),
+    ).toBeInTheDocument()
+    expect(router.state.location.search).toContain('order_id=previous-order')
+    expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
   })
 })

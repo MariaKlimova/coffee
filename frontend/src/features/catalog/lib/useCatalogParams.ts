@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom'
 import { DEFAULT_ORDERING } from '../catalog.const'
 import { buildCatalogSearchParams, parseCatalogParams } from './catalogSearchParams'
 import type { CatalogFilterPatch, CatalogParams } from './catalogSearchParams.typings'
-import type { OpenProductAtOptions } from './useCatalogParams.typings'
 
 function commitParams(
   setSearchParams: ReturnType<typeof useSearchParams>[1],
@@ -14,7 +13,7 @@ function commitParams(
 }
 
 /**
- * Syncs catalog filters, page, and expanded product with the URL query string.
+ * Синхронизирует поиск, фильтры и страницу каталога с URL.
  */
 export function useCatalogParams() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -37,7 +36,6 @@ export function useCatalogParams() {
         ...params,
         ...patch,
         page: 1,
-        product: null,
       },
       { replace: true },
     )
@@ -49,72 +47,9 @@ export function useCatalogParams() {
       {
         ...params,
         page,
-        product: null,
       },
       { replace: true },
     )
-  }
-
-  function expandProduct(slug: string): void {
-    if (params.product === slug) {
-      collapseProduct()
-      return
-    }
-    commitParams(
-      setSearchParams,
-      {
-        ...params,
-        product: slug,
-      },
-      { replace: false },
-    )
-  }
-
-  function collapseProduct(): void {
-    commitParams(
-      setSearchParams,
-      {
-        ...params,
-        product: null,
-      },
-      { replace: false },
-    )
-  }
-
-  /** Drops `?product=` without a history entry (orphan deep-links, cleanup). */
-  function clearProduct(): void {
-    if (!params.product) {
-      return
-    }
-    commitParams(
-      setSearchParams,
-      {
-        ...params,
-        product: null,
-      },
-      { replace: true },
-    )
-  }
-
-  /**
-   * Opens a product on a known page in one URL write.
-   * Used when switching from the similar-products strip.
-   */
-  function openProductAt({ slug, page, resetFilters }: OpenProductAtOptions): void {
-    const next: CatalogParams = resetFilters
-      ? {
-          inStockOnly: false,
-          ordering: params.ordering,
-          page,
-          product: slug,
-        }
-      : {
-          ...params,
-          page,
-          product: slug,
-        }
-
-    commitParams(setSearchParams, next, { replace: false })
   }
 
   function resetFilters(): void {
@@ -125,7 +60,6 @@ export function useCatalogParams() {
         inStockOnly: false,
         ordering: DEFAULT_ORDERING,
         page: 1,
-        product: null,
       },
       { replace: true },
     )
@@ -136,10 +70,6 @@ export function useCatalogParams() {
     setSearch,
     setFilters,
     setPage,
-    expandProduct,
-    collapseProduct,
-    clearProduct,
-    openProductAt,
     resetFilters,
   }
 }

@@ -6,6 +6,8 @@ import {
   type TouchEvent,
 } from 'react'
 
+import { Link } from 'react-router-dom'
+
 import { cx } from '@shared/lib/cx'
 import { useCoarsePointer } from '@shared/lib/useCoarsePointer'
 
@@ -45,6 +47,9 @@ export function ImageCarousel({
   images,
   alt,
   size = 'card',
+  imageHref,
+  imageLinkState,
+  onImageOpen,
   className,
   ...rest
 }: ImageCarouselProps) {
@@ -56,6 +61,7 @@ export function ImageCarousel({
     setIndex(0)
   }
   const isTouch = useCoarsePointer()
+  const swiped = useRef(false)
   const touchStartX = useRef<number | null>(null)
   const count = images.length
   const hasMultiple = count > 1
@@ -88,6 +94,7 @@ export function ImageCarousel({
   }
 
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    swiped.current = false
     touchStartX.current = event.changedTouches[0]?.clientX ?? null
   }
 
@@ -102,12 +109,26 @@ export function ImageCarousel({
     if (Math.abs(delta) < SWIPE_THRESHOLD_PX) {
       return
     }
+    swiped.current = true
     if (delta > 0) {
       goPrev()
       return
     }
     goNext()
   }
+
+  const slide = currentSrc ? (
+    <img
+      className={styles['ImageCarousel-Slide']}
+      src={currentSrc}
+      alt={alt}
+      draggable={false}
+      loading="lazy"
+      decoding="async"
+    />
+  ) : (
+    <div className={styles['ImageCarousel-Placeholder']} aria-hidden />
+  )
 
   return (
     <div
@@ -127,17 +148,26 @@ export function ImageCarousel({
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      {currentSrc ? (
-        <img
-          className={styles['ImageCarousel-Slide']}
-          src={currentSrc}
-          alt={alt}
-          draggable={false}
-          loading="lazy"
-          decoding="async"
-        />
+      {imageHref ? (
+        <Link
+          to={imageHref}
+          state={imageLinkState}
+          tabIndex={-1}
+          aria-label={alt}
+          className={styles['ImageCarousel-Link']}
+          onClick={(event) => {
+            if (swiped.current) {
+              event.preventDefault()
+              swiped.current = false
+              return
+            }
+            onImageOpen?.()
+          }}
+        >
+          {slide}
+        </Link>
       ) : (
-        <div className={styles['ImageCarousel-Placeholder']} aria-hidden />
+        slide
       )}
 
       {hasMultiple ? (

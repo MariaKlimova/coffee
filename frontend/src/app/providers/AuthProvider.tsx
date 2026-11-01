@@ -43,9 +43,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     void queryClient.invalidateQueries({ queryKey: productKeys.all })
 
     if (status === 'guest') {
-      // Сбрасываем кэши, чтобы счётчики в шапке не «залипали» после выхода.
-      queryClient.removeQueries({ queryKey: favoriteKeys.all })
-      queryClient.removeQueries({ queryKey: cartKeys.all })
+      // Убираем данные прежней сессии, сохраняя подписки шапки и страниц.
+      // Удаление активного query оставляет его observers без новых результатов.
+      void queryClient.resetQueries({ queryKey: favoriteKeys.all })
+      void queryClient.resetQueries({ queryKey: cartKeys.all })
       return
     }
 
@@ -55,20 +56,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
+    // Старый гостевой ответ не должен перезаписать корзину после входа/merge.
+    void queryClient.cancelQueries({ queryKey: cartKeys.all })
     const cartToken = useCartStore.getState().cartToken
     if (!cartToken) {
       void queryClient.invalidateQueries({ queryKey: cartKeys.all })
       return
     }
 
+    const session = useAuthStore.getState()
+    const isCurrentSession = () => {
+      const current = useAuthStore.getState()
+      return (
+        current.status === 'authenticated' &&
+        current.refreshToken === session.refreshToken &&
+        current.user?.id === session.user?.id
+      )
+    }
+
     void (async () => {
       try {
         await mergeCart(cartToken)
-        useCartStore.getState().clearCartToken()
+        // Поздний merge не должен очищать токен новой гостевой корзины/сессии.
+        if (isCurrentSession() && useCartStore.getState().cartToken === cartToken) {
+          useCartStore.getState().clearCartToken()
+        }
       } catch {
         // Токен оставляем — merge можно повторить при следующей сессии.
       } finally {
-        void queryClient.invalidateQueries({ queryKey: cartKeys.all })
+        if (isCurrentSession()) {
+          void queryClient.invalidateQueries({ queryKey: cartKeys.all })
+        }
       }
     })()
   }, [status, queryClient])
