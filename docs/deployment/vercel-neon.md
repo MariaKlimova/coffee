@@ -63,7 +63,7 @@ application production mode.
 | Переменная                                      | Назначение                                                                                 |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `DJANGO_SETTINGS_MODULE=config.settings.vercel` | И discovery, и runtime используют отдельные строгие settings                               |
-| `COFFEE_ENVIRONMENT=preview` / `staging`        | Изолированный тестовый стенд без платёжных credentials                                     |
+| `COFFEE_ENVIRONMENT=preview` / `staging`        | Изолированный тестовый стенд; тестовая оплата только с явным staging opt-in                 |
 | `SECRET_KEY`                                    | Отдельный секрет среды, не ключ старого production                                         |
 | `DATABASE_URL`                                  | Pooled PostgreSQL URL **своей** Neon DB/branch; credentials только в secret env            |
 | `DATABASE_URL_UNPOOLED`                         | Direct URL той же destination для оператора миграций; web-код его не читает                |
@@ -72,13 +72,56 @@ application production mode.
 | `CORS_ALLOWED_ORIGINS`                          | Только явные HTTPS origins согласованного frontend preview                                 |
 | `CSRF_TRUSTED_ORIGINS`                          | Явные HTTPS origins для нужных admin/form сценариев; same-origin admin не требует wildcard |
 | `MEDIA_STORAGE=s3` и S3 env COFFEE-41           | Отдельный постоянный bucket/права среды, staticfiles остаётся локальным                    |
-| `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`       | Пустые в Preview/Staging; непустые значения приводят к отказу старта                       |
+| `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`       | По умолчанию пустые в Preview/Staging; staging opt-in допускает только тестовый магазин    |
+| `YOOKASSA_STAGING_TEST_ENABLED=False`          | `True` только в Production target нового staging backend; Preview не допускается          |
 
 Основной пример env ведётся в `backend/.env.example` задачей COFFEE-41. Не
 создавать второй пример с расходящимися ключами. Конфигурация Vercel отказывается
 работать с filesystem media и без фактического S3 backend COFFEE-41.
 В serverless-среде S3 endpoint допускается только по HTTPS; локальный HTTP MinIO
 из контракта COFFEE-41 остаётся доступен через dev settings.
+
+### Тестовая ЮKassa на staging (COFFEE-67)
+
+В **новом staging backend**, только в Vercel Production target, владелец задаёт
+`COFFEE_ENVIRONMENT=staging`, `YOOKASSA_STAGING_TEST_ENABLED=True`, цифровой
+`YOOKASSA_SHOP_ID` тестового магазина, его `YOOKASSA_SECRET_KEY` с префиксом
+`test_` и `YOOKASSA_RETURN_URL=https://<staging-frontend>/checkout/result`.
+Секретный ключ хранить как sensitive server environment variable; не добавлять
+в frontend, Git, screenshots или отчёты. Preview остаётся без ключей и без opt-in.
+Системные `VERCEL=1` и `VERCEL_ENV=production` устанавливает платформа.
+
+Return origin должен точно входить в `CORS_ALLOWED_ORIGINS`, путь —
+`/checkout/result`, без query/fragment. Приложение добавляет `order_id` само.
+Разрешён только `YOOKASSA_API_BASE=https://api.yookassa.ru/v3` и включённый
+`YOOKASSA_WEBHOOK_IP_CHECK=True`. Неполная конфигурация и live-ключи блокируют
+старт; пустые credentials вне opt-in дают 502 без запроса к провайдеру.
+При включённом test-only режиме каждый ответ создания и чтения платежа должен
+содержать булевый `test: true`, иначе payment/order не меняются.
+
+В существующем **тестовом** магазине настроить HTTP-уведомления
+`payment.succeeded` и `payment.canceled` на отдельный HTTPS URL
+`https://<staging-backend>/api/payments/webhook/`. Не менять уведомления реального
+магазина или старого backend. Статус заказа подтверждается повторным GET платежа
+у провайдера, а не redirect URL или присланным статусом webhook.
+
+Доверенная граница webhook: только strict Vercel settings при `VERCEL=1`
+используют `X-Vercel-Forwarded-For`, перезаписанный ingress платформы. Отсутствие,
+невалидный адрес или цепочка адресов отклоняются; fallback на `X-Forwarded-For`
+или `REMOTE_ADDR` в этом режиме отсутствует. Приложение не должно быть доступно
+напрямую в обход Vercel с таким режимом. На local/legacy deployments используется
+только `REMOTE_ADDR`, платформенные и произвольные forwarded headers игнорируются.
+IP остаётся в allowlist ЮKassa; проверка провайдера и идемпотентность сохраняются.
+
+Проверить настоящий sandbox flow на synthetic заказе: payment_url → тестовая
+карта → возврат → webhook и GET → paid, затем отказ/отмену и повтор. Поддельные
+headers и уведомления не должны менять заказ. При проблемах proxy не отключать
+IP check. Для выключения staging оплаты сначала убрать ключи и opt-in вместе,
+затем redeploy; реальные production/Render настройки не затрагивать.
+
+Источники: [тестирование ЮKassa](https://yookassa.ru/developers/payment-acceptance/testing-and-going-live/testing),
+[проверка webhook](https://yookassa.ru/developers/using-api/webhooks),
+[Vercel request headers](https://vercel.com/docs/headers/request-headers).
 
 Разделение ресурсов — обязательная часть настройки, не свойство имени переменной:
 отдельные DB/branches и роли, secrets, buckets и доступы для Preview и рабочего

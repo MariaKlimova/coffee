@@ -170,3 +170,7 @@ YOOKASSA_API_BASE = env(
 # Enforce documented YooKassa IP ranges on webhooks. Disable only for local
 # curl/ngrok debugging or pytest (set YOOKASSA_WEBHOOK_IP_CHECK=False).
 YOOKASSA_WEBHOOK_IP_CHECK = env("YOOKASSA_WEBHOOK_IP_CHECK")
+# Only strict Vercel settings can enable these boundaries. Local/legacy
+# deployments keep their direct-peer webhook verification and payment mode.
+YOOKASSA_TEST_ONLY = False
+YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY = False

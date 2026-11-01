@@ -32,6 +32,8 @@ def vercel_environment(monkeypatch):
         "MEDIA_STORAGE": "s3",
         "YOOKASSA_SHOP_ID": "",
         "YOOKASSA_SECRET_KEY": "",
+        "YOOKASSA_STAGING_TEST_ENABLED": "False",
+        "VERCEL": "1",
     }
     for name, value in values.items():
         monkeypatch.setenv(name, value)
@@ -189,6 +191,94 @@ def test_production_preserves_separately_configured_payment_credentials(
     config = load_vercel_settings()
     assert config.YOOKASSA_SHOP_ID == "synthetic-shop"
     assert config.YOOKASSA_SECRET_KEY == "synthetic-key"
+
+
+@pytest.fixture
+def staging_test_payments(vercel_environment, monkeypatch):
+    for name, value in {
+        "VERCEL_ENV": "production",
+        "YOOKASSA_STAGING_TEST_ENABLED": "True",
+        "YOOKASSA_SHOP_ID": "123456",
+        "YOOKASSA_SECRET_KEY": "test_synthetic-not-a-secret",
+    }.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.setattr(base, "YOOKASSA_API_BASE", "https://api.yookassa.ru/v3")
+    monkeypatch.setattr(
+        base,
+        "YOOKASSA_RETURN_URL",
+        "https://coffee-preview.example.test/checkout/result",
+    )
+    monkeypatch.setattr(base, "YOOKASSA_WEBHOOK_IP_CHECK", True)
+
+
+def test_staging_test_payments_require_explicit_opt_in(vercel_environment):
+    config = load_vercel_settings()
+    assert config.YOOKASSA_STAGING_TEST_ENABLED is False
+    assert config.YOOKASSA_TEST_ONLY is False
+
+
+def test_staging_test_payments_enable_strict_provider_and_proxy(staging_test_payments):
+    config = load_vercel_settings()
+    assert config.YOOKASSA_TEST_ONLY is True
+    assert config.YOOKASSA_WEBHOOK_IP_CHECK is True
+    assert config.YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY is True
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("COFFEE_ENVIRONMENT", "preview"),
+        ("COFFEE_ENVIRONMENT", "production"),
+        ("VERCEL_ENV", "preview"),
+        ("VERCEL_ENV", "development"),
+        ("VERCEL", ""),
+        ("YOOKASSA_SHOP_ID", ""),
+        ("YOOKASSA_SHOP_ID", "not-a-shop-id"),
+        ("YOOKASSA_SECRET_KEY", ""),
+        ("YOOKASSA_SECRET_KEY", "live_synthetic-not-a-secret"),
+        ("YOOKASSA_SECRET_KEY", "test_"),
+    ],
+)
+def test_staging_test_payments_reject_unsafe_environment_or_credentials(
+    staging_test_payments, monkeypatch, name, value
+):
+    monkeypatch.setenv(name, value)
+    with pytest.raises(ImproperlyConfigured):
+        load_vercel_settings()
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("YOOKASSA_API_BASE", "http://api.yookassa.ru/v3"),
+        ("YOOKASSA_API_BASE", "https://attacker.example.test/v3"),
+        ("YOOKASSA_WEBHOOK_IP_CHECK", False),
+        ("YOOKASSA_RETURN_URL", "http://coffee-preview.example.test/checkout/result"),
+        ("YOOKASSA_RETURN_URL", "https://attacker.example.test/checkout/result"),
+        ("YOOKASSA_RETURN_URL", "https://coffee-preview.example.test/checkout"),
+        (
+            "YOOKASSA_RETURN_URL",
+            "https://coffee-preview.example.test/checkout/result?order_id=wrong",
+        ),
+        (
+            "YOOKASSA_RETURN_URL",
+            "https://coffee-preview.example.test/checkout/result#fragment",
+        ),
+    ],
+)
+def test_staging_test_payments_reject_unsafe_provider_or_callback(
+    staging_test_payments, monkeypatch, name, value
+):
+    monkeypatch.setattr(base, name, value)
+    with pytest.raises(ImproperlyConfigured):
+        load_vercel_settings()
+
+
+def test_vercel_proxy_is_never_trusted_outside_platform(
+    vercel_environment, monkeypatch
+):
+    monkeypatch.delenv("VERCEL")
+    assert load_vercel_settings().YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY is False
 
 
 def test_static_and_security_build_never_connects_to_database(

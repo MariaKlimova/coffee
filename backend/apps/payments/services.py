@@ -72,12 +72,14 @@ class PaymentProviderUnavailable(APIException):
 
 def client_ip(request: HttpRequest) -> str | None:
     """
-    Direct peer address for webhook IP checks.
+    Use Vercel's overwritten client address only inside its trusted ingress.
 
-    Uses ``REMOTE_ADDR`` only — never trust client-controlled
-    ``X-Forwarded-For`` unless a reverse proxy strips/rewrites it to
-    ``REMOTE_ADDR`` (e.g. nginx ``real_ip``).
+    Strict Vercel settings enable this boundary from the platform environment;
+    other deployments use the direct peer. Missing, multiple, or malformed
+    addresses fail the subsequent IP check. Never fall back to arbitrary XFF.
     """
+    if settings.YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY:
+        return request.META.get("HTTP_X_VERCEL_FORWARDED_FOR")
     return request.META.get("REMOTE_ADDR")
 
 

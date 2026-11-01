@@ -99,5 +99,45 @@ if _storage_endpoint and urlsplit(_storage_endpoint).scheme != "https":
 
 YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", default="")  # noqa: F405
 YOOKASSA_SECRET_KEY = env("YOOKASSA_SECRET_KEY", default="")  # noqa: F405
-if COFFEE_ENVIRONMENT != "production" and (YOOKASSA_SHOP_ID or YOOKASSA_SECRET_KEY):
+YOOKASSA_STAGING_TEST_ENABLED = env.bool(  # noqa: F405
+    "YOOKASSA_STAGING_TEST_ENABLED", default=False
+)
+# This header is trusted only on Vercel's ingress, which overwrites it. Never
+# enable based on a request header or use arbitrary X-Forwarded-For chains.
+YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY = env("VERCEL", default="") == "1"  # noqa: F405
+YOOKASSA_TEST_ONLY = False
+if YOOKASSA_STAGING_TEST_ENABLED:
+    if (
+        COFFEE_ENVIRONMENT != "staging"
+        or env("VERCEL_ENV", default="") != "production"  # noqa: F405
+        or not YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY
+    ):
+        raise ImproperlyConfigured(
+            "Staging test payments require Vercel production target and staging mode"
+        )
+    if not re.fullmatch(r"[0-9]+", YOOKASSA_SHOP_ID) or not re.fullmatch(
+        r"test_[A-Za-z0-9_-]+", YOOKASSA_SECRET_KEY
+    ):
+        raise ImproperlyConfigured(
+            "Staging test payments require test shop credentials"
+        )
+    if YOOKASSA_API_BASE != "https://api.yookassa.ru/v3":  # noqa: F405
+        raise ImproperlyConfigured("Staging test payments require the YooKassa API")
+    _return = urlsplit(YOOKASSA_RETURN_URL)  # noqa: F405
+    if (
+        _return.scheme != "https"
+        or f"{_return.scheme}://{_return.netloc}" not in CORS_ALLOWED_ORIGINS
+        or _return.username
+        or _return.password
+        or _return.path != "/checkout/result"
+        or _return.query
+        or _return.fragment
+    ):
+        raise ImproperlyConfigured(
+            "Staging test payments require an allowed HTTPS checkout result URL"
+        )
+    if not YOOKASSA_WEBHOOK_IP_CHECK:  # noqa: F405
+        raise ImproperlyConfigured("Staging test payments require webhook IP checks")
+    YOOKASSA_TEST_ONLY = True
+elif COFFEE_ENVIRONMENT != "production" and (YOOKASSA_SHOP_ID or YOOKASSA_SECRET_KEY):
     raise ImproperlyConfigured("Payments must remain unconfigured in preview/staging")

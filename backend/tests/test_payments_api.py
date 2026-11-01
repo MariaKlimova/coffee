@@ -1,6 +1,7 @@
 """Payments API tests for COFFEE-36."""
 
 from decimal import Decimal
+from unittest.mock import MagicMock, Mock
 from uuid import UUID, uuid4
 
 import pytest
@@ -544,5 +545,119 @@ def test_webhook_provider_outage_returns_502(
     )
 
     assert response.status_code == status.HTTP_502_BAD_GATEWAY
+    order.refresh_from_db()
+    assert order.status == Order.Status.PENDING
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("trusted_proxy", "platform_ip", "expected"),
+    [
+        (True, "185.71.76.1", 200),
+        (True, "2a02:5180::1", 200),
+        (True, None, 403),
+        (True, "", 403),
+        (True, "203.0.113.10", 403),
+        (True, "185.71.76.1, 203.0.113.10", 403),
+        (True, "invalid", 403),
+        (False, "185.71.76.1", 403),
+    ],
+)
+def test_webhook_platform_ip_boundary(
+    api_client, user, monkeypatch, settings, trusted_proxy, platform_ip, expected
+):
+    settings.YOOKASSA_WEBHOOK_IP_CHECK = True
+    settings.YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY = trusted_proxy
+    order = _make_order(user=user)
+    Payment.objects.create(
+        order=order,
+        provider_payment_id=PROVIDER_ID,
+        status=Payment.Status.PENDING,
+        amount=order.total_amount,
+    )
+    calls = []
+
+    def get_payment(provider_id):
+        calls.append(provider_id)
+        # An allowed source still cannot mark an order paid using its payload.
+        return {"id": provider_id, "status": "pending", "test": True}
+
+    monkeypatch.setattr("apps.payments.yookassa.get_payment", get_payment)
+    headers = {
+        "REMOTE_ADDR": "203.0.113.10",
+        "HTTP_X_FORWARDED_FOR": "185.71.76.1",
+        "HTTP_X_REAL_IP": "185.71.76.1",
+    }
+    if platform_ip is not None:
+        headers["HTTP_X_VERCEL_FORWARDED_FOR"] = platform_ip
+    response = api_client.post(
+        reverse("payment-webhook"),
+        {"event": "payment.succeeded", "object": {"id": PROVIDER_ID}},
+        format="json",
+        **headers,
+    )
+    assert response.status_code == expected
+    assert calls == ([PROVIDER_ID] if expected == 200 else [])
+    order.refresh_from_db()
+    assert order.status == Order.Status.PENDING
+
+
+@pytest.mark.django_db
+def test_staging_rejects_live_provider_response_without_mutating_order(
+    api_client, user, monkeypatch, settings
+):
+    settings.YOOKASSA_SHOP_ID = "123456"
+    settings.YOOKASSA_SECRET_KEY = "test_synthetic-not-a-secret"
+    settings.YOOKASSA_TEST_ONLY = True
+    settings.YOOKASSA_WEBHOOK_IP_CHECK = True
+    settings.YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY = True
+    order = _make_order(user=user)
+    api_client.force_authenticate(user)
+    response = MagicMock()
+    response.__enter__.return_value.read.return_value = (
+        b'{"id":"synthetic-provider", "status":"succeeded", "test":false}'
+    )
+    monkeypatch.setattr("apps.payments.yookassa.urlopen", lambda *a, **kw: response)
+    created = api_client.post(
+        reverse("payment-create"), {"order_id": str(order.id)}, format="json"
+    )
+    assert created.status_code == 502
+    assert Payment.objects.filter(order=order).count() == 0
+    payment = Payment.objects.create(
+        order=order,
+        provider_payment_id="synthetic-provider",
+        status=Payment.Status.PENDING,
+        amount=order.total_amount,
+    )
+    webhook = api_client.post(
+        reverse("payment-webhook"),
+        {"event": "payment.succeeded", "object": {"id": "synthetic-provider"}},
+        format="json",
+        HTTP_X_VERCEL_FORWARDED_FOR="185.71.76.1",
+    )
+    assert webhook.status_code == 502
+    payment.refresh_from_db()
+    order.refresh_from_db()
+    assert payment.status == Payment.Status.PENDING
+    assert order.status == Order.Status.PENDING
+
+
+@pytest.mark.django_db
+def test_unconfigured_payment_returns_502_without_provider_or_payment_row(
+    api_client, user, monkeypatch, settings
+):
+    settings.YOOKASSA_SHOP_ID = ""
+    settings.YOOKASSA_SECRET_KEY = ""
+    order = _make_order(user=user)
+    api_client.force_authenticate(user)
+    transport = Mock()
+    monkeypatch.setattr("apps.payments.yookassa.urlopen", transport)
+    response = api_client.post(
+        reverse("payment-create"), {"order_id": str(order.id)}, format="json"
+    )
+    assert response.status_code == 502
+    assert response.json()["code"] == "provider_unavailable"
+    transport.assert_not_called()
+    assert not Payment.objects.filter(order=order).exists()
     order.refresh_from_db()
     assert order.status == Order.Status.PENDING
