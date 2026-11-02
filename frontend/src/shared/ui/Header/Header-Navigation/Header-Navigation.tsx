@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
-import { NAV_COPY } from '@shared/lib/copy'
+import { NAV_COPY, MANAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 
 import { HEADER_NAV_ITEMS } from '../Header.const'
@@ -10,7 +10,11 @@ import { useHeaderDisclosure } from '../lib'
 import type { HeaderNavigationProps } from './Header-Navigation.typings'
 import styles from './Header-Navigation.module.css'
 
-export function HeaderNavigation({ catalogSearch = '' }: HeaderNavigationProps) {
+export function HeaderNavigation({
+  catalogSearch = '',
+  shoppingEnabled = true,
+  managementEnabled = false,
+}: HeaderNavigationProps) {
   const { open, setOpen, rootRef, triggerRef, closeAndRestoreFocus } =
     useHeaderDisclosure()
   const navigationId = useId()
@@ -24,6 +28,11 @@ export function HeaderNavigation({ catalogSearch = '' }: HeaderNavigationProps) 
     },
     [],
   )
+
+  const items = HEADER_NAV_ITEMS.filter(
+    (item) => shoppingEnabled || item.to !== APP_ROUTES.orders,
+  )
+  if (managementEnabled) items.push({ to: APP_ROUTES.manage, label: MANAGE_COPY.entry })
 
   return (
     <div ref={rootRef} className={styles['Header-Navigation']}>
@@ -46,7 +55,7 @@ export function HeaderNavigation({ catalogSearch = '' }: HeaderNavigationProps) 
         aria-label={NAV_COPY.primaryNavigation}
       >
         <ul className={styles['Header-NavigationList']}>
-          {HEADER_NAV_ITEMS.map((item) => (
+          {items.map((item) => (
             <li key={item.to}>
               {item.to.includes('#') ? (
                 <a

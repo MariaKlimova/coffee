@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRef, useState, type FormEvent } from 'react'
 
+import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
 import { cartKeys } from '@entities/cart'
 import { createOrder, createPayment } from '@entities/order'
 
@@ -61,7 +62,11 @@ export function useCheckoutSubmit({
     values: CheckoutFormValues,
   ): Promise<void> {
     event.preventDefault()
-    if (submittingRef.current || createdOrderId) {
+    if (
+      !selectCanShop(useAuthStore.getState()) ||
+      submittingRef.current ||
+      createdOrderId
+    ) {
       return
     }
 
@@ -87,12 +92,17 @@ export function useCheckoutSubmit({
           : {}),
       }
 
+      const session = useAuthStore.getState()
+      const isCurrentCustomer = () =>
+        isSameCustomerSession(session, useAuthStore.getState())
       const order = await createOrder(payload)
+      if (!isCurrentCustomer()) return
       writePaymentRecoveryOrderId(order.id)
       setCreatedOrderId(order.id)
       onOrderCreated?.(order.id)
       void queryClient.invalidateQueries({ queryKey: cartKeys.all })
       const payment = await createPayment(order.id)
+      if (!isCurrentCustomer()) return
       redirectToPayment(payment.payment_url)
       clearPaymentRecoveryOrderId()
     } catch (error) {

@@ -37,7 +37,7 @@ export function ProductPage() {
   const rootRef = useRef<HTMLElement>(null)
   const detailQuery = useProduct(slug)
   const { toggleFavorite } = useToggleFavorite()
-  const { getQuantity, setQuantity, addToCart } = useCartLineActions()
+  const { canShop, getQuantity, setQuantity, addToCart } = useCartLineActions()
   const returnTo = safeCatalogReturn(searchParams.get('returnTo'))
   const catalogHref =
     returnTo ??
@@ -124,11 +124,14 @@ export function ProductPage() {
     ...toExpandedCardProps(product),
     presentation: 'page',
     cartQuantity: getQuantity(product.id),
-    onCartQuantityChange: setQuantity,
-    onToggleFavorite: (id: string) => toggleFavorite(id, product.is_favorite),
-    onAddToCart: addToCart,
+    onCartQuantityChange: canShop ? setQuantity : undefined,
+    onToggleFavorite: canShop
+      ? (id: string) => toggleFavorite(id, product.is_favorite)
+      : undefined,
+    onAddToCart: canShop ? addToCart : undefined,
     similarSlot: (
       <SimilarProducts
+        shoppingEnabled={canShop}
         slug={product.slug}
         productHref={(relatedSlug) => productPath(relatedSlug, returnTo)}
         linkState={location.state}

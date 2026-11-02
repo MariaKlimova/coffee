@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
-import { AUTH_COPY, ORDERS_PAGE_COPY } from '@shared/lib/copy'
+import { AUTH_COPY, ORDERS_PAGE_COPY, MANAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { Button } from '@shared/ui/Button'
 
@@ -10,7 +10,13 @@ import { useHeaderDisclosure } from '../lib'
 import type { HeaderAccountProps } from './Header-Account.typings'
 import styles from './Header-Account.module.css'
 
-export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps) {
+export function HeaderAccount({
+  user,
+  onLogout,
+  className,
+  shoppingEnabled = true,
+  managementEnabled = false,
+}: HeaderAccountProps) {
   const { open, setOpen, rootRef, triggerRef, closeAndRestoreFocus } =
     useHeaderDisclosure()
   const menuRef = useRef<HTMLUListElement>(null)
@@ -89,16 +95,30 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
               {AUTH_COPY.profileTitle}
             </Link>
           </li>
-          <li role="none">
-            <Link
-              to={APP_ROUTES.orders}
-              role="menuitem"
-              className={styles['Header-AccountItem']}
-              onClick={closeAndRestoreFocus}
-            >
-              {ORDERS_PAGE_COPY.title}
-            </Link>
-          </li>
+          {managementEnabled ? (
+            <li role="none">
+              <Link
+                to={APP_ROUTES.manage}
+                role="menuitem"
+                className={styles['Header-AccountItem']}
+                onClick={closeAndRestoreFocus}
+              >
+                {MANAGE_COPY.entry}
+              </Link>
+            </li>
+          ) : null}
+          {shoppingEnabled ? (
+            <li role="none">
+              <Link
+                to={APP_ROUTES.orders}
+                role="menuitem"
+                className={styles['Header-AccountItem']}
+                onClick={closeAndRestoreFocus}
+              >
+                {ORDERS_PAGE_COPY.title}
+              </Link>
+            </li>
+          ) : null}
           <li role="none">
             <button
               type="button"

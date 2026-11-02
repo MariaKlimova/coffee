@@ -1,6 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { productKeys } from '@entities/product'
+import {
+  isSameCustomerSession,
+  selectCanUseFavorites,
+  useAuthStore,
+} from '@entities/user'
 
 import { addFavorite, removeFavorite } from '../api/favoriteApi'
 import { applyFavoriteToCaches } from '../lib/applyFavoriteToCaches'
@@ -24,6 +29,8 @@ export function useFavoriteMutation() {
 
   return useMutation({
     mutationFn: async ({ productId, isFavorite }: FavoriteMutationVariables) => {
+      if (!selectCanUseFavorites(useAuthStore.getState()))
+        throw new Error('Покупательское действие недоступно')
       if (isFavorite) {
         await removeFavorite(productId)
         return
@@ -31,9 +38,12 @@ export function useFavoriteMutation() {
       await addFavorite(productId)
     },
     onMutate: async ({ productId, isFavorite }) => {
+      const session = useAuthStore.getState()
+      if (!selectCanUseFavorites(session)) return undefined
       await queryClient.cancelQueries({ queryKey: productKeys.all })
       await queryClient.cancelQueries({ queryKey: favoriteKeys.all })
 
+      if (!isSameCustomerSession(session, useAuthStore.getState())) return undefined
       const previousProducts = queryClient.getQueriesData({ queryKey: productKeys.all })
       const previousFavorites = queryClient.getQueriesData({
         queryKey: favoriteKeys.all,
@@ -41,10 +51,13 @@ export function useFavoriteMutation() {
 
       applyFavoriteToCaches(queryClient, productId, !isFavorite)
 
-      return { previousProducts, previousFavorites }
+      return { previousProducts, previousFavorites, session }
     },
     onError: (_error, _variables, context) => {
-      if (!context) {
+      if (
+        !context ||
+        !isSameCustomerSession(context.session, useAuthStore.getState())
+      ) {
         return
       }
       for (const [queryKey, data] of context.previousProducts) {
@@ -54,7 +67,9 @@ export function useFavoriteMutation() {
         queryClient.setQueryData(queryKey, data)
       }
     },
-    onSettled: () => {
+    onSettled: (_data, _error, _variables, context) => {
+      if (!context || !isSameCustomerSession(context.session, useAuthStore.getState()))
+        return
       void queryClient.invalidateQueries({ queryKey: productKeys.all })
       void queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
     },

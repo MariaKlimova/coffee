@@ -71,6 +71,31 @@ describe('CatalogPage', () => {
     vi.restoreAllMocks()
   })
 
+  it('shows owner products and links without buyer controls or buyer requests', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      user: { id: 'owner', email: 'owner@example.invalid', is_staff: true },
+    })
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, {
+        count: 1,
+        results: [listItem],
+        next: null,
+        previous: null,
+      }),
+    )
+    renderCatalog()
+    expect(
+      await screen.findByRole('heading', { name: listItem.name }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /В корзину|избранное/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      adapter.mock.calls.every(([config]) => config.url === '/api/products/'),
+    ).toBe(true)
+  })
+
   it('shows skeletons, then cards, and sends category in the list request', async () => {
     let resolveList!: (value: AxiosResponse) => void
     adapter.mockImplementation(

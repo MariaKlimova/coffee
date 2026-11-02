@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
+import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
+
 import { addItem, removeItem, updateItem } from '../api/cartApi'
 import {
   applyCartAddToCaches,
@@ -44,63 +46,99 @@ export function useCartMutations() {
   const queryClient = useQueryClient()
 
   const addMutation = useMutation({
-    mutationFn: ({ productId, quantity }: CartAddVariables) =>
-      addItem(productId, quantity),
+    mutationFn: ({ productId, quantity }: CartAddVariables) => {
+      if (!selectCanShop(useAuthStore.getState()))
+        throw new Error('Покупательское действие недоступно')
+      return addItem(productId, quantity)
+    },
     onMutate: async ({ productId, quantity }) => {
+      const session = useAuthStore.getState()
+      if (!selectCanShop(session)) return undefined
       await queryClient.cancelQueries({ queryKey: cartKeys.all })
+      if (!isSameCustomerSession(session, useAuthStore.getState())) return undefined
       const previousCart = queryClient.getQueryData(cartKeys.detail())
       applyCartAddToCaches(queryClient, productId, quantity)
-      return { previousCart }
+      return { previousCart, session }
     },
-    onSuccess: (cartItem) => {
+    onSuccess: (cartItem, _variables, context) => {
+      if (!context || !isSameCustomerSession(context.session, useAuthStore.getState()))
+        return
       applyCartItemUpsertToCaches(queryClient, cartItem)
     },
     onError: (_error, _variables, context) => {
-      if (!context) {
+      if (
+        !context ||
+        !isSameCustomerSession(context.session, useAuthStore.getState())
+      ) {
         return
       }
       queryClient.setQueryData(cartKeys.detail(), context.previousCart)
     },
-    onSettled: () => {
+    onSettled: (_data, _error, _variables, context) => {
+      if (!context || !isSameCustomerSession(context.session, useAuthStore.getState()))
+        return
       void queryClient.invalidateQueries({ queryKey: cartKeys.all })
     },
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ itemId, quantity }: CartUpdateVariables) =>
-      updateItem(itemId, quantity),
+    mutationFn: ({ itemId, quantity }: CartUpdateVariables) => {
+      if (!selectCanShop(useAuthStore.getState()))
+        throw new Error('Покупательское действие недоступно')
+      return updateItem(itemId, quantity)
+    },
     onMutate: async ({ itemId, quantity }) => {
+      const session = useAuthStore.getState()
+      if (!selectCanShop(session)) return undefined
       await queryClient.cancelQueries({ queryKey: cartKeys.all })
+      if (!isSameCustomerSession(session, useAuthStore.getState())) return undefined
       const previousCart = queryClient.getQueryData(cartKeys.detail())
       applyCartUpdateToCaches(queryClient, itemId, quantity)
-      return { previousCart }
+      return { previousCart, session }
     },
     onError: (_error, _variables, context) => {
-      if (!context) {
+      if (
+        !context ||
+        !isSameCustomerSession(context.session, useAuthStore.getState())
+      ) {
         return
       }
       queryClient.setQueryData(cartKeys.detail(), context.previousCart)
     },
-    onSettled: () => {
+    onSettled: (_data, _error, _variables, context) => {
+      if (!context || !isSameCustomerSession(context.session, useAuthStore.getState()))
+        return
       void queryClient.invalidateQueries({ queryKey: cartKeys.all })
     },
   })
 
   const removeMutation = useMutation({
-    mutationFn: ({ itemId }: CartRemoveVariables) => removeItem(itemId),
+    mutationFn: ({ itemId }: CartRemoveVariables) => {
+      if (!selectCanShop(useAuthStore.getState()))
+        throw new Error('Покупательское действие недоступно')
+      return removeItem(itemId)
+    },
     onMutate: async ({ itemId }) => {
+      const session = useAuthStore.getState()
+      if (!selectCanShop(session)) return undefined
       await queryClient.cancelQueries({ queryKey: cartKeys.all })
+      if (!isSameCustomerSession(session, useAuthStore.getState())) return undefined
       const previousCart = queryClient.getQueryData(cartKeys.detail())
       applyCartRemoveToCaches(queryClient, itemId)
-      return { previousCart }
+      return { previousCart, session }
     },
     onError: (_error, _variables, context) => {
-      if (!context) {
+      if (
+        !context ||
+        !isSameCustomerSession(context.session, useAuthStore.getState())
+      ) {
         return
       }
       queryClient.setQueryData(cartKeys.detail(), context.previousCart)
     },
-    onSettled: () => {
+    onSettled: (_data, _error, _variables, context) => {
+      if (!context || !isSameCustomerSession(context.session, useAuthStore.getState()))
+        return
       void queryClient.invalidateQueries({ queryKey: cartKeys.all })
     },
   })

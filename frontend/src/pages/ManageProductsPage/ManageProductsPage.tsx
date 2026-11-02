@@ -7,8 +7,8 @@ export function ManageProductsPage() {
     <ManagePlaceholder
       title={MANAGE_COPY.productsTitle}
       description={MANAGE_COPY.productsDescription}
-      to={APP_ROUTES.manageProductNew}
-      linkLabel={MANAGE_COPY.newProduct}
+      to={APP_ROUTES.coffee}
+      linkLabel={MANAGE_COPY.storefront}
     />
   )
 }

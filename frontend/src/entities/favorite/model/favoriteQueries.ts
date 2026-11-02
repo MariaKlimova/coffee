@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 
-import { useAuthStore } from '@entities/user'
+import { selectCanUseFavorites, useAuthStore } from '@entities/user'
 
 import type { FavoriteListParams } from '../api/favoriteApi.typings'
 import {
@@ -13,11 +13,11 @@ import {
  * Disabled for guests — returns undefined / no request.
  */
 export function useFavoritesCount() {
-  const status = useAuthStore((state) => state.status)
+  const canUseFavorites = useAuthStore(selectCanUseFavorites)
 
   return useQuery({
     ...favoritesCountQueryOptions(),
-    enabled: status === 'authenticated',
+    enabled: canUseFavorites,
     staleTime: 60_000,
   })
 }
@@ -27,11 +27,11 @@ export function useFavoritesCount() {
  * Keeps previous page data while the next page loads.
  */
 export function useFavorites(params: FavoriteListParams = {}) {
-  const status = useAuthStore((state) => state.status)
+  const canUseFavorites = useAuthStore(selectCanUseFavorites)
 
   return useQuery({
     ...favoritesQueryOptions(params),
-    enabled: status === 'authenticated',
+    enabled: canUseFavorites,
     placeholderData: keepPreviousData,
   })
 }

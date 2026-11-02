@@ -6,6 +6,49 @@ import { describe, expect, it, vi } from 'vitest'
 import { Header } from '@shared/ui/Header'
 
 describe('Header', () => {
+  it('keeps owner entry visible and removes buyer controls in navigation and account', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <MemoryRouter>
+        <Header user={{ name: 'Владелец' }} shoppingEnabled={false} managementEnabled />
+      </MemoryRouter>,
+    )
+    expect(
+      screen
+        .getAllByRole('link', { name: 'Управление' })
+        .every((link) => link.getAttribute('href') === '/manage'),
+    ).toBe(true)
+    expect(screen.getAllByRole('link', { name: 'Управление' })).toHaveLength(2)
+    expect(
+      screen.queryByRole('link', { name: /Корзина|Избранное|Заказы/ }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('searchbox')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Владелец' }))
+    expect(screen.getByRole('menuitem', { name: 'Управление' })).toHaveAttribute(
+      'href',
+      '/manage',
+    )
+    expect(screen.getByRole('menuitem', { name: 'Профиль' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Выйти' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('menuitem', { name: 'Мои заказы' }),
+    ).not.toBeInTheDocument()
+    rerender(
+      <MemoryRouter>
+        <Header
+          user={{ name: 'Покупатель' }}
+          shoppingEnabled
+          managementEnabled={false}
+        />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByRole('link', { name: 'Управление' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Корзина: 0' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('menuitem', { name: 'Управление' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows login for a guest', () => {
     render(
       <MemoryRouter>
