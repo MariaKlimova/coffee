@@ -291,7 +291,7 @@ describe('actor-bound mutation execution with real TanStack Query', () => {
     },
   )
 
-  it('allows same-session 401 → refresh → retry including rotated refresh credentials', async () => {
+  it('allows same-session 401 → refresh → retry with synthetic refresh rotation (the current API rotates access only)', async () => {
     const generation = useAuthStore.getState().sessionGeneration
     const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
       if (config.headers.Authorization !== 'Bearer fresh-access')
