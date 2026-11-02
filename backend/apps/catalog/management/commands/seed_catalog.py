@@ -141,7 +141,6 @@ COFFEE_PRODUCTS: list[dict] = [
         "short_description": "Чистая чашка, цитрус",
         "description": "Мытый процесс, отличная ясность вкуса.",
         "price": Decimal("910.00"),
-        "in_stock": False,
         "attributes": {
             "country": "Коста-Рика",
             "intensity": 6,
@@ -260,7 +259,6 @@ MACHINE_PRODUCTS: list[dict] = [
         "short_description": "Капсульная для ежедневного кофе",
         "description": "Простая панель и тихая работа.",
         "price": Decimal("7490.00"),
-        "in_stock": False,
         "attributes": {
             "dimensions": "14×35×24 см",
             "pressure_bar": 19,
@@ -338,7 +336,9 @@ class Command(BaseCommand):
                     "description": item.get("description", ""),
                     "price": item["price"],
                     "old_price": item.get("old_price"),
-                    "in_stock": item.get("in_stock", True),
+                    # Owner must enter physical counts explicitly. Repeated
+                    # seeds never update existing products or their stock.
+                    "stock_quantity": 0,
                     "attributes": item.get("attributes", {}),
                 },
             )

@@ -1,5 +1,6 @@
 """Payments API tests for COFFEE-36."""
 
+from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, Mock
 from uuid import UUID, uuid4
@@ -8,6 +9,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test.utils import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -53,6 +55,8 @@ def _make_order(
         delivery_address="Москва",
         status=status,
         total_amount=Decimal(total),
+        reservation_state=Order.ReservationState.ACTIVE,
+        reservation_expires_at=timezone.now() + timedelta(minutes=30),
     )
 
 

@@ -163,8 +163,9 @@ def test_cannot_add_unavailable_product(
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     body = response.json()
-    assert body["code"] == "validation_error"
-    assert "product_id" in body["errors"]
+    assert body["code"] == "insufficient_stock"
+    assert body["product_id"] == str(product.pk)
+    assert body["available_quantity"] == 0
     assert CartItem.objects.count() == 0
 
 
@@ -303,7 +304,7 @@ def test_stale_cart_token_creates_new_guest_cart(
 
 
 @pytest.mark.django_db
-def test_merge_skips_out_of_stock_guest_items(
+def test_merge_preserves_both_carts_on_unavailable_guest_items(
     api_client: APIClient,
     user: User,
     products: dict,
@@ -326,12 +327,8 @@ def test_merge_skips_out_of_stock_guest_items(
         {"cart_token": token},
         format="json",
     )
-    assert merged.status_code == status.HTTP_200_OK
-    body = merged.json()
-    assert body["items_count"] == 1
-    assert body["items"][0]["product"]["id"] == str(cheap.id)
-    assert not CartItem.objects.filter(
-        cart__user=user,
-        product=unavailable,
-    ).exists()
-    assert not Cart.objects.filter(cart_token=token).exists()
+    assert merged.status_code == status.HTTP_400_BAD_REQUEST
+    assert merged.json()["code"] == "insufficient_stock"
+    assert Cart.objects.filter(cart_token=token).exists()
+    assert CartItem.objects.filter(cart=guest).count() == 2
+    assert not CartItem.objects.filter(cart__user=user).exists()

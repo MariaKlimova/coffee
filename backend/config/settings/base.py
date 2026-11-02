@@ -52,6 +52,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.orders.middleware.StockReservationExpiryMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -174,3 +175,9 @@ YOOKASSA_WEBHOOK_IP_CHECK = env("YOOKASSA_WEBHOOK_IP_CHECK")
 # deployments keep their direct-peer webhook verification and payment mode.
 YOOKASSA_TEST_ONLY = False
 YOOKASSA_WEBHOOK_TRUST_VERCEL_PROXY = False
+
+
+# One reservation per pending checkout; traffic-driven cleanup plus management command.
+STOCK_RESERVATION_TTL_SECONDS = env.int("STOCK_RESERVATION_TTL_SECONDS", default=1800)
+if STOCK_RESERVATION_TTL_SECONDS < 1:
+    raise ValueError("STOCK_RESERVATION_TTL_SECONDS must be positive")

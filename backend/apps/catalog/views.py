@@ -2,7 +2,7 @@
 
 from decimal import Decimal, InvalidOperation
 
-from django.db.models import Prefetch, QuerySet
+from django.db.models import F, Prefetch, QuerySet
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -51,8 +51,12 @@ def _parse_decimal(raw: str, *, field: str) -> Decimal:
 
 def _base_product_queryset() -> QuerySet[Product]:
     images_qs = ProductImage.objects.order_by("order", "id")
-    return Product.objects.select_related("category").prefetch_related(
-        Prefetch("images", queryset=images_qs),
+    return (
+        Product.objects.filter(is_published=True)
+        .select_related("category")
+        .prefetch_related(
+            Prefetch("images", queryset=images_qs),
+        )
     )
 
 
@@ -202,7 +206,11 @@ class ProductViewSet(
 
         in_stock_raw = params.get("in_stock")
         if in_stock_raw is not None and in_stock_raw != "":
-            qs = qs.filter(in_stock=_parse_bool(in_stock_raw, field="in_stock"))
+            available = _parse_bool(in_stock_raw, field="in_stock")
+            if available:
+                qs = qs.filter(stock_quantity__gt=F("reserved_quantity"))
+            else:
+                qs = qs.filter(stock_quantity=F("reserved_quantity"))
 
         price_min_raw = params.get("price_min")
         if price_min_raw is not None and price_min_raw != "":

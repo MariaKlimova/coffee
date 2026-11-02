@@ -424,7 +424,9 @@ paths:
       security: []
       description: |
         Adds a product or increases quantity of an existing line.
-        Out-of-stock products (`in_stock: false`) are rejected with 400.
+        Final quantity must not exceed available_quantity. Unpublished or unavailable
+        products are rejected with 400/code insufficient_stock, including numeric
+        available_quantity, requested_quantity and product_id. Cart does not reserve stock.
       parameters:
         - $ref: "#/components/parameters/CartToken"
       requestBody:
@@ -831,6 +833,19 @@ components:
               type: string
           description: Optional field-level validation errors
 
+        product_id:
+          type: string
+          format: uuid
+          description: Present for code insufficient_stock
+        available_quantity:
+          type: integer
+          minimum: 0
+          description: Maximum allowed final quantity; present for insufficient_stock
+        requested_quantity:
+          type: integer
+          minimum: 1
+          description: Rejected final quantity; present for insufficient_stock
+
     Money:
       type: string
       description: Decimal amount in RUB as string
@@ -937,6 +952,7 @@ components:
           price,
           category,
           in_stock,
+          available_quantity,
           is_favorite,
         ]
       properties:
@@ -963,6 +979,13 @@ components:
           enum: [coffee, machines]
         in_stock:
           type: boolean
+          readOnly: true
+          description: True iff available_quantity > 0; only published products appear in catalog
+        available_quantity:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Physical stock minus active reservations; cart does not reserve
         image_url:
           type: string
           format: uri
@@ -1110,6 +1133,9 @@ components:
           minimum: 1
 
     CartMerge:
+      description: >
+        Atomically sums overlapping quantities against current available stock.
+        On insufficient_stock both carts remain intact; no lines are silently skipped.
       type: object
       required: [cart_token]
       properties:
@@ -1200,14 +1226,29 @@ components:
 
     OrderListItem:
       type: object
-      required: [id, status, total, created_at]
+      required: [id, status, total, created_at, reservation_state, reservation_expires_at, stock_review_reason]
       properties:
         id:
           type: string
           format: uuid
         status:
           type: string
-          enum: [pending, paid, processing, shipped, delivered, cancelled]
+          enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
+          description: payment_review retains a confirmed payment requiring manual fulfilment review; no automatic refund
+        reservation_state:
+          type: string
+          readOnly: true
+          enum: [none, active, consumed, released]
+          description: none denotes legacy orders without counted stock; new pending orders are active
+        reservation_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+        stock_review_reason:
+          type: string
+          readOnly: true
+          description: Empty normally; payment_after_reservation_release or legacy_order_without_counted_stock
         total:
           $ref: "#/components/schemas/Money"
         created_at:

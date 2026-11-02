@@ -6,6 +6,7 @@ category and a fixed set of keys in attributes (see attributes.py).
 
 import uuid
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -72,7 +73,10 @@ class Product(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Previous price for discount display; leave empty if none.",
     )
-    in_stock = models.BooleanField(default=True)
+    # Never infer a count from the former boolean availability flag.
+    stock_quantity = models.PositiveIntegerField(default=0, editable=False)
+    reserved_quantity = models.PositiveIntegerField(default=0, editable=False)
+    is_published = models.BooleanField(default=True)
     attributes = models.JSONField(
         default=dict,
         blank=True,
@@ -93,8 +97,22 @@ class Product(models.Model):
         verbose_name_plural = "products"
         ordering = ["-created_at"]
         indexes = [
-            models.Index(fields=["category", "in_stock"]),
+            models.Index(fields=["category", "is_published"]),
         ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(stock_quantity__gte=models.F("reserved_quantity")),
+                name="catalog_stock_covers_reservations",
+            ),
+        ]
+
+    @property
+    def available_quantity(self) -> int:
+        return self.stock_quantity - self.reserved_quantity
+
+    @property
+    def in_stock(self) -> bool:
+        return self.available_quantity > 0
 
     def __str__(self) -> str:
         return self.name
@@ -124,8 +142,22 @@ class Product(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        # Model.objects.create() skips ModelForm, so enforce attributes here.
-        self.full_clean()
+        # Catalog edits must not overwrite counters loaded before a concurrent
+        # checkout. Only inventory services update counters, via locked UPDATE.
+        counters = {"stock_quantity", "reserved_quantity"}
+        if not self._state.adding:
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None and counters.intersection(update_fields):
+                raise ValidationError("Use the inventory adjustment service.")
+            if update_fields is None:
+                kwargs["update_fields"] = [
+                    field.name
+                    for field in self._meta.concrete_fields
+                    if not field.primary_key and field.name not in counters
+                ]
+            self.full_clean(exclude=counters)
+        else:
+            self.full_clean()
         super().save(*args, **kwargs)
 
 
@@ -174,3 +206,17 @@ class ProductImage(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class StockAdjustment(models.Model):
+    """Append-only staff adjustment audit; stock changes go through one service."""
+
+    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    before_quantity = models.PositiveIntegerField()
+    after_quantity = models.PositiveIntegerField()
+    reason = models.CharField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]

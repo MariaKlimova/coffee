@@ -24,6 +24,24 @@ class Order(models.Model):
         SHIPPED = "shipped", "Shipped"
         DELIVERED = "delivered", "Delivered"
         CANCELLED = "cancelled", "Cancelled"
+        PAYMENT_REVIEW = "payment_review", "Paid; manual stock review required"
+
+    class ReservationState(models.TextChoices):
+        NONE = "none", "Legacy: no counted reservation"
+        ACTIVE = "active", "Active"
+        CONSUMED = "consumed", "Consumed"
+        RELEASED = "released", "Released"
+
+    reservation_state = models.CharField(
+        max_length=12,
+        choices=ReservationState.choices,
+        default=ReservationState.NONE,
+        editable=False,
+    )
+    reservation_expires_at = models.DateTimeField(null=True, blank=True, editable=False)
+    stock_review_reason = models.CharField(
+        max_length=100, blank=True, default="", editable=False
+    )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -49,6 +67,7 @@ class Order(models.Model):
         verbose_name = "order"
         verbose_name_plural = "orders"
         ordering = ["-created_at"]
+        indexes = [models.Index(fields=["reservation_state", "reservation_expires_at"])]
 
     def __str__(self) -> str:
         return f"Order({self.id}, {self.status})"
@@ -88,3 +107,23 @@ class OrderItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.product_name} × {self.quantity}"
+
+
+class StockReservationLine(models.Model):
+    """Immutable counted allocation; protects inventory products from deletion."""
+
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="stock_lines"
+    )
+    product = models.ForeignKey("catalog.Product", on_delete=models.PROTECT)
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "product"], name="orders_one_stock_line_per_product"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(quantity__gte=1), name="orders_stock_line_positive"
+            ),
+        ]

@@ -32,6 +32,7 @@ def catalog_data(db) -> dict:
         category=coffee,
         short_description="Бюджетный вариант",
         price=Decimal("500.00"),
+        stock_quantity=100,
     )
     pricey = Product.objects.create(
         name="Дорогой кофе",
@@ -39,6 +40,7 @@ def catalog_data(db) -> dict:
         category=coffee,
         short_description="Премиум зерно",
         price=Decimal("1500.00"),
+        stock_quantity=100,
         old_price=Decimal("1800.00"),
         attributes={"country": "Эфиопия", "intensity": 8, "roast": 2},
     )
@@ -48,6 +50,7 @@ def catalog_data(db) -> dict:
         category=machines,
         short_description="15 бар для дома",
         price=Decimal("20000.00"),
+        stock_quantity=100,
         attributes={"pressure_bar": 15, "power_w": 1400, "dimensions": "30×30×40"},
     )
     out_of_stock = Product.objects.create(
@@ -56,7 +59,7 @@ def catalog_data(db) -> dict:
         category=coffee,
         short_description="Временно закончился",
         price=Decimal("640.00"),
-        in_stock=False,
+        stock_quantity=0,
     )
     ProductImage.objects.create(
         product=cheap,
@@ -241,6 +244,7 @@ def test_related_products_respects_limit(
             category=coffee,
             short_description="Сосед по категории",
             price=Decimal("800.00") + index,
+            stock_quantity=100,
         )
         ProductImage.objects.create(
             product=product,
@@ -286,6 +290,7 @@ def test_product_list_has_no_n_plus_one(
             category=coffee,
             short_description="Ещё один товар",
             price=Decimal("700.00") + index,
+            stock_quantity=100,
         )
         ProductImage.objects.create(
             product=product,
@@ -306,6 +311,7 @@ def test_product_list_has_no_n_plus_one(
             category=coffee,
             short_description="Ещё один товар",
             price=Decimal("700.00") + index,
+            stock_quantity=100,
         )
         ProductImage.objects.create(
             product=product,

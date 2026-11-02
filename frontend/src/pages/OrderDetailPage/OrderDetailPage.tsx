@@ -23,7 +23,7 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 function canPayOrder(status: string): boolean {
-  return status === 'pending' || status === 'cancelled'
+  return status === 'pending'
 }
 
 /**

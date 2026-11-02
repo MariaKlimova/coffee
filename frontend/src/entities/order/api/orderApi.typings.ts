@@ -14,7 +14,13 @@ export interface OrderCreate {
  * Статус заказа (`Order.status` в OpenAPI).
  */
 export type OrderStatus =
-  'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  | 'pending'
+  | 'paid'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'payment_review'
 
 /**
  * Позиция заказа со снимком цены (`OrderItem` в OpenAPI).
@@ -40,6 +46,12 @@ export interface OrderListItem {
   id: string
   /** Статус заказа. */
   status: OrderStatus
+  /** Состояние количественного резерва; может отсутствовать у старого API. */
+  reservation_state?: 'none' | 'active' | 'consumed' | 'released'
+  /** Срок резерва (ISO) или null у старых заказов. */
+  reservation_expires_at?: string | null
+  /** Причина ручной проверки оплаченного заказа. */
+  stock_review_reason?: string
   /** Итого — decimal-строка в рублях. */
   total: string
   /** Время создания (ISO). */

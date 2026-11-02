@@ -66,6 +66,8 @@ export interface ProductListItem {
   category: ProductCategorySlug
   /** Whether the product can be ordered. */
   in_stock: boolean
+  /** Доступно к заказу: склад минус резерв; старый API может не присылать. */
+  available_quantity?: number
   /** Main image URL, or null when missing. */
   image_url: string | null
   /** Whether the authenticated user favorited this product. */

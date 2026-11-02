@@ -78,7 +78,8 @@ def test_coffee_and_machines_share_product_table(
     assert coffee_product.attributes["country"] == "Эфиопия"
     assert coffee_product.attributes["roast"] == 2
     assert machine_product.attributes["power_w"] == 1450
-    assert coffee_product.in_stock is True
+    assert coffee_product.in_stock is False
+    assert coffee_product.stock_quantity == 0
 
 
 @pytest.mark.django_db

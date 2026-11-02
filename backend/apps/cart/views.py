@@ -30,6 +30,9 @@ ErrorSerializer = inline_serializer(
     fields={
         "detail": serializers.CharField(),
         "code": serializers.CharField(),
+        "product_id": serializers.UUIDField(required=False),
+        "available_quantity": serializers.IntegerField(min_value=0, required=False),
+        "requested_quantity": serializers.IntegerField(min_value=1, required=False),
         "errors": serializers.DictField(
             child=serializers.ListField(child=serializers.CharField()),
             required=False,

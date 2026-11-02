@@ -8,11 +8,12 @@ from decimal import Decimal
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import IntegrityError, transaction
 from django.db.models import Prefetch
-from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 
 from apps.cart.models import Cart, CartItem
 from apps.catalog.models import Product, ProductImage
+from apps.catalog.services import lock_products, validate_available
 from apps.favorites.query import annotate_is_favorite
 
 CART_TOKEN_HEADER = "X-Cart-Token"
@@ -133,42 +134,20 @@ def cart_total(items) -> Decimal:
     return total
 
 
+@transaction.atomic
 def add_item(*, cart: Cart, product_id, quantity: int) -> CartItem:
-    """
-    Add a product to the cart or increase quantity of an existing line.
-
-    Raises ValidationError if the product is out of stock.
-    Raises NotFound if the product does not exist.
-    """
-    try:
-        product = Product.objects.get(pk=product_id)
-    except Product.DoesNotExist as exc:
-        raise NotFound(
-            detail="Product not found.",
-            code="not_found",
-        ) from exc
-
-    if not product.in_stock:
-        raise ValidationError(
-            {
-                "product_id": [
-                    "This product is currently unavailable.",
-                ],
-            },
-        )
-
-    try:
-        item, created = CartItem.objects.get_or_create(
-            cart=cart,
-            product=product,
-            defaults={"quantity": quantity},
-        )
-    except IntegrityError:
-        item = CartItem.objects.get(cart=cart, product=product)
-        created = False
-
-    if not created:
-        item.quantity += quantity
+    """Check final quantity under cart/product locks; carts never reserve."""
+    Cart.objects.select_for_update().get(pk=cart.pk)
+    product = next(iter(lock_products([product_id]).values()), None)
+    if product is None:
+        raise NotFound(detail="Product not found.", code="not_found")
+    item = CartItem.objects.filter(cart=cart, product=product).first()
+    final_quantity = quantity + (item.quantity if item else 0)
+    validate_available(product, final_quantity)
+    if item is None:
+        item = CartItem.objects.create(cart=cart, product=product, quantity=quantity)
+    else:
+        item.quantity = final_quantity
         item.save(update_fields=["quantity"])
     touch_cart(cart)
     return item
@@ -188,21 +167,23 @@ def get_cart_item_for_cart(*, cart: Cart, item_id) -> CartItem:
         ) from exc
 
 
+@transaction.atomic
 def update_item_quantity(*, cart: Cart, item_id, quantity: int) -> CartItem:
-    """Set quantity for a cart item (must be ≥ 1)."""
-    if quantity < 1:
-        raise ValidationError(
-            {"quantity": ["Quantity must be at least 1."]},
-        )
+    """Set the quantity and reject unavailable counts without truncation."""
+    Cart.objects.select_for_update().get(pk=cart.pk)
     item = get_cart_item_for_cart(cart=cart, item_id=item_id)
+    product = lock_products([item.product_id])[item.product_id]
+    validate_available(product, quantity)
     item.quantity = quantity
     item.save(update_fields=["quantity"])
     touch_cart(cart)
     return item
 
 
+@transaction.atomic
 def delete_item(*, cart: Cart, item_id) -> None:
     """Remove a cart item belonging to ``cart``."""
+    Cart.objects.select_for_update().get(pk=cart.pk)
     item = get_cart_item_for_cart(cart=cart, item_id=item_id)
     item.delete()
     touch_cart(cart)
@@ -210,50 +191,39 @@ def delete_item(*, cart: Cart, item_id) -> None:
 
 @transaction.atomic
 def merge_guest_cart(*, user: AbstractBaseUser, cart_token: uuid.UUID) -> Cart:
-    """
-    Move guest cart lines into the user's cart, summing quantities on overlap.
-
-    Out-of-stock guest lines are skipped (not transferred). Guest cart is
-    deleted after merge. Missing guest cart is a no-op that still returns the
-    user cart.
-    """
+    """Validate final counts atomically; failure preserves both carts."""
     user_cart = get_or_create_user_cart(user)
-    guest = (
-        Cart.objects.select_for_update()
-        .filter(cart_token=cart_token, user__isnull=True)
-        .first()
-    )
+    guest = Cart.objects.filter(cart_token=cart_token, user__isnull=True).first()
     if guest is None:
         return user_cart
-
-    if guest.id == user_cart.id:
-        return user_cart
-
-    guest_items = list(
-        CartItem.objects.select_for_update()
-        .filter(cart=guest)
-        .select_related("product"),
+    list(
+        Cart.objects.select_for_update()
+        .filter(pk__in=[user_cart.pk, guest.pk])
+        .order_by("pk")
     )
-    for guest_item in guest_items:
-        if not guest_item.product.in_stock:
-            continue
-        try:
-            user_item, created = CartItem.objects.select_for_update().get_or_create(
-                cart=user_cart,
-                product_id=guest_item.product_id,
-                defaults={"quantity": guest_item.quantity},
+    # The guest may have been merged while waiting for its lock.
+    if not Cart.objects.filter(pk=guest.pk).exists():
+        return user_cart
+    guest_items = list(CartItem.objects.filter(cart=guest))
+    user_items = {
+        item.product_id: item for item in CartItem.objects.filter(cart=user_cart)
+    }
+    products = lock_products([item.product_id for item in guest_items])
+    for item in guest_items:
+        previous = user_items.get(item.product_id)
+        validate_available(
+            products[item.product_id],
+            item.quantity + (previous.quantity if previous else 0),
+        )
+    for item in guest_items:
+        previous = user_items.get(item.product_id)
+        if previous:
+            previous.quantity += item.quantity
+            previous.save(update_fields=["quantity"])
+        else:
+            CartItem.objects.create(
+                cart=user_cart, product_id=item.product_id, quantity=item.quantity
             )
-            if not created:
-                user_item.quantity += guest_item.quantity
-                user_item.save(update_fields=["quantity"])
-        except IntegrityError:
-            user_item = CartItem.objects.get(
-                cart=user_cart,
-                product_id=guest_item.product_id,
-            )
-            user_item.quantity += guest_item.quantity
-            user_item.save(update_fields=["quantity"])
-
     guest.delete()
     touch_cart(user_cart)
     return user_cart

@@ -120,20 +120,32 @@ export function CheckoutResultPage() {
     )
   }
 
-  if (view === 'failed' || view === 'recovery') {
+  if (view === 'review' || view === 'cancelled') {
     return (
       <section className={styles.CheckoutResultPage}>
         <EmptyState
           title={
-            view === 'recovery'
-              ? ORDER_RESULT_COPY.recoveryTitle
-              : ORDER_RESULT_COPY.failedTitle
+            view === 'review'
+              ? ORDER_RESULT_COPY.reviewTitle
+              : ORDER_RESULT_COPY.cancelledTitle
           }
           description={
-            view === 'recovery'
-              ? ORDER_RESULT_COPY.recoveryDescription
-              : ORDER_RESULT_COPY.failedDescription
+            view === 'review'
+              ? ORDER_RESULT_COPY.reviewDescription
+              : ORDER_RESULT_COPY.cancelledDescription
           }
+          action={successCta}
+        />
+      </section>
+    )
+  }
+
+  if (view === 'recovery') {
+    return (
+      <section className={styles.CheckoutResultPage}>
+        <EmptyState
+          title={ORDER_RESULT_COPY.recoveryTitle}
+          description={ORDER_RESULT_COPY.recoveryDescription}
           action={
             <div className={styles['CheckoutResultPage-Actions']}>
               {order ? (

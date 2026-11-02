@@ -221,49 +221,32 @@ describe('CheckoutResultPage', () => {
     ).toBeInTheDocument()
   })
 
-  it('retries payment on cancelled order', async () => {
-    const assign = vi.fn()
-    vi.stubGlobal('location', { ...window.location, assign })
-
-    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
-      if (config.method === 'get' && config.url?.includes(`/api/orders/${orderId}/`)) {
-        return jsonResponse(config, 200, orderPayload('cancelled'))
-      }
-      if (config.method === 'post' && config.url?.includes('/api/payments/create/')) {
-        return jsonResponse(config, 201, {
-          id: 'pay-1',
-          order_id: orderId,
-          status: 'pending',
-          amount: '500.00',
-          payment_url: 'https://pay.example/retry',
-        })
-      }
-      if (config.url?.includes('/api/cart/')) {
-        return jsonResponse(config, 200, {
-          id: 'cart-1',
-          items: [],
-          total: '0.00',
-          items_count: 0,
-        })
-      }
-      throw new Error(`Unexpected ${config.url}`)
-    })
-
-    renderResult(`/checkout/result?order_id=${orderId}`)
-
-    expect(
-      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.failedTitle }),
-    ).toBeInTheDocument()
-
-    await userEvent.click(
-      screen.getByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
-    )
-
-    await waitFor(() => {
-      expect(assign).toHaveBeenCalledWith('https://pay.example/retry')
-    })
-    expect(sessionStorage.getItem(PENDING_ORDER_ID_KEY)).toBe(orderId)
-  })
+  it.each(['cancelled', 'payment_review'])(
+    'does not retry payment for %s',
+    async (status) => {
+      writePendingOrderId(orderId)
+      adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+        if (
+          config.method === 'get' &&
+          config.url?.includes(`/api/orders/${orderId}/`)
+        ) {
+          return jsonResponse(config, 200, orderPayload(status))
+        }
+        throw new Error(`Unexpected ${config.method} ${config.url}`)
+      })
+      renderResult(`/checkout/result?order_id=${orderId}`)
+      const title =
+        status === 'payment_review'
+          ? ORDER_RESULT_COPY.reviewTitle
+          : ORDER_RESULT_COPY.cancelledTitle
+      expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+      ).not.toBeInTheDocument()
+      expect(sessionStorage.getItem(PENDING_ORDER_ID_KEY)).toBeNull()
+      expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
+    },
+  )
 
   it('shows load error with retry', async () => {
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {

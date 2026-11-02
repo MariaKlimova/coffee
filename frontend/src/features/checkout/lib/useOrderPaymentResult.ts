@@ -25,7 +25,8 @@ export type OrderResultView =
   | 'success'
   | 'pending'
   | 'delayed'
-  | 'failed'
+  | 'cancelled'
+  | 'review'
   | 'recovery'
 
 /**
@@ -65,7 +66,10 @@ function resolveView(
     return 'success'
   }
   if (order.status === 'cancelled') {
-    return 'failed'
+    return 'cancelled'
+  }
+  if (order.status === 'payment_review') {
+    return 'review'
   }
   if (order.status === 'pending') {
     if (needsPaymentRecovery) {
@@ -126,7 +130,11 @@ export function useOrderPaymentResult({
       cartInvalidatedRef.current = true
       void queryClient.invalidateQueries({ queryKey: cartKeys.all })
     }
-    if (isPaidLikeStatus(orderQuery.data.status)) {
+    if (
+      isPaidLikeStatus(orderQuery.data.status) ||
+      orderQuery.data.status === 'payment_review' ||
+      orderQuery.data.status === 'cancelled'
+    ) {
       clearPendingOrderId()
     }
   }, [orderQuery.isSuccess, orderQuery.data, queryClient])
@@ -140,7 +148,7 @@ export function useOrderPaymentResult({
   )
 
   async function retryPayment(): Promise<void> {
-    if (!orderId) {
+    if (!orderId || orderQuery.data?.status !== 'pending') {
       return
     }
     await payOrder(orderId)

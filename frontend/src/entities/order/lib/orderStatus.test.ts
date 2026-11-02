@@ -8,6 +8,7 @@ describe('orderStatus', () => {
   it('maps every known status to a Russian label from copy', () => {
     expect(getOrderStatusLabel('pending')).toBe(ORDER_STATUS_COPY.pending)
     expect(getOrderStatusLabel('paid')).toBe(ORDER_STATUS_COPY.paid)
+    expect(getOrderStatusLabel('payment_review')).toBe(ORDER_STATUS_COPY.payment_review)
     expect(getOrderStatusLabel('processing')).toBe(ORDER_STATUS_COPY.processing)
     expect(getOrderStatusLabel('shipped')).toBe(ORDER_STATUS_COPY.shipped)
     expect(getOrderStatusLabel('delivered')).toBe(ORDER_STATUS_COPY.delivered)
