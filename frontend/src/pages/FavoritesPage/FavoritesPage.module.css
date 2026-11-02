@@ -1,4 +1,5 @@
 .FavoritesPage {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -6,6 +7,7 @@
 
 .FavoritesPage-Title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-size: var(--text-display-sm);
   font-weight: var(--weight-semibold);
@@ -15,6 +17,9 @@
 
 .FavoritesPage-Grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--grid-card-min), 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--grid-card-min)), 1fr)
+  );
   gap: var(--layout-columns-gap);
 }

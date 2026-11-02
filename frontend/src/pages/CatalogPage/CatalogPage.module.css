@@ -1,4 +1,5 @@
 .CatalogPage {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
@@ -6,6 +7,7 @@
 
 .CatalogPage-Title {
   margin: 0;
+  overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-size: var(--text-display-sm);
   font-weight: var(--weight-semibold);
@@ -33,6 +35,25 @@
 
 .CatalogPage-Grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--grid-card-min), 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--grid-card-min)), 1fr)
+  );
   gap: var(--layout-columns-gap);
+}
+
+@media (max-width: 63.999rem) {
+  .CatalogPage-Layout {
+    gap: var(--space-md);
+  }
+
+  .CatalogPage-Sidebar {
+    flex: 0 0 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .CatalogPage-Content {
+    flex-basis: 100%;
+  }
 }

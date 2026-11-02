@@ -1,5 +1,5 @@
 import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route, Routes } from 'react-router-dom'
@@ -210,6 +210,42 @@ describe('CatalogPage', () => {
     ).toBeInTheDocument()
     await waitFor(() => {
       expect(router.state.location.search).toContain('page=2')
+    })
+  })
+
+  it('restores applied price and sorting with Back while retaining search', async () => {
+    const user = userEvent.setup()
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, {
+        count: 1,
+        results: [listItem],
+        next: null,
+        previous: null,
+      }),
+    )
+    const { router } = renderCatalog('/coffee?search=flowers&page=2')
+    await screen.findByRole('heading', { name: listItem.name })
+    await user.type(screen.getByLabelText('Цена от'), '100')
+    await user.tab()
+    expect(router.state.historyAction).toBe('PUSH')
+    expect(router.state.location.search).toBe('?search=flowers&price_min=100')
+    await user.selectOptions(screen.getByLabelText('Сортировка'), 'price')
+    expect(router.state.location.search).toContain('ordering=price')
+
+    await act(async () => router.navigate(-1))
+    expect(screen.getByLabelText('Сортировка')).toHaveValue('-created_at')
+    expect(screen.getByLabelText('Цена от')).toHaveValue('100')
+    expect(router.state.location.search).toBe('?search=flowers&price_min=100')
+
+    await act(async () => router.navigate(-1))
+    expect(screen.getByLabelText('Цена от')).toHaveValue('')
+    expect(router.state.location.search).toBe('?search=flowers&page=2')
+    await waitFor(() => {
+      expect(adapter).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          params: expect.objectContaining({ search: 'flowers', page: '2' }),
+        }),
+      )
     })
   })
 

@@ -5,6 +5,9 @@ import { CLOSE, RETRY } from './phrases'
  */
 export const CATALOG_COPY = {
   filtersLabel: 'Фильтры',
+  filtersWithCount: (count: number) => `Фильтры (${count})`,
+  applyFilters: 'Показать товары',
+  appliedFiltersLabel: 'Применённые фильтры',
   priceFromLabel: 'Цена от',
   priceToLabel: 'Цена до',
   inStockOnlyLabel: 'Только в наличии',

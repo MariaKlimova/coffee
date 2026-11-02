@@ -1,0 +1,51 @@
+.CatalogFilters-Dialog {
+  box-sizing: border-box;
+  width: calc(100% - var(--space-md) * 2);
+  max-width: var(--size-empty-max);
+  max-height: calc(100dvh - var(--space-md) * 2);
+  margin: auto;
+  padding: var(--space-md);
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+}
+
+.CatalogFilters-Dialog::backdrop {
+  background: var(--color-overlay-control);
+}
+
+.CatalogFilters-Dialog-Form {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.CatalogFilters-Dialog-Heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xs);
+}
+
+.CatalogFilters-Dialog-Title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: var(--leading-tight);
+}
+
+.CatalogFilters-Dialog-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.CatalogFilters-Dialog-Actions > * {
+  flex: 1 1 auto;
+  min-width: 0;
+}
