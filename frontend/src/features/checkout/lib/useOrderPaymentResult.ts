@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 
 import { cartKeys } from '@entities/cart'
 import { useOrder, type Order, type OrderStatus } from '@entities/order'
-import { useAuthStore } from '@entities/user'
+import { selectCanShop, useAuthStore } from '@entities/user'
 
 import { clearPendingOrderId, resolveOrderIdFromReturn } from './pendingOrderId'
 import { resolvePaymentRecoveryOrderId } from './paymentRecovery'
@@ -100,17 +100,25 @@ export function useOrderPaymentResult({
 
   const authStatus = useAuthStore((state) => state.status)
   const userId = useAuthStore((state) => state.user?.id ?? null)
-  const refreshToken = useAuthStore((state) => state.refreshToken)
+  const sessionGeneration = useAuthStore((state) => state.sessionGeneration)
+  const canShop = useAuthStore(selectCanShop)
   const accessToken = useAuthStore((state) => state.accessToken)
   // Решение о сессии принадлежит feature, entity заказа получает только допуск
   // и непрозрачный ключ. JWT не попадают в queryKey и не сохраняются в кэше.
   const session = useMemo(
-    () => ({ authStatus, userId, refreshToken, cacheScope: crypto.randomUUID() }),
-    [authStatus, userId, refreshToken],
+    () => ({
+      authStatus,
+      userId,
+      sessionGeneration,
+      canShop,
+      cacheScope: crypto.randomUUID(),
+    }),
+    [authStatus, userId, sessionGeneration, canShop],
   )
   const authReady =
-    authStatus === 'guest' ||
-    (authStatus === 'authenticated' && Boolean(userId && accessToken))
+    canShop &&
+    (authStatus === 'guest' ||
+      (authStatus === 'authenticated' && Boolean(userId && accessToken)))
   const [timedOutScope, setTimedOutScope] = useState<string | null>(null)
   const pollTimedOut = timedOutScope === session.cacheScope
   const cartInvalidatedScopeRef = useRef<string | null>(null)

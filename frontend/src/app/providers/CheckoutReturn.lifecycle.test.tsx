@@ -352,4 +352,65 @@ describe('CheckoutResultPage: session restoration and private query lifecycle', 
     expect(useAuthStore.getState().accessToken).toBe('refreshed-access')
     expect(router.state.location.search).toBe(`?order_id=${orderId}&payment=recovery`)
   })
+
+  it('uses a fresh result scope for a new login generation with identical credentials', async () => {
+    authenticate()
+    const oldGate = deferred()
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      if (adapter.mock.calls.length === 1) {
+        await oldGate.promise
+        return response(config, order('paid', 'Old session private address'))
+      }
+      reject(config, 404)
+    })
+    http.defaults.adapter = adapter
+    renderResult()
+    await waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
+    const generation = useAuthStore.getState().sessionGeneration
+    await act(async () => {
+      authenticate()
+    })
+    expect(useAuthStore.getState().sessionGeneration).toBe(generation + 1)
+    expect(
+      await screen.findByRole('heading', { name: ORDER_RESULT_COPY.loadErrorTitle }),
+    ).toBeInTheDocument()
+    expect(adapter).toHaveBeenCalledTimes(2)
+    expect(adapter.mock.calls[0][0].signal?.aborted).toBe(true)
+    await act(async () => {
+      oldGate.resolve()
+      await oldGate.promise
+    })
+    expect(
+      screen.queryByRole('heading', { name: ORDER_RESULT_COPY.successTitle }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('stops the customer result query when the current profile becomes owner', async () => {
+    authenticate()
+    const oldGate = deferred()
+    const adapter = vi.fn(async (config: InternalAxiosRequestConfig) => {
+      await oldGate.promise
+      return response(config, order('paid'))
+    })
+    http.defaults.adapter = adapter
+    renderResult()
+    await waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
+    const generation = useAuthStore.getState().sessionGeneration
+    await act(async () => {
+      useAuthStore.setState({ user: { ...user, is_staff: true } })
+    })
+    expect(useAuthStore.getState().sessionGeneration).toBe(generation)
+    expect(adapter.mock.calls[0][0].signal?.aborted).toBe(true)
+    await act(async () => {
+      oldGate.resolve()
+      await oldGate.promise
+    })
+    expect(adapter).toHaveBeenCalledTimes(1)
+    expect(
+      screen.queryByRole('heading', { name: ORDER_RESULT_COPY.successTitle }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+    ).not.toBeInTheDocument()
+  })
 })
