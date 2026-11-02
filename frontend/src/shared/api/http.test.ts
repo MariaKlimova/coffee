@@ -34,6 +34,18 @@ function unauthorizedError(config: InternalAxiosRequestConfig): AxiosError {
   )
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: Error) => void
+  const promise = new Promise<T>((done, fail) => {
+    resolve = done
+    reject = fail
+  })
+  return { promise, resolve, reject }
+}
+
+type RefreshResponse = { data: { access: string } }
+
 describe('http interceptors', () => {
   const adapter = vi.fn()
   const onSessionExpired = vi.fn()
@@ -289,5 +301,224 @@ describe('http interceptors', () => {
     resolveRefresh({ data: { access: 'access-new' } })
     await expect(Promise.all([first, second])).resolves.toBeTruthy()
     expect(postSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not restore A credentials after logout and abort of the old GET', async () => {
+    const gate = deferred<RefreshResponse>()
+    const refresh = vi.spyOn(axios, 'post').mockReturnValue(gate.promise as never)
+    const controller = new AbortController()
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.headers.Authorization === 'Bearer access-old')
+        throw unauthorizedError(config)
+      if (config.headers.Authorization) return jsonResponse(config, 200, { owner: 'A' })
+      throw new AxiosError(
+        'Not found',
+        '404',
+        config,
+        null,
+        jsonResponse(config, 404, {}),
+      )
+    })
+    const old = http
+      .get('/api/orders/private-a/', { signal: controller.signal })
+      .catch((error: unknown) => error)
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+    accessToken = null
+    refreshToken = null
+    controller.abort()
+    await expect(http.get('/api/orders/private-a/')).rejects.toMatchObject({
+      response: { status: 404 },
+    })
+    gate.resolve({ data: { access: 'late-access-a' } })
+    expect(axios.isCancel(await old)).toBe(true)
+    expect(accessToken).toBeNull()
+    expect(refreshToken).toBeNull()
+    await expect(http.get('/api/orders/private-a/')).rejects.toMatchObject({
+      response: { status: 404 },
+    })
+    expect(onSessionExpired).not.toHaveBeenCalled()
+    expect(adapter.mock.calls.map(([config]) => config.headers.Authorization)).toEqual([
+      'Bearer access-old',
+      undefined,
+      undefined,
+    ])
+  })
+
+  it.each(['success', 'error'])(
+    'does not replace or expire B on late refresh A %s',
+    async (outcome) => {
+      const gate = deferred<RefreshResponse>()
+      const refresh = vi.spyOn(axios, 'post').mockReturnValue(gate.promise as never)
+      adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+        if (config.headers.Authorization === 'Bearer access-old')
+          throw unauthorizedError(config)
+        return jsonResponse(config, 200, { owner: 'B' })
+      })
+      const old = http.get('/api/orders/private-a/').catch((error: unknown) => error)
+      await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+      accessToken = 'access-b'
+      refreshToken = 'refresh-b'
+      if (outcome === 'success') gate.resolve({ data: { access: 'late-access-a' } })
+      else gate.reject(new Error('Late A refresh failed'))
+      const error = await old
+      expect(error).toBeInstanceOf(Error)
+      if (outcome === 'success') expect(axios.isCancel(error)).toBe(true)
+      expect(accessToken).toBe('access-b')
+      expect(refreshToken).toBe('refresh-b')
+      expect(onSessionExpired).not.toHaveBeenCalled()
+      expect(adapter).toHaveBeenCalledTimes(1)
+      await expect(http.get('/api/orders/private-b/')).resolves.toMatchObject({
+        data: { owner: 'B' },
+      })
+      expect(adapter.mock.calls[1][0].headers.Authorization).toBe('Bearer access-b')
+    },
+  )
+
+  it('does not start refresh B when an old A 401 arrives after switching sessions', async () => {
+    const gate = deferred<void>()
+    const refresh = vi.spyOn(axios, 'post')
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      await gate.promise
+      throw unauthorizedError(config)
+    })
+    const old = http.get('/api/orders/private-a/').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(adapter).toHaveBeenCalledTimes(1))
+    accessToken = 'access-b'
+    refreshToken = 'refresh-b'
+    gate.resolve()
+    expect(axios.isCancel(await old)).toBe(true)
+    expect(refresh).not.toHaveBeenCalled()
+    expect(onSessionExpired).not.toHaveBeenCalled()
+  })
+
+  it('checks the original session again before a queued retry reaches the adapter', async () => {
+    const refresh = vi
+      .spyOn(axios, 'post')
+      .mockResolvedValue({ data: { access: 'access-new' } })
+    const beforeRetry = http.interceptors.request.use((config) => {
+      if ((config as InternalAxiosRequestConfig & { _retry?: boolean })._retry) {
+        accessToken = 'access-b'
+        refreshToken = 'refresh-b'
+      }
+      return config
+    })
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.headers.Authorization === 'Bearer access-old')
+        throw unauthorizedError(config)
+      return jsonResponse(config, 200, { owner: 'B' })
+    })
+    try {
+      await expect(http.get('/api/orders/private-a/')).rejects.toSatisfy(axios.isCancel)
+      expect(adapter).toHaveBeenCalledTimes(1)
+      expect(refresh).toHaveBeenCalledTimes(1)
+      expect(accessToken).toBe('access-b')
+      expect(refreshToken).toBe('refresh-b')
+      expect(onSessionExpired).not.toHaveBeenCalled()
+    } finally {
+      http.interceptors.request.eject(beforeRetry)
+    }
+  })
+
+  it('keeps B single-flight active when the older A flight finishes', async () => {
+    const gateA = deferred<RefreshResponse>()
+    const gateB = deferred<RefreshResponse>()
+    const refresh = vi.spyOn(axios, 'post').mockImplementation((_url, body) => {
+      return (body as { refresh: string }).refresh === 'refresh-valid'
+        ? gateA.promise
+        : gateB.promise
+    })
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.headers.Authorization === 'Bearer access-b-new')
+        return jsonResponse(config, 200, { owner: 'B' })
+      throw unauthorizedError(config)
+    })
+    const oldA = http.get('/api/orders/private-a/').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+    accessToken = 'access-b'
+    refreshToken = 'refresh-b'
+    const firstB = http.get('/api/orders/private-b/')
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(2))
+    gateA.resolve({ data: { access: 'late-access-a' } })
+    expect(axios.isCancel(await oldA)).toBe(true)
+    const secondB = http.get('/api/orders/private-b-again/')
+    await vi.waitFor(() => {
+      expect(
+        (
+          adapter.mock.calls[2]?.[0] as InternalAxiosRequestConfig & {
+            _retry?: boolean
+          }
+        )._retry,
+      ).toBe(true)
+    })
+    expect(refresh).toHaveBeenCalledTimes(2)
+    gateB.resolve({ data: { access: 'access-b-new' } })
+    await expect(Promise.all([firstB, secondB])).resolves.toHaveLength(2)
+    expect(refresh).toHaveBeenCalledTimes(2)
+    expect(accessToken).toBe('access-b-new')
+    expect(onSessionExpired).not.toHaveBeenCalled()
+  })
+
+  it('rejects late refresh when the source bridge is replaced even with the same token', async () => {
+    const gate = deferred<RefreshResponse>()
+    const refresh = vi.spyOn(axios, 'post').mockReturnValue(gate.promise as never)
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      throw unauthorizedError(config)
+    })
+    const old = http.get('/api/orders/private-a/').catch((error: unknown) => error)
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+    const newTokenCallback = vi.fn()
+    const newExpiryCallback = vi.fn()
+    setAuthBridge({
+      getAccessToken: () => 'access-b',
+      getRefreshToken: () => 'refresh-valid',
+      onTokenRefreshed: newTokenCallback,
+      onSessionExpired: newExpiryCallback,
+    })
+    gate.resolve({ data: { access: 'late-access-a' } })
+    expect(axios.isCancel(await old)).toBe(true)
+    expect(accessToken).toBe('access-old')
+    expect(newTokenCallback).not.toHaveBeenCalled()
+    expect(newExpiryCallback).not.toHaveBeenCalled()
+    expect(onSessionExpired).not.toHaveBeenCalled()
+  })
+
+  it('allows access rotation inside the same refresh session', async () => {
+    const gate = deferred<RefreshResponse>()
+    const refresh = vi.spyOn(axios, 'post').mockReturnValue(gate.promise as never)
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.headers.Authorization === 'Bearer access-new')
+        return jsonResponse(config, 200, { ok: true })
+      throw unauthorizedError(config)
+    })
+    const request = http.get('/api/orders/private-a/')
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+    accessToken = 'rotated-access-same-session'
+    gate.resolve({ data: { access: 'access-new' } })
+    await expect(request).resolves.toMatchObject({ data: { ok: true } })
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(onSessionExpired).not.toHaveBeenCalled()
+  })
+
+  it('does not cancel the shared refresh when only one same-session GET is aborted', async () => {
+    const gate = deferred<RefreshResponse>()
+    const refresh = vi.spyOn(axios, 'post').mockReturnValue(gate.promise as never)
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.headers.Authorization === 'Bearer access-new')
+        return jsonResponse(config, 200, { ok: true })
+      throw unauthorizedError(config)
+    })
+    const controller = new AbortController()
+    const canceled = http
+      .get('/api/orders/cancel/', { signal: controller.signal })
+      .catch((error: unknown) => error)
+    const active = http.get('/api/orders/active/')
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+    controller.abort()
+    gate.resolve({ data: { access: 'access-new' } })
+    expect(axios.isCancel(await canceled)).toBe(true)
+    await expect(active).resolves.toMatchObject({ data: { ok: true } })
+    expect(accessToken).toBe('access-new')
+    expect(refresh).toHaveBeenCalledTimes(1)
+    expect(onSessionExpired).not.toHaveBeenCalled()
   })
 })
