@@ -1,14 +1,8 @@
-import { ManagePlaceholder } from '@features/manage-catalog'
-import { APP_ROUTES } from '@shared/config'
-import { MANAGE_COPY } from '@shared/lib/copy'
+import { selectCanManage, useAuthStore } from '@entities/user'
+import { ManageProducts } from '@features/manage-products'
 
 export function ManageProductsPage() {
-  return (
-    <ManagePlaceholder
-      title={MANAGE_COPY.productsTitle}
-      description={MANAGE_COPY.productsDescription}
-      to={APP_ROUTES.coffee}
-      linkLabel={MANAGE_COPY.storefront}
-    />
-  )
+  const allowed = useAuthStore(selectCanManage)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  return allowed ? <ManageProducts key={generation} /> : null
 }

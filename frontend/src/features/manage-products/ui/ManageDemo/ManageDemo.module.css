@@ -1,0 +1,32 @@
+.ManageDemo {
+  display: grid;
+  gap: var(--space-sm);
+  justify-items: start;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.ManageDemo h2,
+.ManageDemo h3,
+.ManageDemo p {
+  margin: 0;
+}
+.ManageDemo h2 {
+  font-size: var(--text-lg);
+}
+.ManageDemo p {
+  color: var(--color-text-secondary);
+}
+.ManageDemo-Confirmation {
+  display: grid;
+  gap: var(--space-md);
+}
+.ManageDemo-Warning {
+  font-weight: var(--weight-semibold);
+}
+.ManageDemo-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}

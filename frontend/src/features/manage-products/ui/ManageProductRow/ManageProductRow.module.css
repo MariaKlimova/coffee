@@ -1,0 +1,70 @@
+.ManageProductRow {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  min-width: 0;
+}
+.ManageProductRow p {
+  margin: 0;
+}
+.ManageProductRow-Summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+.ManageProductRow-Link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ManageProductRow-Category {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+.ManageProductRow-Image {
+  width: var(--size-header);
+  height: var(--size-header);
+  object-fit: contain;
+  background: var(--color-media-placeholder);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-caption);
+}
+.ManageProductRow-Badges,
+.ManageProductRow-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.ManageProductRow-Quantity {
+  display: grid;
+  gap: var(--space-2xs);
+}
+.ManageProductRow-Quantity span {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+.ManageProductRow-Confirm {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.ManageProductRow-Link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
