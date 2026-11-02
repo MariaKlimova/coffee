@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { CATEGORY_LABELS, type ProductCategorySlug } from '@entities/product'
 import { APP_ROUTES } from '@shared/config'
+import { isNotFoundError } from '@shared/api'
 import { CATALOG_COPY, MANAGE_COPY } from '@shared/lib/copy'
 import { Button } from '@shared/ui/Button'
 import { Input } from '@shared/ui/Input'
@@ -25,7 +27,15 @@ export function ManageProducts() {
     search: params.get('search') ?? '',
     page: Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1,
   }
-  const { products, catalog, changeProduct, disableDemo } = useManageCatalog(filters)
+  const { products, catalog, changeProduct, disableDemo, hideProduct } =
+    useManageCatalog(filters)
+  const resetPage = filters.page > 1 && isNotFoundError(products.error)
+  useEffect(() => {
+    if (!resetPage) return
+    const next = new URLSearchParams(params)
+    next.delete('page')
+    setParams(next, { replace: true })
+  }, [resetPage, params, setParams])
   function update(changes: Record<string, string>) {
     const next = new URLSearchParams(params)
     next.delete('page')
@@ -112,8 +122,10 @@ export function ManageProducts() {
           {CATALOG_COPY.resetFilters}
         </Button>
       </form>
-      {products.isPending && <p role="status">{CATALOG_COPY.loadingLabel}</p>}
-      {products.isError && (
+      {(products.isPending || resetPage) && (
+        <p role="status">{CATALOG_COPY.loadingLabel}</p>
+      )}
+      {products.isError && !resetPage && (
         <EmptyState
           title={CATALOG_COPY.errorTitle}
           description={CATALOG_COPY.errorDescription}
@@ -151,6 +163,7 @@ export function ManageProducts() {
               key={product.id}
               product={product}
               onSave={changeProduct}
+              onHide={hideProduct}
             />
           ))}
         </ul>

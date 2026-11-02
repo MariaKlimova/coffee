@@ -11,7 +11,7 @@ import { ManageStockEditor } from '../ManageStockEditor'
 import type { ManageProductRowProps } from './ManageProductRow.typings'
 import styles from './ManageProductRow.module.css'
 
-export function ManageProductRow({ product, onSave }: ManageProductRowProps) {
+export function ManageProductRow({ product, onSave, onHide }: ManageProductRowProps) {
   const [editing, setEditing] = useState(false)
   const [confirmOwner, setConfirmOwner] = useState(false)
   const [pending, setPending] = useState(false)
@@ -28,7 +28,12 @@ export function ManageProductRow({ product, onSave }: ManageProductRowProps) {
     setPending(true)
     setMessage('')
     try {
-      await save({ id: product.id, is_published: !product.is_published })
+      if (product.origin === 'demo') {
+        await onHide(product.id)
+        setMessage(MANAGE_COPY.saved)
+      } else {
+        await save({ id: product.id, is_published: !product.is_published })
+      }
     } catch {
       setMessage(MANAGE_COPY.saveError)
     } finally {
@@ -90,8 +95,12 @@ export function ManageProductRow({ product, onSave }: ManageProductRowProps) {
         <Button
           variant="secondary"
           size="sm"
-          onClick={() => setEditing(!editing)}
-          disabled={pending}
+          onClick={() => {
+            setMessage('')
+            setEditing(!editing)
+            setConfirmOwner(false)
+          }}
+          disabled={pending || editing || confirmOwner}
         >
           {MANAGE_COPY.changeQuantity}
         </Button>
@@ -102,7 +111,7 @@ export function ManageProductRow({ product, onSave }: ManageProductRowProps) {
         >
           {MANAGE_COPY.editProduct}
         </Button>
-        {product.origin === 'owner' && (
+        {(product.origin === 'owner' || product.is_published) && (
           <Button
             variant="ghost"
             size="sm"
@@ -118,7 +127,10 @@ export function ManageProductRow({ product, onSave }: ManageProductRowProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setConfirmOwner(true)}
+            onClick={() => {
+              setMessage('')
+              setConfirmOwner(true)
+            }}
             disabled={pending || editing}
           >
             {MANAGE_COPY.saveAsOwner}

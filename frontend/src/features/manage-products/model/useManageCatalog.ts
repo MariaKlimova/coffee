@@ -8,6 +8,7 @@ import {
   disableDemo,
   fetchCatalogState,
   fetchManageProducts,
+  hideManageProduct,
   type ManageFilters,
   type ProductChange,
 } from '../api/manageCatalogApi'
@@ -85,11 +86,23 @@ export function useManageCatalog(filters: ManageFilters) {
     },
     gcTime: 0,
   })
+  const hide = useMutation({
+    mutationFn: ({ id, assert }: { id: string; assert: () => void }) => {
+      assert()
+      return hideManageProduct(id, assert)
+    },
+    onSuccess: async (_, { assert }) => {
+      assert()
+      await invalidate()
+    },
+    gcTime: 0,
+  })
   return {
     products,
     catalog,
     changeProduct: (values: ProductChange) =>
       change.mutateAsync({ values, assert: bindStaff() }),
     disableDemo: () => cutover.mutateAsync({ assert: bindStaff() }),
+    hideProduct: (id: string) => hide.mutateAsync({ id, assert: bindStaff() }),
   }
 }

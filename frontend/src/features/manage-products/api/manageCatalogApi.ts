@@ -104,3 +104,9 @@ export async function disableDemo(assertActor: () => void) {
   assertActor()
   return data
 }
+
+/** Снимает товар с витрины без изменения происхождения, фотографий и количества. */
+export async function hideManageProduct(id: string, assertActor: () => void) {
+  await http.delete(`/api/manage/products/${id}/`, guardRequest(assertActor))
+  assertActor()
+}

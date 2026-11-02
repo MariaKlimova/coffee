@@ -5,4 +5,6 @@ export interface ManageProductRowProps {
   product: ManageProduct
   /** Сохранение полей товара. */
   onSave: (change: ProductChange) => Promise<unknown>
+  /** Снятие публикации без конверсии демо-товара. */
+  onHide: (id: string) => Promise<unknown>
 }

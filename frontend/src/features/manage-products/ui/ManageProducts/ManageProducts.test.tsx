@@ -79,6 +79,244 @@ afterEach(() => {
 })
 
 describe('Каталог владельца', () => {
+  it('не даёт переоткрыть редактор и отправить второй остаток, пока сохранение ожидает ответа', async () => {
+    let finish: (() => void) | undefined
+    const writes = vi.fn()
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'patch') {
+        writes()
+        await new Promise<void>((resolve) => {
+          finish = resolve
+        })
+        return response(config, product)
+      }
+      return response(
+        config,
+        config.url === '/api/manage/catalog/'
+          ? state
+          : { results: [product], count: 1, next: null, previous: null },
+      )
+    }
+    setup()
+    const user = userEvent.setup()
+    await user.click(
+      await screen.findByRole('button', { name: MANAGE_COPY.changeQuantity }),
+    )
+    await user.click(screen.getByRole('button', { name: MANAGE_COPY.save }))
+    await waitFor(() => expect(finish).toBeDefined())
+    expect(
+      screen.getByRole('button', { name: MANAGE_COPY.changeQuantity }),
+    ).toBeDisabled()
+    expect(screen.getByRole('button', { name: MANAGE_COPY.cancel })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: MANAGE_COPY.changeQuantity }))
+    expect(screen.getByLabelText(MANAGE_COPY.physicalQuantity)).toBeDisabled()
+    expect(writes).toHaveBeenCalledOnce()
+    await act(async () => {
+      finish?.()
+    })
+    expect(await screen.findByText(MANAGE_COPY.saved)).toBeVisible()
+    await user.click(screen.getByRole('button', { name: MANAGE_COPY.changeQuantity }))
+    await user.clear(screen.getByLabelText(MANAGE_COPY.physicalQuantity))
+    await user.type(screen.getByLabelText(MANAGE_COPY.physicalQuantity), '-1')
+    await user.click(screen.getByRole('button', { name: MANAGE_COPY.save }))
+    expect(screen.getByText(MANAGE_COPY.quantityInvalid)).toBeVisible()
+    expect(screen.queryByText(MANAGE_COPY.saved)).not.toBeInTheDocument()
+  })
+  it('снимает демо с витрины через DELETE204, сохраняя происхождение и данные', async () => {
+    let current = {
+      ...product,
+      origin: 'demo' as const,
+      is_published: true,
+      hidden_reason: null,
+    }
+    const writes: InternalAxiosRequestConfig[] = []
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'delete') {
+        writes.push(config)
+        current = { ...current, is_published: false }
+        return { ...response(config, undefined), status: 204 }
+      }
+      return response(
+        config,
+        config.url === '/api/manage/catalog/'
+          ? state
+          : { results: [current], count: 1, next: null, previous: null },
+      )
+    }
+    const { client } = setup()
+    const user = userEvent.setup()
+    client.setQueryData(['products', 'detail', 'coffee-a'], product)
+    await user.click(await screen.findByRole('button', { name: MANAGE_COPY.hide }))
+    expect(await screen.findByText(MANAGE_COPY.saved)).toBeVisible()
+    expect(writes).toHaveLength(1)
+    expect(writes[0].url).toBe('/api/manage/products/product-a/')
+    expect(writes[0].data).toBeUndefined()
+    expect(current).toMatchObject({
+      origin: 'demo',
+      stock_quantity: 5,
+      reserved_quantity: 2,
+      images: [],
+      is_published: false,
+    })
+    expect(within(screen.getByRole('list')).getByText(MANAGE_COPY.demo)).toBeVisible()
+    expect(
+      within(screen.getByRole('list')).getByText(MANAGE_COPY.unpublished),
+    ).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: MANAGE_COPY.publish }),
+    ).not.toBeInTheDocument()
+    expect(
+      client.getQueryState(['products', 'detail', 'coffee-a'])?.isInvalidated,
+    ).toBe(true)
+  })
+
+  it('ошибка снятия демо не показывает ложное сохранение', async () => {
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'delete') throw new Error('offline')
+      return response(
+        config,
+        config.url === '/api/manage/catalog/'
+          ? state
+          : {
+              results: [{ ...product, origin: 'demo', is_published: true }],
+              count: 1,
+              next: null,
+              previous: null,
+            },
+      )
+    }
+    setup()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: MANAGE_COPY.hide }))
+    expect(await screen.findByText(MANAGE_COPY.saveError)).toBeVisible()
+    expect(screen.queryByText(MANAGE_COPY.saved)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: MANAGE_COPY.hide })).toBeEnabled()
+  })
+
+  it.each(['dispatch', 'response'])(
+    'DELETE старой staff-сессии не затрагивает новую: граница %s',
+    async (boundary) => {
+      let release: (() => void) | undefined
+      const writes = vi.fn()
+      const gate = http.interceptors.request.use(async (config) => {
+        if (boundary === 'dispatch' && config.method === 'delete')
+          await new Promise<void>((resolve) => {
+            release = resolve
+          })
+        return config
+      })
+      http.defaults.adapter = async (config) => {
+        if (config.method === 'delete') {
+          writes()
+          if (boundary === 'response')
+            await new Promise<void>((resolve) => {
+              release = resolve
+            })
+          return { ...response(config, undefined), status: 204 }
+        }
+        return response(
+          config,
+          config.url === '/api/manage/catalog/'
+            ? state
+            : {
+                results: [{ ...product, origin: 'demo', is_published: true }],
+                count: 1,
+                next: null,
+                previous: null,
+              },
+        )
+      }
+      try {
+        const { client } = setup()
+        const user = userEvent.setup()
+        await user.click(await screen.findByRole('button', { name: MANAGE_COPY.hide }))
+        await waitFor(() => expect(release).toBeDefined())
+        act(() => staff('staff-b'))
+        expect(
+          await screen.findByRole('button', { name: MANAGE_COPY.hide }),
+        ).toBeVisible()
+        const invalidation = vi.spyOn(client, 'invalidateQueries')
+        await act(async () => {
+          release?.()
+          await new Promise((resolve) => setTimeout(resolve, 0))
+        })
+        expect(writes).toHaveBeenCalledTimes(boundary === 'dispatch' ? 0 : 1)
+        expect(invalidation).not.toHaveBeenCalled()
+        expect(screen.queryByText(MANAGE_COPY.saved)).not.toBeInTheDocument()
+        expect(screen.queryByText(MANAGE_COPY.saveError)).not.toBeInTheDocument()
+      } finally {
+        http.interceptors.request.eject(gate)
+      }
+    },
+  )
+
+  it('возвращается к первой странице после скрытия последнего товара на второй', async () => {
+    let hidden = false
+    const pages: number[] = []
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'delete') {
+        hidden = true
+        return { ...response(config, undefined), status: 204 }
+      }
+      if (config.url === '/api/manage/catalog/') return response(config, state)
+      pages.push(config.params.page)
+      if (hidden && config.params.page === 2)
+        throw new AxiosError('page missing', '404', config, undefined, {
+          ...response(config, {}),
+          status: 404,
+        })
+      return response(config, {
+        results: [{ ...product, origin: 'demo', is_published: true }],
+        count: hidden ? 20 : 21,
+        next: null,
+        previous: null,
+      })
+    }
+    setup('/manage/products?is_published=true&page=2')
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: MANAGE_COPY.hide }))
+    await waitFor(() => expect(pages).toEqual([2, 2, 1]))
+    expect(await screen.findByText('Кофе А')).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: 'Не удалось загрузить каталог' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it.each([404, 401, 403])(
+    'invalid page999999: статус %s сбрасывает страницу только для404',
+    async (status) => {
+      const pages: number[] = []
+      http.defaults.adapter = async (config) => {
+        if (config.url === '/api/manage/catalog/') return response(config, state)
+        pages.push(config.params.page)
+        // Ответ401 после уже исчерпанного refresh: пагинация не должна его маскировать.
+        if (status === 401) Object.assign(config, { _retry: true })
+        if (config.params.page !== 1)
+          throw new AxiosError('failed', 'ERR', config, undefined, {
+            ...response(config, {}),
+            status,
+          })
+        return response(config, {
+          results: [product],
+          count: 1,
+          next: null,
+          previous: null,
+        })
+      }
+      setup('/manage/products?page=999999')
+      if (status === 404) {
+        expect(await screen.findByText('Кофе А')).toBeVisible()
+        expect(pages).toEqual([999999, 1])
+      } else {
+        expect(
+          await screen.findByRole('heading', {
+            name: 'Не удалось загрузить каталог',
+          }),
+        ).toBeVisible()
+        expect(pages).toEqual([999999])
+      }
+    },
+  )
   it('показывает загрузку, ошибку с повтором и пустой результат', async () => {
     let finish: (() => void) | undefined
     let fail = true
