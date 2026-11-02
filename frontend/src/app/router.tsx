@@ -1,7 +1,9 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 
 import { RootLayout } from '@app/layouts/RootLayout'
+import { ManageLayout } from '@app/layouts/ManageLayout'
 import { RequireAuth } from '@app/routes/RequireAuth'
+import { RequireStaff } from '@app/routes/RequireStaff'
 import { CartPage } from '@pages/CartPage'
 import { CheckoutPage } from '@pages/CheckoutPage'
 import { CheckoutResultPage } from '@pages/CheckoutResultPage'
@@ -9,6 +11,10 @@ import { CoffeePage } from '@pages/CoffeePage'
 import { FavoritesPage } from '@pages/FavoritesPage'
 import { LoginPage } from '@pages/LoginPage'
 import { MachinesPage } from '@pages/MachinesPage'
+import { ManagePage } from '@pages/ManagePage'
+import { ManageProductsPage } from '@pages/ManageProductsPage'
+import { ManageProductCreatePage } from '@pages/ManageProductCreatePage'
+import { ManageProductEditPage } from '@pages/ManageProductEditPage'
 import { OrderDetailPage } from '@pages/OrderDetailPage'
 import { OrdersPage } from '@pages/OrdersPage'
 import { ProductPage } from '@pages/ProductPage'
@@ -17,6 +23,20 @@ import { RegisterPage } from '@pages/RegisterPage'
 import { APP_ROUTES } from '@shared/config'
 
 const appRoutes: RouteObject[] = [
+  {
+    element: <RequireStaff />,
+    children: [
+      {
+        element: <ManageLayout />,
+        children: [
+          { path: APP_ROUTES.manage, element: <ManagePage /> },
+          { path: APP_ROUTES.manageProducts, element: <ManageProductsPage /> },
+          { path: APP_ROUTES.manageProductNew, element: <ManageProductCreatePage /> },
+          { path: APP_ROUTES.manageProductEdit, element: <ManageProductEditPage /> },
+        ],
+      },
+    ],
+  },
   {
     element: <RootLayout />,
     children: [
