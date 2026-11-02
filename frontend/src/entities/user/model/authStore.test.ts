@@ -2,7 +2,7 @@ import { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 
 import axios from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { resetAuthBridge } from '@shared/api'
+import { getAuthBridge, resetAuthBridge } from '@shared/api'
 import { http } from '@shared/api/http'
 
 import { clearRefreshToken, readRefreshToken, REFRESH_TOKEN_KEY } from './authStorage'
@@ -44,6 +44,7 @@ describe('authStore', () => {
     localStorage.clear()
     useAuthStore.setState({
       status: 'idle',
+      sessionGeneration: 0,
       accessToken: null,
       refreshToken: null,
       user: null,
@@ -144,6 +145,126 @@ describe('authStore', () => {
     expect(state.accessToken).toBe('access-restored')
     expect(state.user?.email).toBe('masha@example.com')
     expect(readRefreshToken()).toBe('refresh-ok')
+  })
+
+  it('clears every stale credential and advances identity when restore has no refresh token', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      accessToken: 'stale-access',
+      user: { id: 'a', email: 'a@example.invalid' },
+    })
+    const identity = getAuthBridge().getSessionIdentity?.()
+    await useAuthStore.getState().restoreSession()
+    expect(useAuthStore.getState()).toMatchObject({
+      status: 'guest',
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+      sessionGeneration: 1,
+    })
+    expect(getAuthBridge().getSessionIdentity?.()).not.toBe(identity)
+    expect(readRefreshToken()).toBeNull()
+    expect(adapter).not.toHaveBeenCalled()
+  })
+
+  it.each(['success', 'error'] as const)(
+    'ignores late restore A %s after logout or a new login',
+    async (outcome) => {
+      for (const transition of ['logout', 'login B'] as const) {
+        const userA = { id: 'a', email: 'a@example.invalid' }
+        const userB = { id: 'b', email: 'b@example.invalid' }
+        useAuthStore.getState().setSession({
+          accessToken: 'access-a',
+          refreshToken: 'refresh-a',
+          user: userA,
+        })
+        let release!: () => void
+        const gate = new Promise<void>((done) => {
+          release = done
+        })
+        const entered = vi.fn()
+        adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+          if (config.url === '/api/auth/me/') {
+            entered()
+            await gate
+            if (outcome === 'error') throw new Error('Late restore A failed')
+            return jsonResponse(config, 200, userA)
+          }
+          if (config.url === '/api/auth/login/')
+            return jsonResponse(config, 200, {
+              access: 'access-b',
+              refresh: 'refresh-b',
+              user: userB,
+            })
+          return jsonResponse(config, 204, null)
+        })
+        const restoring = useAuthStore.getState().restoreSession()
+        await vi.waitFor(() => expect(entered).toHaveBeenCalledTimes(1))
+        if (transition === 'logout') await useAuthStore.getState().logout()
+        else
+          await useAuthStore
+            .getState()
+            .login({ email: userB.email, password: 'synthetic-password' })
+        const afterChange = useAuthStore.getState()
+        const storedRefresh = readRefreshToken()
+        release()
+        await restoring
+        expect(useAuthStore.getState()).toEqual(afterChange)
+        expect(readRefreshToken()).toBe(storedRefresh)
+        expect(getAuthBridge().getSessionIdentity?.()).toBe(
+          afterChange.sessionGeneration,
+        )
+      }
+    },
+  )
+
+  it('invalidates identity and clears a failed current restore without relying on an HTTP401', async () => {
+    useAuthStore.getState().setSession({
+      accessToken: 'access-a',
+      refreshToken: 'refresh-a',
+      user: { id: 'a', email: 'a@example.invalid' },
+    })
+    const generation = useAuthStore.getState().sessionGeneration
+    adapter.mockRejectedValue(new Error('Me unavailable'))
+    await useAuthStore.getState().restoreSession()
+    expect(useAuthStore.getState()).toMatchObject({
+      status: 'guest',
+      accessToken: null,
+      refreshToken: null,
+      user: null,
+      sessionGeneration: generation + 1,
+    })
+    expect(readRefreshToken()).toBeNull()
+  })
+
+  it('does not clear a newer login when a previous logout completes late', async () => {
+    useAuthStore.getState().setSession({
+      accessToken: 'access-a',
+      refreshToken: 'refresh-a',
+      user: { id: 'a', email: 'a@example.invalid' },
+    })
+    let release!: () => void
+    const gate = new Promise<void>((done) => {
+      release = done
+    })
+    const entered = vi.fn()
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      entered()
+      await gate
+      return jsonResponse(config, 204, null)
+    })
+    const loggingOut = useAuthStore.getState().logout()
+    await vi.waitFor(() => expect(entered).toHaveBeenCalledTimes(1))
+    useAuthStore.getState().setSession({
+      accessToken: 'access-b',
+      refreshToken: 'refresh-b',
+      user: { id: 'b', email: 'b@example.invalid' },
+    })
+    const newSession = useAuthStore.getState()
+    release()
+    await loggingOut
+    expect(useAuthStore.getState()).toEqual(newSession)
+    expect(readRefreshToken()).toBe('refresh-b')
   })
 
   it('moves to guest when restoreSession refresh fails', async () => {

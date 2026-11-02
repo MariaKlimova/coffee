@@ -20,6 +20,7 @@ def test_register_success(api_client: APIClient, db) -> None:
             "password": "SecurePass1",
             "password_confirm": "SecurePass1",
             "first_name": "New",
+            "is_staff": True,
         },
         format="json",
     )
@@ -30,10 +31,12 @@ def test_register_success(api_client: APIClient, db) -> None:
     assert "refresh" in body
     assert body["user"]["email"] == "new@example.com"
     assert body["user"]["first_name"] == "New"
+    assert body["user"]["is_staff"] is False
 
     created = User.objects.get(email="new@example.com")
     assert created.check_password("SecurePass1")
     assert created.password != "SecurePass1"
+    assert created.is_staff is False
 
 
 def test_register_duplicate_email(api_client: APIClient, user: User) -> None:
@@ -90,6 +93,25 @@ def test_me_with_token(api_client: APIClient, user: User) -> None:
     assert body["id"] == str(user.id)
     assert "first_name" in body
     assert "last_name" in body
+    assert body["is_staff"] is False
+
+
+def test_staff_profile_in_me_and_login(api_client: APIClient, user: User) -> None:
+    """Сотрудник получает серверный признак доступа при входе и восстановлении."""
+    user.is_staff = True
+    user.save(update_fields=["is_staff"])
+    login_response = api_client.post(
+        reverse("auth-login"),
+        {"email": user.email, "password": "SecurePass1"},
+        format="json",
+    )
+    assert login_response.status_code == status.HTTP_200_OK
+    assert login_response.json()["user"]["is_staff"] is True
+
+    auth_client(api_client, user)
+    response = api_client.get(reverse("auth-me"))
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["is_staff"] is True
 
 
 def test_refresh_token(api_client: APIClient, user: User) -> None:

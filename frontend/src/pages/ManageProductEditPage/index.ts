@@ -1,0 +1,1 @@
+export { ManageProductEditPage } from './ManageProductEditPage'

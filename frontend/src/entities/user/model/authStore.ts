@@ -21,6 +21,7 @@ export function bindAuthBridge(): void {
   setAuthBridge({
     getAccessToken: () => useAuthStore.getState().accessToken,
     getRefreshToken: () => useAuthStore.getState().refreshToken ?? readRefreshToken(),
+    getSessionIdentity: () => useAuthStore.getState().sessionGeneration,
     onTokenRefreshed: (accessToken) => {
       useAuthStore.setState({ accessToken })
     },
@@ -32,6 +33,7 @@ export function bindAuthBridge(): void {
 
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
   status: 'idle',
+  sessionGeneration: 0,
   accessToken: null,
   refreshToken: readRefreshToken(),
   user: null,
@@ -40,6 +42,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     writeRefreshToken(session.refreshToken)
     set({
       status: 'authenticated',
+      sessionGeneration: get().sessionGeneration + 1,
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       user: session.user,
@@ -50,6 +53,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     clearRefreshToken()
     set({
       status: 'guest',
+      sessionGeneration: get().sessionGeneration + 1,
       accessToken: null,
       refreshToken: null,
       user: null,
@@ -75,29 +79,33 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
   },
 
   logout: async () => {
+    const generation = get().sessionGeneration
     const refresh = get().refreshToken ?? readRefreshToken()
     if (refresh) {
       try {
         await logoutRequest(refresh)
       } catch {
-        // Best-effort blacklist; always clear local session.
+        // Недоступность отзыва токена не мешает завершить исходную локальную сессию.
       }
     }
-    get().clearSession()
+    if (get().sessionGeneration === generation) get().clearSession()
   },
 
   restoreSession: async () => {
+    const generation = get().sessionGeneration
     const refresh = get().refreshToken ?? readRefreshToken()
     if (!refresh) {
-      set({ status: 'guest', refreshToken: null })
+      get().clearSession()
       return
     }
 
     set({ status: 'restoring', refreshToken: refresh })
 
     try {
-      // Access token is missing after F5; the 401 interceptor refreshes it.
+      // После перезагрузки access token отсутствует; 401 запускает его обновление.
       const user = await fetchMe()
+      // Позднее восстановление не вправе заменить более новый вход или выход.
+      if (get().sessionGeneration !== generation) return
       const accessToken = get().accessToken
       if (!accessToken) {
         throw new Error('Missing access token after session restore')
@@ -109,13 +117,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         refreshToken: refresh,
       })
     } catch {
-      clearRefreshToken()
-      set({
-        status: 'guest',
-        accessToken: null,
-        refreshToken: null,
-        user: null,
-      })
+      if (get().sessionGeneration === generation) get().clearSession()
     }
   },
 }))

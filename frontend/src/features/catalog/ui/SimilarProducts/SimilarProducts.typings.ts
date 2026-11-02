@@ -2,6 +2,8 @@
  * Props for the similar-products strip inside an expanded card.
  */
 export interface SimilarProductsProps {
+  /** Показывать покупательские действия на карточках. */
+  shoppingEnabled?: boolean
   /** Slug of the currently expanded product. */
   slug: string
   /** Opens another product from the strip. */

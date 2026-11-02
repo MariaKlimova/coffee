@@ -1,7 +1,10 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 
 import { RootLayout } from '@app/layouts/RootLayout'
+import { ManageLayout } from '@app/layouts/ManageLayout'
 import { RequireAuth } from '@app/routes/RequireAuth'
+import { RequireStaff } from '@app/routes/RequireStaff'
+import { RequireCustomer } from '@app/routes/RequireCustomer'
 import { CartPage } from '@pages/CartPage'
 import { CheckoutPage } from '@pages/CheckoutPage'
 import { CheckoutResultPage } from '@pages/CheckoutResultPage'
@@ -9,6 +12,10 @@ import { CoffeePage } from '@pages/CoffeePage'
 import { FavoritesPage } from '@pages/FavoritesPage'
 import { LoginPage } from '@pages/LoginPage'
 import { MachinesPage } from '@pages/MachinesPage'
+import { ManagePage } from '@pages/ManagePage'
+import { ManageProductsPage } from '@pages/ManageProductsPage'
+import { ManageProductCreatePage } from '@pages/ManageProductCreatePage'
+import { ManageProductEditPage } from '@pages/ManageProductEditPage'
 import { OrderDetailPage } from '@pages/OrderDetailPage'
 import { OrdersPage } from '@pages/OrdersPage'
 import { ProductPage } from '@pages/ProductPage'
@@ -17,6 +24,20 @@ import { RegisterPage } from '@pages/RegisterPage'
 import { APP_ROUTES } from '@shared/config'
 
 const appRoutes: RouteObject[] = [
+  {
+    element: <RequireStaff />,
+    children: [
+      {
+        element: <ManageLayout />,
+        children: [
+          { path: APP_ROUTES.manage, element: <ManagePage /> },
+          { path: APP_ROUTES.manageProducts, element: <ManageProductsPage /> },
+          { path: APP_ROUTES.manageProductNew, element: <ManageProductCreatePage /> },
+          { path: APP_ROUTES.manageProductEdit, element: <ManageProductEditPage /> },
+        ],
+      },
+    ],
+  },
   {
     element: <RootLayout />,
     children: [
@@ -27,19 +48,27 @@ const appRoutes: RouteObject[] = [
       { path: APP_ROUTES.coffee, element: <CoffeePage /> },
       { path: APP_ROUTES.machines, element: <MachinesPage /> },
       { path: APP_ROUTES.product, element: <ProductPage /> },
-      { path: APP_ROUTES.cart, element: <CartPage /> },
-      { path: APP_ROUTES.checkout, element: <CheckoutPage /> },
-      { path: APP_ROUTES.checkoutResult, element: <CheckoutResultPage /> },
       { path: APP_ROUTES.login, element: <LoginPage /> },
       { path: APP_ROUTES.register, element: <RegisterPage /> },
       {
-        element: <RequireAuth />,
+        element: <RequireCustomer />,
         children: [
-          { path: APP_ROUTES.favorites, element: <FavoritesPage /> },
-          { path: APP_ROUTES.profile, element: <ProfilePage /> },
-          { path: APP_ROUTES.orders, element: <OrdersPage /> },
-          { path: APP_ROUTES.orderDetail, element: <OrderDetailPage /> },
+          { path: APP_ROUTES.cart, element: <CartPage /> },
+          { path: APP_ROUTES.checkout, element: <CheckoutPage /> },
+          { path: APP_ROUTES.checkoutResult, element: <CheckoutResultPage /> },
+          {
+            element: <RequireAuth />,
+            children: [
+              { path: APP_ROUTES.favorites, element: <FavoritesPage /> },
+              { path: APP_ROUTES.orders, element: <OrdersPage /> },
+              { path: APP_ROUTES.orderDetail, element: <OrderDetailPage /> },
+            ],
+          },
         ],
+      },
+      {
+        element: <RequireAuth />,
+        children: [{ path: APP_ROUTES.profile, element: <ProfilePage /> }],
       },
     ],
   },

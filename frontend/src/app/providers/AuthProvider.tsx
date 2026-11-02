@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { cartKeys, mergeCart, useCartStore } from '@entities/cart'
 import { favoriteKeys } from '@entities/favorite'
 import { productKeys } from '@entities/product'
-import { useAuthStore } from '@entities/user'
+import { selectAccountMode, selectCanShop, useAuthStore } from '@entities/user'
 
 interface AuthProviderProps {
   /** Дерево приложения внутри провайдера. */
@@ -20,7 +20,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const queryClient = useQueryClient()
   const restoreSession = useAuthStore((state) => state.restoreSession)
   const status = useAuthStore((state) => state.status)
-  const previousStatusRef = useRef(status)
+  const mode = useAuthStore(selectAccountMode)
+  const userId = useAuthStore((state) => state.user?.id)
+  const previousSessionRef = useRef({ status, mode, userId })
 
   useEffect(() => {
     if (status !== 'idle') {
@@ -30,29 +32,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [restoreSession, status])
 
   useEffect(() => {
-    const previousStatus = previousStatusRef.current
-    previousStatusRef.current = status
+    const previous = previousSessionRef.current
+    previousSessionRef.current = { status, mode, userId }
+    const previousStatus = previous.status
 
-    if (previousStatus === status) {
+    if (
+      previousStatus === status &&
+      previous.mode === mode &&
+      previous.userId === userId
+    ) {
       return
     }
     if (status !== 'authenticated' && status !== 'guest') {
       return
     }
 
-    void queryClient.invalidateQueries({ queryKey: productKeys.all })
+    void queryClient.cancelQueries({ queryKey: productKeys.all })
+    void queryClient.resetQueries({ queryKey: productKeys.all })
 
-    if (status === 'guest') {
+    if (status === 'guest' || mode === 'owner') {
       // Убираем данные прежней сессии, сохраняя подписки шапки и страниц.
       // Удаление активного query оставляет его observers без новых результатов.
+      void queryClient.cancelQueries({ queryKey: favoriteKeys.all })
+      void queryClient.cancelQueries({ queryKey: cartKeys.all })
       void queryClient.resetQueries({ queryKey: favoriteKeys.all })
       void queryClient.resetQueries({ queryKey: cartKeys.all })
       return
     }
 
-    void queryClient.invalidateQueries({ queryKey: favoriteKeys.all })
+    void queryClient.resetQueries({ queryKey: favoriteKeys.all })
 
     if (previousStatus === 'authenticated') {
+      void queryClient.resetQueries({ queryKey: cartKeys.all })
       return
     }
 
@@ -69,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const current = useAuthStore.getState()
       return (
         current.status === 'authenticated' &&
+        selectCanShop(current) &&
         current.refreshToken === session.refreshToken &&
         current.user?.id === session.user?.id
       )
@@ -89,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       }
     })()
-  }, [status, queryClient])
+  }, [status, mode, userId, queryClient])
 
   return children
 }

@@ -1,4 +1,5 @@
 import { useCartMutations } from '@entities/cart'
+import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
 import { CART_COPY } from '@shared/lib/copy'
 import { useToast } from '@shared/ui'
 
@@ -11,7 +12,7 @@ export function useAddToCart() {
   const { addItem } = useCartMutations()
 
   function addToCart(productId: string, quantity = 1): void {
-    if (quantity < 1) {
+    if (!selectCanShop(useAuthStore.getState()) || quantity < 1) {
       return
     }
 
@@ -19,16 +20,19 @@ export function useAddToCart() {
       return
     }
 
+    const session = useAuthStore.getState()
     addItem.mutate(
       { productId, quantity },
       {
         onSuccess: () => {
+          if (!isSameCustomerSession(session, useAuthStore.getState())) return
           showToast({
             message: CART_COPY.added,
             variant: 'success',
           })
         },
         onError: () => {
+          if (!isSameCustomerSession(session, useAuthStore.getState())) return
           showToast({
             message: CART_COPY.error,
             variant: 'error',

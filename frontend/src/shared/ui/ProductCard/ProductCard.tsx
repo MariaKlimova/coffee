@@ -12,6 +12,7 @@ import styles from './ProductCard.module.css'
 
 export function ProductCard({
   id,
+  shoppingEnabled = true,
   categoryLabel,
   title,
   description,
@@ -59,18 +60,20 @@ export function ProductCard({
         {!inStock ? (
           <Badge className={styles['ProductCard-Badge']}>{CART_COPY.outOfStock}</Badge>
         ) : null}
-        <button
-          type="button"
-          className={styles['ProductCard-Favorite']}
-          aria-label={isFavorite ? FAVORITE_COPY.remove : FAVORITE_COPY.add}
-          aria-pressed={isFavorite}
-          onClick={(event) => {
-            event.stopPropagation()
-            onToggleFavorite?.(id)
-          }}
-        >
-          <HeartIcon filled={isFavorite} />
-        </button>
+        {shoppingEnabled ? (
+          <button
+            type="button"
+            className={styles['ProductCard-Favorite']}
+            aria-label={isFavorite ? FAVORITE_COPY.remove : FAVORITE_COPY.add}
+            aria-pressed={isFavorite}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleFavorite?.(id)
+            }}
+          >
+            <HeartIcon filled={isFavorite} />
+          </button>
+        ) : null}
       </div>
 
       <div className={styles['ProductCard-Body']}>
@@ -105,7 +108,7 @@ export function ProductCard({
             ) : null}
             <span className={styles['ProductCard-Price']}>{price}</span>
           </div>
-          {showQty ? (
+          {shoppingEnabled && showQty ? (
             <div
               className={styles['ProductCard-Qty']}
               role="group"
@@ -143,7 +146,8 @@ export function ProductCard({
                 +
               </button>
             </div>
-          ) : (
+          ) : null}
+          {shoppingEnabled && !showQty ? (
             <Button
               size="sm"
               className={styles['ProductCard-CartButton']}
@@ -155,7 +159,7 @@ export function ProductCard({
             >
               {CART_COPY.add}
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
     </article>

@@ -12,11 +12,12 @@ export function CatalogPageItem({
   onOpen,
 }: CatalogPageItemProps) {
   const { toggleFavorite } = useToggleFavorite()
-  const { getQuantity, setQuantity, addToCart } = useCartLineActions()
+  const { canShop, getQuantity, setQuantity, addToCart } = useCartLineActions()
 
   return (
     <ProductCard
       {...toProductCardProps(product)}
+      shoppingEnabled={canShop}
       href={href}
       linkState={linkState}
       onExpand={onOpen}

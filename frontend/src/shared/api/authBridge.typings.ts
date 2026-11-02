@@ -7,6 +7,12 @@ export interface AuthBridge {
   getAccessToken: () => string | null
   /** Refresh token used to renew the access token, or null. */
   getRefreshToken: () => string | null
+  /**
+   * Непрозрачный id жизни сессии, не userId/JWT. Стабилен при refresh/ротации,
+   * меняется при каждом login/logout и смене сессии. Без getter действует
+   * консервативная проверка исходного refresh token.
+   */
+  getSessionIdentity?: () => string | number
   /** Stores a freshly issued access token. */
   onTokenRefreshed: (accessToken: string) => void
   /**

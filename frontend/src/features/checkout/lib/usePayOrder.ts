@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 
+import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
 import { createPayment } from '@entities/order'
 import { CHECKOUT_COPY } from '@shared/lib/copy'
 
@@ -30,7 +31,7 @@ export function usePayOrder({
   const payingRef = useRef(false)
 
   async function payOrder(orderId: string): Promise<void> {
-    if (!orderId || payingRef.current) {
+    if (!selectCanShop(useAuthStore.getState()) || !orderId || payingRef.current) {
       return
     }
     setError(undefined)
@@ -38,7 +39,9 @@ export function usePayOrder({
     setIsPaying(true)
     try {
       writePaymentRecoveryOrderId(orderId)
+      const session = useAuthStore.getState()
       const payment = await createPayment(orderId)
+      if (!isSameCustomerSession(session, useAuthStore.getState())) return
       redirectToPayment(payment.payment_url)
       clearPaymentRecoveryOrderId()
     } catch {

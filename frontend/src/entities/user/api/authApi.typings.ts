@@ -10,6 +10,8 @@ export interface AuthUser {
   first_name?: string
   /** Optional family name. */
   last_name?: string
+  /** Доступ к управлению; отсутствие поля в прежнем API означает отказ. */
+  is_staff?: boolean
 }
 
 /**

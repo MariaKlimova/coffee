@@ -1,4 +1,5 @@
 import axios, {
+  CanceledError,
   type AxiosError,
   type AxiosRequestConfig,
   type AxiosResponse,
@@ -6,6 +7,7 @@ import axios, {
 } from 'axios'
 
 import { getAuthBridge } from './authBridge'
+import type { AuthBridge } from './authBridge.typings'
 import { getCartBridge } from './cartBridge'
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
@@ -23,9 +25,40 @@ const AUTH_SKIP_REFRESH_PATHS = [
 interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   /** Marks a request that already went through one refresh retry. */
   _retry?: boolean
+  /** Исходная сессия запроса; closure не сериализует refresh JWT в config. */
+  _isAuthSessionCurrent?: () => boolean
 }
 
-let refreshPromise: Promise<string> | null = null
+interface RefreshFlight {
+  /** Bridge, от которого начался refresh. */
+  bridge: AuthBridge
+  /** Исходный refresh JWT; остаётся только внутри HTTP-модуля. */
+  refreshToken: string | null
+  /** Стабильный id сессии, если bridge поддерживает ротацию credentials. */
+  sessionIdentity: string | number | undefined
+  /** Общий результат только для этой сессии. */
+  promise: Promise<string>
+}
+
+let refreshFlight: RefreshFlight | null = null
+
+function isCurrentAuthSession(
+  bridge: AuthBridge,
+  refreshToken: string | null,
+  sessionIdentity?: string | number,
+): boolean {
+  if (getAuthBridge() !== bridge) return false
+  if (sessionIdentity !== undefined) {
+    return bridge.getSessionIdentity?.() === sessionIdentity
+  }
+  return bridge.getRefreshToken() === refreshToken
+}
+
+function assertCurrentRequestSession(config: RetryableRequestConfig): void {
+  if (config.signal?.aborted || config._isAuthSessionCurrent?.() === false) {
+    throw new CanceledError('Authentication session changed or request was canceled')
+  }
+}
 
 function shouldSkipRefresh(url: string | undefined): boolean {
   if (!url) {
@@ -77,42 +110,58 @@ function readResponseCartToken(response: AxiosResponse): string | null {
   return null
 }
 
-async function refreshAccessToken(): Promise<string> {
-  const bridge = getAuthBridge()
-  const refresh = bridge.getRefreshToken()
-  if (!refresh) {
+async function refreshAccessToken(
+  bridge: AuthBridge,
+  refreshToken: string | null,
+  sessionIdentity: string | number | undefined,
+): Promise<string> {
+  if (!refreshToken) {
     throw new Error('No refresh token')
   }
-
   const { data } = await axios.post<{ access: string }>(
     '/api/auth/refresh/',
-    { refresh },
-    {
-      baseURL,
-      headers: { Accept: 'application/json' },
-    },
+    { refresh: refreshToken },
+    { baseURL, headers: { Accept: 'application/json' } },
   )
-
+  // Abort исходного GET не отменяет отдельный POST refresh. Поздний ответ
+  // не вправе восстановить credentials после logout или поверх другого входа.
+  if (!isCurrentAuthSession(bridge, refreshToken, sessionIdentity)) {
+    throw new CanceledError('Authentication session changed during refresh')
+  }
   bridge.onTokenRefreshed(data.access)
   return data.access
 }
 
 /**
- * Single-flight refresh: parallel 401s share one POST /refresh/.
- * onSessionExpired runs once if that shared refresh fails.
+ * Параллельные 401 одной сессии разделяют refresh; новая сессия имеет свой flight.
+ * Поздние error/finally старого запроса не очищают ни новую сессию, ни её flight.
  */
 function getSharedRefreshPromise(): Promise<string> {
-  if (!refreshPromise) {
-    refreshPromise = refreshAccessToken()
-      .catch((error: unknown) => {
-        getAuthBridge().onSessionExpired()
-        throw error
-      })
-      .finally(() => {
-        refreshPromise = null
-      })
+  const bridge = getAuthBridge()
+  const refreshToken = bridge.getRefreshToken()
+  const sessionIdentity = bridge.getSessionIdentity?.()
+  const sameFlightSession =
+    sessionIdentity !== undefined
+      ? refreshFlight?.sessionIdentity === sessionIdentity
+      : refreshFlight?.sessionIdentity === undefined &&
+        refreshFlight?.refreshToken === refreshToken
+  if (refreshFlight?.bridge === bridge && sameFlightSession) {
+    return refreshFlight.promise
   }
-  return refreshPromise
+  const promise = refreshAccessToken(bridge, refreshToken, sessionIdentity)
+    .catch((error: unknown) => {
+      if (isCurrentAuthSession(bridge, refreshToken, sessionIdentity)) {
+        bridge.onSessionExpired()
+      }
+      throw error
+    })
+    .finally(() => {
+      if (refreshFlight?.promise === promise) {
+        refreshFlight = null
+      }
+    })
+  refreshFlight = { bridge, refreshToken, sessionIdentity, promise }
+  return promise
 }
 
 export const http = axios.create({
@@ -122,8 +171,18 @@ export const http = axios.create({
   },
 })
 
-http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const accessToken = getAuthBridge().getAccessToken()
+http.interceptors.request.use((config: RetryableRequestConfig) => {
+  const bridge = getAuthBridge()
+  if (!config._isAuthSessionCurrent) {
+    const refreshToken = bridge.getRefreshToken()
+    const sessionIdentity = bridge.getSessionIdentity?.()
+    config._isAuthSessionCurrent = () =>
+      isCurrentAuthSession(bridge, refreshToken, sessionIdentity)
+  }
+  // Axios повторно запускает request interceptors после await refresh. Сессия
+  // могла смениться уже после проверки response interceptor, перед отправкой.
+  assertCurrentRequestSession(config)
+  const accessToken = bridge.getAccessToken()
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
     return config
@@ -162,7 +221,9 @@ http.interceptors.response.use(
     original._retry = true
 
     try {
+      assertCurrentRequestSession(original)
       const access = await getSharedRefreshPromise()
+      assertCurrentRequestSession(original)
       original.headers.Authorization = `Bearer ${access}`
       return http.request(original as AxiosRequestConfig)
     } catch (refreshError) {

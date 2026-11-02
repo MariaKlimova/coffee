@@ -1,5 +1,5 @@
 import { useFavoriteMutation } from '@entities/favorite'
-import { useAuthStore } from '@entities/user'
+import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
 import { FAVORITE_COPY } from '@shared/lib/copy'
 import { useToast } from '@shared/ui'
 
@@ -12,6 +12,7 @@ export function useToggleFavorite() {
   const mutation = useFavoriteMutation()
 
   function toggleFavorite(productId: string, isFavorite: boolean): void {
+    if (!selectCanShop(useAuthStore.getState())) return
     if (status !== 'authenticated') {
       showToast({
         message: FAVORITE_COPY.guestHint,
@@ -24,10 +25,12 @@ export function useToggleFavorite() {
       return
     }
 
+    const session = useAuthStore.getState()
     mutation.mutate(
       { productId, isFavorite },
       {
         onError: () => {
+          if (!isSameCustomerSession(session, useAuthStore.getState())) return
           showToast({
             message: FAVORITE_COPY.error,
             variant: 'error',

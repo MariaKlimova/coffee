@@ -380,6 +380,24 @@ describe('ProductPage navigation and actions', () => {
     expect(router.state.location.pathname).toBe('/product/ethiopia-yirgacheffe')
   })
 
+  it('keeps owner detail and related links without shopping controls or buyer requests', async () => {
+    useAuthStore.setState({
+      status: 'authenticated',
+      user: { id: 'owner', email: 'owner@example.invalid', is_staff: true },
+    })
+    renderStore('/product/ethiopia-yirgacheffe')
+    await screen.findByRole('heading', { name: listItem.name, level: 1 })
+    await screen.findByRole('heading', { name: 'Похожие товары' })
+    expect(
+      screen.queryByRole('button', {
+        name: /В корзину|Добавить в корзину|избранное|количество/,
+      }),
+    ).not.toBeInTheDocument()
+    expect(
+      adapter.mock.calls.every(([config]) => config.url?.startsWith('/api/products/')),
+    ).toBe(true)
+  })
+
   it('recovers from a detail request error using retry', async () => {
     detailFailure = 500
     const user = userEvent.setup()
