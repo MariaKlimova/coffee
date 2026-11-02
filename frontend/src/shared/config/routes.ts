@@ -28,6 +28,14 @@ export const APP_ROUTES = {
   orders: '/orders',
   /** Order detail pattern for the router (auth). */
   orderDetail: '/orders/:id',
+  /** Главная страница управления каталогом (для сотрудников). */
+  manage: '/manage',
+  /** Товары в управлении каталогом. */
+  manageProducts: '/manage/products',
+  /** Добавление товара. */
+  manageProductNew: '/manage/products/new',
+  /** Редактирование товара по идентификатору. */
+  manageProductEdit: '/manage/products/:id/edit',
   /** Contacts anchor (пока без отдельной страницы). */
   contacts: '/coffee#contacts',
   /** Design-system playground (DEV only). */

@@ -21,6 +21,8 @@ export interface AuthSession {
  * Zustand auth store shape.
  */
 export interface AuthStoreState {
+  /** Поколение входа/выхода; обновление токенов текущей сессии его не меняет. */
+  sessionGeneration: number
   /** Session lifecycle marker. */
   status: AuthStatus
   /** Access JWT in memory, or null when logged out. */

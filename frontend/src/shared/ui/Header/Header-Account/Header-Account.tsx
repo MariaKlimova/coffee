@@ -10,7 +10,12 @@ import { useHeaderDisclosure } from '../lib'
 import type { HeaderAccountProps } from './Header-Account.typings'
 import styles from './Header-Account.module.css'
 
-export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps) {
+export function HeaderAccount({
+  user,
+  onLogout,
+  className,
+  shoppingEnabled = true,
+}: HeaderAccountProps) {
   const { open, setOpen, rootRef, triggerRef, closeAndRestoreFocus } =
     useHeaderDisclosure()
   const menuRef = useRef<HTMLUListElement>(null)
@@ -89,16 +94,18 @@ export function HeaderAccount({ user, onLogout, className }: HeaderAccountProps)
               {AUTH_COPY.profileTitle}
             </Link>
           </li>
-          <li role="none">
-            <Link
-              to={APP_ROUTES.orders}
-              role="menuitem"
-              className={styles['Header-AccountItem']}
-              onClick={closeAndRestoreFocus}
-            >
-              {ORDERS_PAGE_COPY.title}
-            </Link>
-          </li>
+          {shoppingEnabled ? (
+            <li role="none">
+              <Link
+                to={APP_ROUTES.orders}
+                role="menuitem"
+                className={styles['Header-AccountItem']}
+                onClick={closeAndRestoreFocus}
+              >
+                {ORDERS_PAGE_COPY.title}
+              </Link>
+            </li>
+          ) : null}
           <li role="none">
             <button
               type="button"

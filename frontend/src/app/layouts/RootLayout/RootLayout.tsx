@@ -2,7 +2,12 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { useCart } from '@entities/cart'
 import { useFavoritesCount } from '@entities/favorite'
-import { getUserDisplayName, useAuthStore } from '@entities/user'
+import {
+  getUserDisplayName,
+  selectCanManage,
+  selectCanShop,
+  useAuthStore,
+} from '@entities/user'
 import {
   buildCatalogSearchParams,
   DEFAULT_ORDERING,
@@ -56,6 +61,8 @@ export function RootLayout() {
     })
   }
 
+  const shoppingEnabled = useAuthStore(selectCanShop)
+  const managementEnabled = useAuthStore(selectCanManage)
   const user = useAuthStore((state) => state.user)
   const status = useAuthStore((state) => state.status)
   const logout = useAuthStore((state) => state.logout)
@@ -68,6 +75,8 @@ export function RootLayout() {
   return (
     <div className={styles.RootLayout}>
       <Header
+        shoppingEnabled={shoppingEnabled}
+        managementEnabled={managementEnabled}
         favoritesCount={favoritesCount}
         cartCount={cartCount}
         user={user ? { name: getUserDisplayName(user) } : null}

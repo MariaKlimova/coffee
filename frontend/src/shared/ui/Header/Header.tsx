@@ -29,6 +29,8 @@ function CartIcon() {
 }
 
 export function Header({
+  shoppingEnabled = true,
+  managementEnabled = false,
   favoritesCount = 0,
   cartCount = 0,
   user = null,
@@ -53,7 +55,11 @@ export function Header({
         </Link>
 
         <div className={styles['Header-SearchRow']}>
-          <HeaderNavigation catalogSearch={catalogSearch} />
+          <HeaderNavigation
+            catalogSearch={catalogSearch}
+            shoppingEnabled={shoppingEnabled}
+            managementEnabled={managementEnabled}
+          />
           <div className={styles['Header-SearchSlot']}>
             <HeaderSearch
               query={searchQuery}
@@ -67,19 +73,28 @@ export function Header({
         </div>
 
         <div className={styles['Header-Actions']}>
-          <HeaderCounterLink
-            to={APP_ROUTES.favorites}
-            label={FAVORITES_PAGE_COPY.title}
-            count={favoritesCount}
-            icon={<HeartIcon />}
+          {shoppingEnabled ? (
+            <>
+              <HeaderCounterLink
+                to={APP_ROUTES.favorites}
+                label={FAVORITES_PAGE_COPY.title}
+                count={favoritesCount}
+                icon={<HeartIcon />}
+              />
+              <HeaderCounterLink
+                to={APP_ROUTES.cart}
+                label={CART_PAGE_COPY.title}
+                count={cartCount}
+                icon={<CartIcon />}
+              />
+            </>
+          ) : null}
+          <HeaderAccount
+            key={`${user?.name ?? 'guest'}-${managementEnabled}`}
+            user={user}
+            onLogout={onLogout}
+            shoppingEnabled={shoppingEnabled}
           />
-          <HeaderCounterLink
-            to={APP_ROUTES.cart}
-            label={CART_PAGE_COPY.title}
-            count={cartCount}
-            icon={<CartIcon />}
-          />
-          <HeaderAccount user={user} onLogout={onLogout} />
         </div>
       </div>
     </header>

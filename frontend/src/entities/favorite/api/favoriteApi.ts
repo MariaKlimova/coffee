@@ -1,5 +1,5 @@
 import type { Paginated, ProductListItem } from '@entities/product'
-import { http } from '@shared/api'
+import { guardRequest, http } from '@shared/api'
 
 import type { Favorite, FavoriteListParams } from './favoriteApi.typings'
 
@@ -29,16 +29,26 @@ export async function fetchFavorites(
 /**
  * Adds a product to favorites (idempotent on the backend).
  */
-export async function addFavorite(productId: string): Promise<Favorite> {
-  const { data } = await http.post<Favorite>('/api/favorites/', {
-    product_id: productId,
-  })
+export async function addFavorite(
+  productId: string,
+  assertActor?: () => void,
+): Promise<Favorite> {
+  const { data } = await http.post<Favorite>(
+    '/api/favorites/',
+    {
+      product_id: productId,
+    },
+    guardRequest(assertActor),
+  )
   return data
 }
 
 /**
  * Removes a product from favorites.
  */
-export async function removeFavorite(productId: string): Promise<void> {
-  await http.delete(`/api/favorites/${productId}/`)
+export async function removeFavorite(
+  productId: string,
+  assertActor?: () => void,
+): Promise<void> {
+  await http.delete(`/api/favorites/${productId}/`, guardRequest(assertActor))
 }

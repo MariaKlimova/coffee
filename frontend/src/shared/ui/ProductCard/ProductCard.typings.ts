@@ -1,6 +1,8 @@
 import type { HTMLAttributes } from 'react'
 
 export interface ProductCardProps extends Omit<HTMLAttributes<HTMLElement>, 'id'> {
+  /** Показывать действия покупки и избранного; выключено при просмотре владельцем. */
+  shoppingEnabled?: boolean
   /** Product identifier passed to expand / cart callbacks. */
   id: string
   /** Uppercase category label above the title. */
