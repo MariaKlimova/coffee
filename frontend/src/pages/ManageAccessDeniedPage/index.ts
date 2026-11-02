@@ -1,0 +1,1 @@
+export { ManageAccessDeniedPage } from './ManageAccessDeniedPage'

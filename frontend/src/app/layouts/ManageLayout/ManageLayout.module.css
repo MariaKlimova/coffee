@@ -1,0 +1,53 @@
+.ManageLayout {
+  min-height: 100vh;
+  color: var(--color-text);
+}
+
+.ManageLayout-Header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--layout-gutter);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ManageLayout-Title {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.ManageLayout-Navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+}
+
+.ManageLayout-Link {
+  color: var(--color-primary);
+  text-underline-offset: var(--space-2xs);
+}
+
+.ManageLayout-Link[aria-current='page'] {
+  font-weight: var(--weight-semibold);
+}
+
+.ManageLayout-Link:focus-visible,
+.ManageLayout-Title:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.ManageLayout-Main {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: var(--space-xl) var(--layout-gutter);
+}

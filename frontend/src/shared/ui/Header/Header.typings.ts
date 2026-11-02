@@ -20,6 +20,10 @@ export interface HeaderUser {
  * Props for the store header.
  */
 export interface HeaderProps {
+  /** Показывать покупательские действия и навигацию. */
+  shoppingEnabled?: boolean
+  /** Показывать семантический вход в управление. */
+  managementEnabled?: boolean
   /** Favorites badge count. */
   favoritesCount?: number
   /** Cart badge count. */

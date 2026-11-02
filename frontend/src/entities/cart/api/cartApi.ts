@@ -1,4 +1,4 @@
-import { http } from '@shared/api'
+import { guardRequest, http } from '@shared/api'
 
 import type {
   Cart,
@@ -19,29 +19,48 @@ export async function fetchCart(signal?: AbortSignal): Promise<Cart> {
 /**
  * Добавляет товар в корзину (или увеличивает quantity, если позиция уже есть).
  */
-export async function addItem(productId: string, quantity: number): Promise<CartItem> {
+export async function addItem(
+  productId: string,
+  quantity: number,
+  assertActor?: () => void,
+): Promise<CartItem> {
   const body: CartItemCreate = {
     product_id: productId,
     quantity,
   }
-  const { data } = await http.post<CartItem>('/api/cart/items/', body)
+  const { data } = await http.post<CartItem>(
+    '/api/cart/items/',
+    body,
+    guardRequest(assertActor),
+  )
   return data
 }
 
 /**
  * Обновляет количество существующей позиции.
  */
-export async function updateItem(itemId: string, quantity: number): Promise<CartItem> {
+export async function updateItem(
+  itemId: string,
+  quantity: number,
+  assertActor?: () => void,
+): Promise<CartItem> {
   const body: CartItemUpdate = { quantity }
-  const { data } = await http.patch<CartItem>(`/api/cart/items/${itemId}/`, body)
+  const { data } = await http.patch<CartItem>(
+    `/api/cart/items/${itemId}/`,
+    body,
+    guardRequest(assertActor),
+  )
   return data
 }
 
 /**
  * Удаляет позицию из корзины.
  */
-export async function removeItem(itemId: string): Promise<void> {
-  await http.delete(`/api/cart/items/${itemId}/`)
+export async function removeItem(
+  itemId: string,
+  assertActor?: () => void,
+): Promise<void> {
+  await http.delete(`/api/cart/items/${itemId}/`, guardRequest(assertActor))
 }
 
 /**

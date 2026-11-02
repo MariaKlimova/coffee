@@ -7,7 +7,6 @@ export const NAV_COPY = {
   coffee: 'Кофе',
   machines: 'Кофемашины',
   orders: 'Заказы',
-  contacts: 'Контакты',
 } as const
 
 /**

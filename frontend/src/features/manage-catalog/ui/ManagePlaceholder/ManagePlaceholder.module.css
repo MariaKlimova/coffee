@@ -1,0 +1,33 @@
+.ManagePlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.ManagePlaceholder-Title {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  line-height: var(--leading-tight);
+  overflow-wrap: anywhere;
+}
+
+.ManagePlaceholder-Description {
+  max-width: var(--size-empty-max);
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: var(--leading-normal);
+}
+
+.ManagePlaceholder-Link {
+  color: var(--color-primary);
+  text-underline-offset: var(--space-2xs);
+}
+
+.ManagePlaceholder-Link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}

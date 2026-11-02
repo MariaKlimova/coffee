@@ -14,3 +14,11 @@ export {
 } from './model/authStorage'
 export { bindAuthBridge, selectIsAuthenticated, useAuthStore } from './model/authStore'
 export type { AuthSession, AuthStatus, AuthStoreState } from './model/authStore.typings'
+export {
+  isSameCustomerSession,
+  selectAccountMode,
+  selectCanShop,
+  selectCanManage,
+  selectCanUseFavorites,
+} from './model/accountAccess'
+export { useCustomerMutation } from './model/useCustomerMutation'

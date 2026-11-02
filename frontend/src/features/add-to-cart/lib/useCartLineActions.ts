@@ -1,4 +1,5 @@
 import { useCart, useCartMutations } from '@entities/cart'
+import { selectCanShop, useAuthStore } from '@entities/user'
 
 import { useAddToCart } from './useAddToCart'
 
@@ -7,6 +8,7 @@ import { useAddToCart } from './useAddToCart'
  * (добавить, изменить или убрать при quantity меньше 1).
  */
 export function useCartLineActions() {
+  const canShop = useAuthStore(selectCanShop)
   const cartQuery = useCart()
   const { addToCart, isPending: isAddPending } = useAddToCart()
   const { updateItem, removeItem } = useCartMutations()
@@ -17,6 +19,7 @@ export function useCartLineActions() {
   }
 
   function setQuantity(productId: string, quantity: number): void {
+    if (!selectCanShop(useAuthStore.getState())) return
     const line = cartQuery.data?.items?.find((item) => item.product.id === productId)
 
     if (quantity < 1) {
@@ -35,6 +38,7 @@ export function useCartLineActions() {
   }
 
   return {
+    canShop,
     getQuantity,
     setQuantity,
     addToCart,

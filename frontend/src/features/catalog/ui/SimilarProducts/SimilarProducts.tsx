@@ -9,6 +9,7 @@ import styles from './SimilarProducts.module.css'
 
 export function SimilarProducts({
   slug,
+  shoppingEnabled = true,
   onSelect,
   productHref,
   linkState,
@@ -67,6 +68,7 @@ export function SimilarProducts({
           <div key={item.id} className={styles['SimilarProducts-Item']}>
             <ProductCard
               {...toProductCardProps(item)}
+              shoppingEnabled={shoppingEnabled}
               href={productHref?.(item.slug)}
               linkState={linkState}
               cartQuantity={getCartQuantity?.(item.id) ?? 0}

@@ -915,7 +915,7 @@ components:
 
     User:
       type: object
-      required: [id, email]
+      required: [id, email, is_staff]
       properties:
         id:
           type: string
@@ -927,6 +927,10 @@ components:
           type: string
         last_name:
           type: string
+        is_staff:
+          type: boolean
+          readOnly: true
+          description: Доступ к управлению каталогом; назначается только на сервере.
 
     Category:
       type: object
