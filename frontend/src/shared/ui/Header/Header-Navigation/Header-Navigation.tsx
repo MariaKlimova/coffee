@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useId } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
@@ -18,17 +18,6 @@ export function HeaderNavigation({
   const { open, setOpen, rootRef, triggerRef, closeAndRestoreFocus } =
     useHeaderDisclosure()
   const navigationId = useId()
-  const anchorFocusFrame = useRef<number | null>(null)
-
-  useEffect(
-    () => () => {
-      if (anchorFocusFrame.current !== null) {
-        window.cancelAnimationFrame(anchorFocusFrame.current)
-      }
-    },
-    [],
-  )
-
   const items = HEADER_NAV_ITEMS.filter(
     (item) => shoppingEnabled || item.to !== APP_ROUTES.orders,
   )
@@ -57,51 +46,22 @@ export function HeaderNavigation({
         <ul className={styles['Header-NavigationList']}>
           {items.map((item) => (
             <li key={item.to}>
-              {item.to.includes('#') ? (
-                <a
-                  href={item.to}
-                  className={styles['Header-NavigationLink']}
-                  onClick={(event) => {
-                    if (
-                      event.button !== 0 ||
-                      event.metaKey ||
-                      event.ctrlKey ||
-                      event.shiftKey ||
-                      event.altKey
-                    ) {
-                      return
-                    }
-                    closeAndRestoreFocus()
-                    if (open) {
-                      // Якорь сначала прокручивает страницу и меняет фокус нативно.
-                      // Возвращаем фокус после этого, сохраняя положение контактов.
-                      anchorFocusFrame.current = window.requestAnimationFrame(() => {
-                        triggerRef.current?.focus({ preventScroll: true })
-                        anchorFocusFrame.current = null
-                      })
-                    }
-                  }}
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <NavLink
-                  to={
-                    item.to === APP_ROUTES.coffee || item.to === APP_ROUTES.machines
-                      ? `${item.to}${catalogSearch}`
-                      : item.to
-                  }
-                  className={({ isActive }) =>
-                    cx(
-                      styles['Header-NavigationLink'],
-                      isActive && styles['Header-NavigationLink--active'],
-                    )
-                  }
-                  onClick={closeAndRestoreFocus}
-                >
-                  {item.label}
-                </NavLink>
-              )}
+              <NavLink
+                to={
+                  item.to === APP_ROUTES.coffee || item.to === APP_ROUTES.machines
+                    ? `${item.to}${catalogSearch}`
+                    : item.to
+                }
+                className={({ isActive }) =>
+                  cx(
+                    styles['Header-NavigationLink'],
+                    isActive && styles['Header-NavigationLink--active'],
+                  )
+                }
+                onClick={closeAndRestoreFocus}
+              >
+                {item.label}
+              </NavLink>
             </li>
           ))}
         </ul>

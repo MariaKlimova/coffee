@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -174,35 +174,38 @@ describe('Header', () => {
     await user.click(screen.getByRole('link', { name: 'Кофемашины' }))
     expect(trigger).toHaveAttribute('aria-expanded', 'false')
     expect(trigger).toHaveFocus()
-    expect(screen.getByRole('link', { name: 'Контакты' })).toHaveAttribute(
-      'href',
-      '#contacts',
-    )
   })
 
-  it('restores menu focus after native contact anchor navigation without scrolling back', async () => {
-    const user = userEvent.setup()
-    window.history.replaceState(null, '', '/machines?search=espresso')
-    render(
-      <MemoryRouter initialEntries={['/machines?search=espresso']}>
-        <Header />
-        <p id="contacts">Тестовые контакты</p>
-      </MemoryRouter>,
-    )
-    const trigger = screen.getByRole('button', { name: 'Меню' })
-    const focus = vi.spyOn(trigger, 'focus')
-    await user.click(trigger)
-    await user.click(screen.getByRole('link', { name: 'Контакты' }))
-    await waitFor(() => {
-      expect(focus).toHaveBeenCalledWith({ preventScroll: true })
-    })
-    expect(trigger).toHaveFocus()
-    expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    expect(window.location.pathname).toBe('/machines')
-    expect(window.location.search).toBe('?search=espresso')
-    expect(window.location.hash).toBe('#contacts')
-    window.history.replaceState(null, '', '/')
-  })
+  it.each(['guest', 'buyer', 'owner'] as const)(
+    'keeps Contacts out of %s primary navigation and its opened menu',
+    async (role) => {
+      const user = userEvent.setup()
+      render(
+        <MemoryRouter>
+          <Header
+            user={role === 'guest' ? null : { name: 'Тестовый аккаунт' }}
+            shoppingEnabled={role !== 'owner'}
+            managementEnabled={role === 'owner'}
+          />
+        </MemoryRouter>,
+      )
+      const navigation = within(
+        screen.getByRole('navigation', { name: 'Основная навигация' }),
+      )
+      expect(
+        navigation.queryByRole('link', { name: 'Контакты' }),
+      ).not.toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Меню' }))
+      expect(
+        navigation.queryByRole('link', { name: 'Контакты' }),
+      ).not.toBeInTheDocument()
+      expect(navigation.getByRole('link', { name: 'Кофе' })).toBeInTheDocument()
+      expect(navigation.getByRole('link', { name: 'Кофемашины' })).toBeInTheDocument()
+      if (role === 'owner')
+        expect(navigation.getAllByRole('link', { name: 'Управление' })).toHaveLength(1)
+      else expect(navigation.getByRole('link', { name: 'Заказы' })).toBeInTheDocument()
+    },
+  )
 
   it('closes navigation on Escape and when focus leaves it', async () => {
     const user = userEvent.setup()
