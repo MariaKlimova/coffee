@@ -44,6 +44,8 @@ export interface ProductImageDto {
   order: number
   /** Whether this image is the cover. */
   is_main: boolean
+  /** Временное демо-изображение; старый API может не присылать. */
+  is_mock?: boolean
 }
 
 /**
@@ -68,6 +70,10 @@ export interface ProductListItem {
   in_stock: boolean
   /** Доступно к заказу: склад минус резерв; старый API может не присылать. */
   available_quantity?: number
+  /** Происхождение товара; отсутствует в старой версии API. */
+  origin?: 'demo' | 'owner'
+  /** Есть загруженные фотографии, кроме демо; отсутствует в старой версии API. */
+  has_uploaded_images?: boolean
   /** Main image URL, or null when missing. */
   image_url: string | null
   /** Whether the authenticated user favorited this product. */

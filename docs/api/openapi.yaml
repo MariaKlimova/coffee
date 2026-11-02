@@ -69,6 +69,7 @@ tags:
   - name: Health
   - name: Auth
   - name: Catalog
+  - name: Manage catalog
   - name: Favorites
   - name: Cart
   - name: Orders
@@ -320,6 +321,143 @@ paths:
                   $ref: "#/components/schemas/ProductListItem"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /api/manage/products/:
+    get:
+      tags: [Manage catalog]
+      summary: Staff catalog including unpublished and disabled demo products
+      security: [{bearerAuth: []}]
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - {name: category, in: query, schema: {type: string, enum: [coffee, machines]}}
+        - {name: search, in: query, schema: {type: string}}
+        - {name: is_published, in: query, schema: {type: boolean}}
+        - {name: origin, in: query, schema: {type: string, enum: [demo, owner]}}
+        - {name: in_stock, in: query, schema: {type: boolean}}
+        - {name: price_min, in: query, schema: {type: string}}
+        - {name: price_max, in: query, schema: {type: string}}
+        - {name: ordering, in: query, schema: {type: string, enum: [price, '-price', created_at, '-created_at']}}
+      responses:
+        "200":
+          description: Paginated staff products
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items: {$ref: "#/components/schemas/ManageProduct"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+    post:
+      tags: [Manage catalog]
+      summary: Staff creates an owner product with audited initial stock
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/ManageProductWrite"
+                - required: [name, category, short_description, price, stock_quantity]
+      responses:
+        "201":
+          description: Created with generated unique slug; origin is owner
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManageProduct"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+
+  /api/manage/products/{id}/:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [Manage catalog]
+      summary: Staff product detail by UUID, including hidden products
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Staff product
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManageProduct"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    patch:
+      tags: [Manage catalog]
+      summary: Staff partial edit with locked stock adjustment
+      description: >
+        Demo edits require save_as_owner=true, explicitly retaining the edited
+        product after cutover. Slug and demo_source remain unchanged. All fields
+        and audited stock change commit together. stock_quantity below the active
+        reserved_quantity returns a 400 errors.stock_quantity field error.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ManageProductWrite"}
+      responses:
+        "200":
+          description: Updated product
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManageProduct"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      tags: [Manage catalog]
+      summary: Staff removes publication without deleting product data or relations
+      security: [{bearerAuth: []}]
+      responses:
+        "204": {description: is_published=false; repeated requests are safe}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/manage/catalog/:
+    get:
+      tags: [Manage catalog]
+      summary: Persisted demo mode and cutover counts
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Counts let the SPA warn before disabling an empty owner catalog
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CatalogState"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+
+  /api/manage/catalog/disable-demo/:
+    post:
+      tags: [Manage catalog]
+      summary: Staff switches permanently to owner catalog
+      description: >
+        Idempotent one-way transition persisted in the database. Public list,
+        detail and related products hide remaining demo entries; carts and checkout
+        reject their purchase. No product/gallery/stock/order/favorite record is
+        deleted. Owner products and promoted demos remain. No seed or redeploy
+        re-enables demo. No request body is required.
+      security: [{bearerAuth: []}]
+      responses:
+        "200":
+          description: Persisted state; repeated requests keep original timestamp and actor
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CatalogState"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
 
   /api/favorites/:
     get:
@@ -778,6 +916,12 @@ components:
         format: uuid
 
   responses:
+    Forbidden:
+      description: Authenticated account has no staff access
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     BadRequest:
       description: Validation or business-rule error
       content:
@@ -945,6 +1089,76 @@ components:
         name:
           type: string
 
+    ManageProductWrite:
+      type: object
+      additionalProperties: false
+      description: >
+        PATCH accepts any subset. Unknown/read-only fields (origin, demo_source,
+        reserved_quantity, available_quantity, in_stock, slug) are rejected.
+        Attributes replace the whole object and must match the resulting category.
+      properties:
+        name: {type: string, maxLength: 255, minLength: 1}
+        category: {type: string, enum: [coffee, machines]}
+        short_description: {type: string, maxLength: 300, minLength: 1}
+        description: {type: string}
+        price: {$ref: "#/components/schemas/Money"}
+        old_price:
+          allOf: [{$ref: "#/components/schemas/Money"}]
+          nullable: true
+          description: Must be greater than price when present
+        stock_quantity:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+          description: JSON integer only; physical count must cover active reservations
+        stock_change_reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Optional audit reason; requires stock_quantity. Defaults to Catalog stock adjustment
+        is_published: {type: boolean, default: true}
+        attributes:
+          anyOf:
+            - {$ref: "#/components/schemas/CoffeeAttributes"}
+            - {$ref: "#/components/schemas/MachineAttributes"}
+        save_as_owner:
+          type: boolean
+          description: Required true to edit/promote a demo; keeps its UUID, provenance and real uploaded photos
+
+    ManageProduct:
+      allOf:
+        - $ref: "#/components/schemas/Product"
+        - type: object
+          required: [stock_quantity, reserved_quantity, is_published, demo_source, hidden_reason]
+          properties:
+            stock_quantity: {type: integer, minimum: 0, readOnly: true}
+            reserved_quantity: {type: integer, minimum: 0, readOnly: true}
+            is_published: {type: boolean, readOnly: true}
+            demo_source:
+              type: string
+              readOnly: true
+              description: Immutable original import run or seed_catalog; retained after conversion
+            hidden_reason:
+              type: string
+              nullable: true
+              enum: [unpublished, demo_disabled, null]
+              readOnly: true
+              description: Unpublished takes precedence if both reasons apply
+            images:
+              type: array
+              description: Includes marked mock files for management; public owner products omit mocks
+              items: {$ref: "#/components/schemas/ProductImage"}
+
+    CatalogState:
+      type: object
+      required: [demo_enabled, switched_at, demo_product_count, owner_product_count, published_owner_product_count]
+      properties:
+        demo_enabled: {type: boolean, readOnly: true}
+        switched_at: {type: string, format: date-time, nullable: true, readOnly: true}
+        demo_product_count: {type: integer, minimum: 0, readOnly: true}
+        owner_product_count: {type: integer, minimum: 0, readOnly: true}
+        published_owner_product_count: {type: integer, minimum: 0, readOnly: true}
+
     ProductListItem:
       type: object
       required:
@@ -958,6 +1172,8 @@ components:
           in_stock,
           available_quantity,
           is_favorite,
+          origin,
+          has_uploaded_images,
         ]
       properties:
         id:
@@ -994,6 +1210,15 @@ components:
           type: string
           format: uri
           nullable: true
+        origin:
+          type: string
+          enum: [demo, owner]
+          readOnly: true
+          description: Server-owned origin; never infer demo status from name/slug/UUID on the client
+        has_uploaded_images:
+          type: boolean
+          readOnly: true
+          description: True only for actual uploaded photos; mock placeholders do not count after conversion
         is_favorite:
           type: boolean
           description: >
@@ -1046,7 +1271,7 @@ components:
 
     ProductImage:
       type: object
-      required: [url, order, is_main]
+      required: [url, order, is_main, is_mock]
       properties:
         url:
           type: string
@@ -1056,6 +1281,10 @@ components:
           minimum: 0
         is_main:
           type: boolean
+        is_mock:
+          type: boolean
+          readOnly: true
+          description: Temporary demo placeholder; never an uploaded owner photo
 
     CoffeeAttributes:
       type: object

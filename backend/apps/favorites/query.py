@@ -6,6 +6,7 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.db.models import BooleanField, Exists, OuterRef, Prefetch, QuerySet, Value
 
 from apps.catalog.models import Product, ProductImage
+from apps.catalog.visibility import visible_products
 from apps.favorites.models import Favorite
 
 
@@ -36,7 +37,8 @@ def favorite_products_queryset(*, user: AbstractBaseUser) -> QuerySet[Product]:
     """Products favorited by user, newest favorite first, with gallery prefetch."""
     images_qs = ProductImage.objects.order_by("order", "id")
     return annotate_is_favorite(
-        Product.objects.filter(favorites__user=user)
+        visible_products()
+        .filter(favorites__user=user)
         .select_related("category")
         .prefetch_related(Prefetch("images", queryset=images_qs))
         .order_by("-favorites__created_at"),

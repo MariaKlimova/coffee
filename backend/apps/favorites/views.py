@@ -12,6 +12,7 @@ from rest_framework.views import APIView
 from apps.catalog.models import Product
 from apps.catalog.pagination import CatalogPagination
 from apps.catalog.serializers import ProductListSerializer
+from apps.catalog.visibility import visible_products
 from apps.favorites.models import Favorite
 from apps.favorites.query import favorite_products_queryset
 from apps.favorites.serializers import FavoriteCreateSerializer, FavoriteSerializer
@@ -53,7 +54,7 @@ class FavoritesListCreateView(APIView):
         product_id = create_serializer.validated_data["product_id"]
 
         try:
-            product = Product.objects.get(pk=product_id)
+            product = visible_products().get(pk=product_id)
         except Product.DoesNotExist as exc:
             raise NotFound(
                 detail="Product not found.",

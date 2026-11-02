@@ -3,6 +3,7 @@
 from decimal import Decimal
 
 from django.db.models.fields.files import FieldFile
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.request import Request
 
@@ -22,6 +23,7 @@ def absolute_media_url(
     return request.build_absolute_uri(url)
 
 
+@extend_schema_field(str)
 class MoneyField(serializers.Field):
     """Serialize Decimal prices as RUB decimal strings (OpenAPI Money)."""
 
@@ -47,7 +49,7 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductImage
-        fields = ("url", "order", "is_main")
+        fields = ("url", "order", "is_main", "is_mock")
         read_only_fields = fields
 
     def get_url(self, obj: ProductImage) -> str | None:
@@ -64,6 +66,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(slug_field="slug", read_only=True)
     image_url = serializers.SerializerMethodField()
     is_favorite = serializers.SerializerMethodField()
+    has_uploaded_images = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -79,16 +82,30 @@ class ProductListSerializer(serializers.ModelSerializer):
             "available_quantity",
             "image_url",
             "is_favorite",
+            "origin",
+            "has_uploaded_images",
         )
         read_only_fields = fields
 
     def get_image_url(self, obj: Product) -> str | None:
-        images = list(obj.images.all())
+        images = self.product_images(obj)
         main = next((img for img in images if img.is_main), None)
         chosen = main or (images[0] if images else None)
         if chosen is None:
             return None
         return absolute_media_url(self.context.get("request"), chosen.image)
+
+    def product_images(self, obj):
+        return [
+            image
+            for image in obj.images.all()
+            if not image.is_mock
+            or obj.origin == Product.Origin.DEMO
+            or self.context.get("include_mock_images", False)
+        ]
+
+    def get_has_uploaded_images(self, obj) -> bool:
+        return any(not image.is_mock for image in obj.images.all())
 
     def get_is_favorite(self, obj: Product) -> bool:
         if not hasattr(obj, "is_favorite"):
@@ -99,7 +116,13 @@ class ProductListSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(ProductListSerializer):
     """Full product payload for the product page."""
 
-    images = ProductImageSerializer(many=True, read_only=True)
+    images = serializers.SerializerMethodField()
+
+    @extend_schema_field(ProductImageSerializer(many=True))
+    def get_images(self, obj):
+        return ProductImageSerializer(
+            self.product_images(obj), many=True, context=self.context
+        ).data
 
     class Meta(ProductListSerializer.Meta):
         fields = ProductListSerializer.Meta.fields + (

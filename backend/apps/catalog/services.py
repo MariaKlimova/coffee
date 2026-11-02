@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework.exceptions import APIException, PermissionDenied, ValidationError
 
 from apps.catalog.models import Product, StockAdjustment
+from apps.catalog.visibility import is_visible
 
 
 class InsufficientStock(APIException):
@@ -20,7 +21,7 @@ class InsufficientStock(APIException):
     def __init__(self, product: Product, quantity: int):
         self.product_id = str(product.pk)
         self.available_quantity = (
-            product.available_quantity if product.is_published else 0
+            product.available_quantity if is_visible(product) else 0
         )
         self.requested_quantity = quantity
         super().__init__(
@@ -33,7 +34,7 @@ class InsufficientStock(APIException):
 def validate_available(product: Product, quantity: int) -> None:
     if quantity < 1:
         raise ValidationError({"quantity": ["Quantity must be at least 1."]})
-    if not product.is_published or quantity > product.available_quantity:
+    if not is_visible(product) or quantity > product.available_quantity:
         raise InsufficientStock(product, quantity)
 
 
