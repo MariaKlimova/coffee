@@ -5,6 +5,7 @@ import { App } from '@app/App'
 import { setupAuthBridge } from '@app/lib/setupAuthBridge'
 import { AppProviders } from '@app/providers/AppProviders'
 import { bindCartBridge } from '@entities/cart'
+import '@shared/ui/fonts/fonts.css'
 import '@shared/ui/tokens.css'
 
 setupAuthBridge()

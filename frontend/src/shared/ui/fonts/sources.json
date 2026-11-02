@@ -1,0 +1,102 @@
+{
+  "cssSource": "https://fonts.googleapis.com/css2?family=Inter:wght@400..600&family=Lora:wght@500..600&display=swap",
+  "retrieved": "2026-11-02",
+  "assets": [
+    {
+      "file": "inter-cyrillic-ext.woff2",
+      "bytes": 25844,
+      "sha256": "fccca918fea40089dacadc7045861314d1a6bc91f1f323cc1eeb22ebcdb321b5",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2JL7W0Q5n-wU.woff2"
+    },
+    {
+      "file": "inter-cyrillic.woff2",
+      "bytes": 18744,
+      "sha256": "aebf2ab4a4ce6810d73c1ac7be7cafb4e5ec4cee2d6db5fb3e09691747ec4bd6",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa0ZL7W0Q5n-wU.woff2"
+    },
+    {
+      "file": "inter-greek-ext.woff2",
+      "bytes": 11272,
+      "sha256": "a2e2c783ca6f9c20486e81e72a279203e86730bbf8f01ff6a5ee9dbd09e1c271",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2ZL7W0Q5n-wU.woff2"
+    },
+    {
+      "file": "inter-greek.woff2",
+      "bytes": 19044,
+      "sha256": "46dd4cdca58c26ae87cc6927657bf83b2e8abfc39ffd0ab176e301a8d28d22bf",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1pL7W0Q5n-wU.woff2"
+    },
+    {
+      "file": "inter-vietnamese.woff2",
+      "bytes": 10280,
+      "sha256": "8db00ff46c67b22cda8bed865acf7077651cac8d2841d5b40980556b48961931",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa2pL7W0Q5n-wU.woff2"
+    },
+    {
+      "file": "inter-latin-ext.woff2",
+      "bytes": 85272,
+      "sha256": "a28eb6d3ccb534ae0c94ca999371df024aab60b08c3c8a5720ee9e32fa0faaa2",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa25L7W0Q5n-wU.woff2"
+    },
+    {
+      "file": "inter-latin.woff2",
+      "bytes": 48432,
+      "sha256": "c940764593d0fe5d596be327ca7558855e018039fb78509aa21921fd3644c3e4",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcC73FwrK3iLTeHuS_nVMrMxCp50SjIa1ZL7W0Q5nw.woff2"
+    },
+    {
+      "file": "lora-cyrillic-ext.woff2",
+      "bytes": 23588,
+      "sha256": "d0d358cfccfcf0e30607d8a0dc7ace0809087f338d7f1f34a2447de0daaac375",
+      "source": "https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuMwf7I_FMl_GW8g.woff2"
+    },
+    {
+      "file": "lora-cyrillic.woff2",
+      "bytes": 21252,
+      "sha256": "66e1b8c7c49c283589ec901674bff3688ba36320cad4c29ee9ccf4d03a3a2820",
+      "source": "https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuMw77I_FMl_GW8g.woff2"
+    },
+    {
+      "file": "lora-math.woff2",
+      "bytes": 29236,
+      "sha256": "8fd95cb66c53d5f263707bab5364437456ffc2d5bb780e7ace86cd56d581823e",
+      "source": "https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuM3b7I_FMl_GW8g.woff2"
+    },
+    {
+      "file": "lora-symbols.woff2",
+      "bytes": 17280,
+      "sha256": "367df5ed02b082e3fad9615c54f56aa2b5388331257acb22be60c7c0a608e647",
+      "source": "https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuM2T7I_FMl_GW8g.woff2"
+    },
+    {
+      "file": "lora-vietnamese.woff2",
+      "bytes": 8908,
+      "sha256": "a9149daf82ca5fef1c12bdee492749f493c2e2e431376a72fb9f035e67064573",
+      "source": "https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuMwX7I_FMl_GW8g.woff2"
+    },
+    {
+      "file": "lora-latin-ext.woff2",
+      "bytes": 20176,
+      "sha256": "55606fbc76dc232c5beb8ef584d7b4f7f76e31a9f27877112e75484356462781",
+      "source": "https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuMwT7I_FMl_GW8g.woff2"
+    },
+    {
+      "file": "lora-latin.woff2",
+      "bytes": 37792,
+      "sha256": "6b102ab35aa1f2b315788bb4853434ed1e52137603bf7a3da71a682276748d45",
+      "source": "https://fonts.gstatic.com/s/lora/v37/0QIvMX1D_JOuMwr7I_FMl_E.woff2"
+    },
+    {
+      "file": "inter-OFL.txt",
+      "bytes": 4377,
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+      "source": "https://raw.githubusercontent.com/google/fonts/b0928647ba26c8d55548aa19feb2f7aeba622d4a/ofl/inter/OFL.txt"
+    },
+    {
+      "file": "lora-OFL.txt",
+      "bytes": 4423,
+      "sha256": "1d9a970809ac804b582a6ce7f0ebc4e7fefcbfd7ff6299cad35ee656a21be716",
+      "source": "https://raw.githubusercontent.com/google/fonts/a33db997991ea02c1857c84338dfd07801a94328/ofl/lora/OFL.txt"
+    }
+  ]
+}
