@@ -21,7 +21,7 @@
   align-items: center;
   gap: var(--space-md);
   color: var(--color-text);
-  flex: 1;
+  flex: 1 1 var(--grid-card-min);
   min-width: 0;
   overflow-wrap: anywhere;
 }

@@ -26,7 +26,7 @@
   gap: var(--space-sm);
 }
 .ManageProducts-Filters > :first-child {
-  flex: 1;
+  flex: 1 1 var(--size-search-max);
   min-width: 0;
 }
 .ManageProducts-List {
