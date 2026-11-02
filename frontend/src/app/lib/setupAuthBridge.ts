@@ -14,6 +14,7 @@ export function setupAuthBridge(): void {
   setAuthBridge({
     getAccessToken: current.getAccessToken,
     getRefreshToken: current.getRefreshToken,
+    getSessionIdentity: current.getSessionIdentity,
     onTokenRefreshed: current.onTokenRefreshed,
     onSessionExpired: () => {
       const status = useAuthStore.getState().status
