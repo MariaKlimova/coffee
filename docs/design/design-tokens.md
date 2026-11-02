@@ -17,10 +17,12 @@
 
 ## Шрифты
 
-| Роль | Семейство | Источник |
-|------|-----------|----------|
-| Заголовки (h1–h3, бренд) | **Lora**, fallback `Georgia, serif` → `--font-display` | [Google Fonts](https://fonts.google.com/specimen/Lora) — `frontend/index.html` |
-| UI / тело | **Inter**, fallback system → `--font-sans` | [Google Fonts](https://fonts.google.com/specimen/Inter) — веса 400/500/600 |
+| Роль                     | Семейство                                              | Источник                                                                     |
+| ------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Заголовки (h1–h3, бренд) | **Lora**, fallback `Georgia, serif` → `--font-display` | Локальные WOFF2 — `frontend/src/shared/ui/fonts/fonts.css`, веса 500/600     |
+| UI / тело                | **Inter**, fallback system → `--font-sans`             | Локальные WOFF2 — `frontend/src/shared/ui/fonts/fonts.css`, веса 400/500/600 |
+
+Шрифты входят в сборку, без внешнего stylesheet. `font-display: swap` сохраняет читаемые fallback при загрузке и сбоях. Лицензии, происхождение и размер assets: [`fonts/README.md`](../../frontend/src/shared/ui/fonts/README.md).
 
 ---
 
