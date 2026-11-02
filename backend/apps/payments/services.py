@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ipaddress
 import logging
+from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
@@ -11,6 +12,7 @@ from uuid import UUID
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.http import HttpRequest
+from django.utils import timezone
 from rest_framework.exceptions import (
     APIException,
     NotFound,
@@ -21,6 +23,7 @@ from rest_framework.request import Request
 
 from apps.orders.access import can_view_order
 from apps.orders.models import Order
+from apps.orders.services import consume_paid_reservation
 from apps.payments import yookassa
 from apps.payments.models import Payment
 
@@ -96,6 +99,7 @@ def is_yookassa_ip(ip_str: str | None) -> bool:
     return any(addr in network for network in YOOKASSA_IP_NETWORKS)
 
 
+@transaction.atomic
 def create_payment_session(request: Request, order_id: UUID) -> Payment:
     """
     Create a pending Payment via YooKassa for an accessible pending order.
@@ -105,14 +109,19 @@ def create_payment_session(request: Request, order_id: UUID) -> Payment:
     Raises PaymentProviderUnavailable if YooKassa is unreachable.
     """
     try:
-        order = Order.objects.get(pk=order_id)
+        order = Order.objects.select_for_update().get(pk=order_id)
     except Order.DoesNotExist as exc:
         raise NotFound(detail="Order not found.", code="not_found") from exc
 
     if not can_view_order(request, order):
         raise NotFound(detail="Order not found.", code="not_found")
 
-    if order.status != Order.Status.PENDING:
+    if (
+        order.status != Order.Status.PENDING
+        or order.reservation_state != Order.ReservationState.ACTIVE
+        or order.reservation_expires_at is None
+        or order.reservation_expires_at <= timezone.now()
+    ):
         raise ValidationError(
             {"order_id": ["Order is not awaiting payment."]},
         )
@@ -124,6 +133,12 @@ def create_payment_session(request: Request, order_id: UUID) -> Payment:
         raise ValidationError(
             {"order_id": ["Order already has a successful payment."]},
         )
+
+    existing = Payment.objects.filter(
+        order=order, status=Payment.Status.PENDING
+    ).first()
+    if existing is not None and existing.confirmation_url:
+        return existing
 
     attempt = Payment.objects.filter(order=order).count() + 1
     idempotence_key = f"{order.id}:{attempt}"
@@ -220,9 +235,7 @@ def _apply_succeeded(payment: Payment, provider: dict[str, Any]) -> None:
         )
         return
 
-    if order.status == Order.Status.PENDING:
-        order.status = Order.Status.PAID
-        order.save(update_fields=["status", "updated_at"])
+    consume_paid_reservation(order)
 
 
 def handle_webhook(request: HttpRequest, payload: dict[str, Any]) -> None:
@@ -266,27 +279,41 @@ def handle_webhook(request: HttpRequest, payload: dict[str, Any]) -> None:
         )
         return
 
+    # Resolve identity before locking, then all transitions use Order -> Payment
+    # -> Product locks (cancel/expiry use Order -> Product). Never lock a joined
+    # payment/order queryset in unspecified database order.
+    order_id = (
+        Payment.objects.filter(provider_payment_id=str(provider_payment_id))
+        .values_list("order_id", flat=True)
+        .first()
+    )
+    if order_id is None:
+        logger.warning("Webhook for unknown provider payment %s", provider_payment_id)
+        return
     with transaction.atomic():
-        try:
-            payment = (
-                Payment.objects.select_for_update()
-                .select_related("order")
-                .get(provider_payment_id=str(provider_payment_id))
-            )
-        except Payment.DoesNotExist:
-            logger.warning(
-                "Webhook for unknown provider_payment_id=%s",
-                provider_payment_id,
-            )
-            return
-
+        order = Order.objects.select_for_update().get(pk=order_id)
+        payment = Payment.objects.select_for_update().get(
+            provider_payment_id=str(provider_payment_id)
+        )
+        payment.order = order
         if payment.status in TERMINAL_STATUSES:
             return
-
         if mapped == Payment.Status.SUCCEEDED:
+            amount = provider.get("amount") or {}
+            try:
+                valid_amount = Decimal(str(amount.get("value"))) == payment.amount
+            except (InvalidOperation, TypeError, ValueError):
+                valid_amount = False
+            if (
+                str(provider.get("id")) != payment.provider_payment_id
+                or amount.get("currency") != "RUB"
+                or not valid_amount
+            ):
+                raise ValidationError(
+                    {"payment": ["Provider payment identity/amount mismatch."]}
+                )
             _apply_succeeded(payment, provider)
             return
-
         payment.raw_payload = provider
         payment.status = mapped
         payment.save(update_fields=["status", "raw_payload", "updated_at"])

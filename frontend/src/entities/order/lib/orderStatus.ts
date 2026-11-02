@@ -10,6 +10,7 @@ const ORDER_STATUS_BADGE_VARIANT: Record<OrderStatus, BadgeVariant> = {
   shipped: 'success',
   delivered: 'success',
   cancelled: 'neutral',
+  payment_review: 'neutral',
 }
 
 /**

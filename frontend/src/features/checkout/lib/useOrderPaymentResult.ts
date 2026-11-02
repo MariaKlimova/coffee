@@ -1,9 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { cartKeys } from '@entities/cart'
 import { useOrder, type Order, type OrderStatus } from '@entities/order'
+import { selectCanShop, useAuthStore } from '@entities/user'
 
 import { clearPendingOrderId, resolveOrderIdFromReturn } from './pendingOrderId'
 import { resolvePaymentRecoveryOrderId } from './paymentRecovery'
@@ -25,7 +26,8 @@ export type OrderResultView =
   | 'success'
   | 'pending'
   | 'delayed'
-  | 'failed'
+  | 'cancelled'
+  | 'review'
   | 'recovery'
 
 /**
@@ -65,7 +67,10 @@ function resolveView(
     return 'success'
   }
   if (order.status === 'cancelled') {
-    return 'failed'
+    return 'cancelled'
+  }
+  if (order.status === 'payment_review') {
+    return 'review'
   }
   if (order.status === 'pending') {
     if (needsPaymentRecovery) {
@@ -93,8 +98,30 @@ export function useOrderPaymentResult({
     Boolean(resolvePaymentRecoveryOrderId(searchParams)),
   )
 
-  const [pollTimedOut, setPollTimedOut] = useState(false)
-  const cartInvalidatedRef = useRef(false)
+  const authStatus = useAuthStore((state) => state.status)
+  const userId = useAuthStore((state) => state.user?.id ?? null)
+  const sessionGeneration = useAuthStore((state) => state.sessionGeneration)
+  const canShop = useAuthStore(selectCanShop)
+  const accessToken = useAuthStore((state) => state.accessToken)
+  // Решение о сессии принадлежит feature, entity заказа получает только допуск
+  // и непрозрачный ключ. JWT не попадают в queryKey и не сохраняются в кэше.
+  const session = useMemo(
+    () => ({
+      authStatus,
+      userId,
+      sessionGeneration,
+      canShop,
+      cacheScope: crypto.randomUUID(),
+    }),
+    [authStatus, userId, sessionGeneration, canShop],
+  )
+  const authReady =
+    canShop &&
+    (authStatus === 'guest' ||
+      (authStatus === 'authenticated' && Boolean(userId && accessToken)))
+  const [timedOutScope, setTimedOutScope] = useState<string | null>(null)
+  const pollTimedOut = timedOutScope === session.cacheScope
+  const cartInvalidatedScopeRef = useRef<string | null>(null)
   const {
     payOrder,
     isPaying: isRetrying,
@@ -102,45 +129,62 @@ export function useOrderPaymentResult({
   } = usePayOrder({ redirectToPayment })
 
   useEffect(() => {
-    if (!orderId) {
+    if (!orderId || !authReady) {
       return
     }
     const timer = window.setTimeout(() => {
-      setPollTimedOut(true)
+      setTimedOutScope(session.cacheScope)
     }, ORDER_RESULT_POLL_TIMEOUT_MS)
     return () => {
       window.clearTimeout(timer)
     }
-  }, [orderId])
+  }, [orderId, authReady, session.cacheScope])
 
   const orderQuery = useOrder(orderId, {
+    enabled: authReady,
+    cacheScope: session.cacheScope,
+    gcTime: 0,
     refetchIntervalMs: ORDER_RESULT_POLL_INTERVAL_MS,
     stopPolling: pollTimedOut,
   })
 
   useEffect(() => {
-    if (!orderQuery.isSuccess || !orderQuery.data) {
+    if (!authReady || !orderQuery.isSuccess || !orderQuery.data) {
       return
     }
-    if (!cartInvalidatedRef.current) {
-      cartInvalidatedRef.current = true
+    if (cartInvalidatedScopeRef.current !== session.cacheScope) {
+      cartInvalidatedScopeRef.current = session.cacheScope
       void queryClient.invalidateQueries({ queryKey: cartKeys.all })
     }
-    if (isPaidLikeStatus(orderQuery.data.status)) {
+    if (
+      isPaidLikeStatus(orderQuery.data.status) ||
+      orderQuery.data.status === 'payment_review' ||
+      orderQuery.data.status === 'cancelled'
+    ) {
       clearPendingOrderId()
     }
-  }, [orderQuery.isSuccess, orderQuery.data, queryClient])
-
-  const view = resolveView(
-    orderId,
+  }, [
+    authReady,
+    session.cacheScope,
+    orderQuery.isSuccess,
     orderQuery.data,
-    orderQuery.isError,
-    pollTimedOut,
-    needsPaymentRecovery,
-  )
+    queryClient,
+  ])
+
+  const order = authReady ? orderQuery.data : undefined
+  const view =
+    orderId && !authReady
+      ? 'loading'
+      : resolveView(
+          orderId,
+          order,
+          orderQuery.isError,
+          pollTimedOut,
+          needsPaymentRecovery,
+        )
 
   async function retryPayment(): Promise<void> {
-    if (!orderId) {
+    if (!authReady || !orderId || order?.status !== 'pending') {
       return
     }
     await payOrder(orderId)
@@ -148,12 +192,13 @@ export function useOrderPaymentResult({
 
   return {
     orderId,
-    order: orderQuery.data,
+    order,
     view,
     isRetrying,
     retryError,
     retryPayment,
     refetchOrder: () => {
+      if (!authReady) return
       void orderQuery.refetch()
     },
   }

@@ -47,8 +47,8 @@ export async function listOrders(
 /**
  * Загружает заказ по UUID (`GET /api/orders/{id}/`).
  */
-export async function getOrder(orderId: string): Promise<Order> {
-  const { data } = await http.get<Order>(`/api/orders/${orderId}/`)
+export async function getOrder(orderId: string, signal?: AbortSignal): Promise<Order> {
+  const { data } = await http.get<Order>(`/api/orders/${orderId}/`, { signal })
   return data
 }
 

@@ -42,7 +42,16 @@ class OrderAdmin(NoAddDeleteAdminMixin, admin.ModelAdmin):
     )
     # All transitions wait for a validated service; deleting the parent would
     # also delete its protected order lines and payment history by cascade.
-    readonly_fields = ("id", "created_at", "updated_at", "total_amount", "status")
+    readonly_fields = (
+        "id",
+        "created_at",
+        "updated_at",
+        "total_amount",
+        "status",
+        "reservation_state",
+        "reservation_expires_at",
+        "stock_review_reason",
+    )
     inlines = [OrderItemInline]
 
 

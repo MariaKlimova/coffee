@@ -61,7 +61,15 @@ class OrderListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ("id", "status", "total", "created_at")
+        fields = (
+            "id",
+            "status",
+            "total",
+            "created_at",
+            "reservation_state",
+            "reservation_expires_at",
+            "stock_review_reason",
+        )
         read_only_fields = fields
 
 
@@ -85,5 +93,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "items",
             "created_at",
             "updated_at",
+            "reservation_state",
+            "reservation_expires_at",
+            "stock_review_reason",
         )
         read_only_fields = fields

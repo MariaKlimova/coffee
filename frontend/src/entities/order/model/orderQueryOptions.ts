@@ -24,9 +24,12 @@ export function orderListQueryOptions(params: OrderListParams = {}) {
 /**
  * Детали заказа по UUID — для страницы результата оплаты и поллинга статуса.
  */
-export function orderDetailQueryOptions(orderId: string) {
+export function orderDetailQueryOptions(orderId: string, cacheScope?: string) {
+  const queryKey = cacheScope
+    ? ([...orderKeys.detail(orderId), 'scope', cacheScope] as const)
+    : orderKeys.detail(orderId)
   return queryOptions({
-    queryKey: orderKeys.detail(orderId),
-    queryFn: () => getOrder(orderId),
+    queryKey,
+    queryFn: ({ signal }) => getOrder(orderId, signal),
   })
 }

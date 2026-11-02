@@ -35,3 +35,6 @@ Packaging backend-проекта и порядок переноса описан
 [runbook](../docs/deployment/vercel-neon.md). Использовать корень `backend/` и
 `config.settings.vercel`; корневой Vercel-проект frontend не перенастраивать.
 Миграции и demo seed запускаются явно, отдельно от сборки и обработки запросов.
+
+Количественный учёт, ручное первоначальное заполнение и cleanup резерва:
+[docs/inventory.md](../docs/inventory.md).

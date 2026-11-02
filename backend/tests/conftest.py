@@ -36,6 +36,7 @@ def products(db) -> dict:
         category=coffee,
         short_description="Бюджетный вариант",
         price=Decimal("500.00"),
+        stock_quantity=100,
     )
     pricey = Product.objects.create(
         name="Дорогой кофе",
@@ -43,6 +44,7 @@ def products(db) -> dict:
         category=coffee,
         short_description="Премиум зерно",
         price=Decimal("1500.00"),
+        stock_quantity=100,
     )
     unavailable = Product.objects.create(
         name="Нет в наличии",
@@ -50,7 +52,7 @@ def products(db) -> dict:
         category=coffee,
         short_description="Временно недоступен",
         price=Decimal("900.00"),
-        in_stock=False,
+        stock_quantity=0,
     )
     return {
         "coffee": coffee,

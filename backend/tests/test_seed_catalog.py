@@ -29,7 +29,8 @@ def test_seed_preserves_owner_product_and_gallery(has_image, monkeypatch):
         category=category,
         price=Decimal("1234.00"),
         old_price=Decimal("1500.00"),
-        in_stock=False,
+        stock_quantity=42,
+        reserved_quantity=7,
         attributes={},
     )
     if has_image:

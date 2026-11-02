@@ -42,6 +42,16 @@ def custom_exception_handler(exc: Exception, context: dict) -> Response | None:
     else:
         error_code = "error"
 
+    if getattr(exc, "default_code", None) == "insufficient_stock":
+        response.data = {
+            "detail": str(exc.detail),
+            "code": "insufficient_stock",
+            "product_id": exc.product_id,
+            "available_quantity": exc.available_quantity,
+            "requested_quantity": exc.requested_quantity,
+        }
+        return response
+
     data = response.data
 
     # Validation errors: DRF returns a dict of field → messages

@@ -2,7 +2,8 @@
 
 from django.contrib import admin
 
-from apps.catalog.models import Category, Product, ProductImage
+from apps.catalog.models import Category, Product, ProductImage, StockAdjustment
+from config.admin import ReadOnlyAdminMixin
 
 
 @admin.register(Category)
@@ -34,8 +35,26 @@ class ProductAdmin(admin.ModelAdmin):
         "in_stock",
         "created_at",
     )
-    list_filter = ("category", "in_stock")
+    list_filter = ("category", "is_published")
     search_fields = ("name", "slug", "short_description")
     prepopulated_fields = {"slug": ("name",)}
-    readonly_fields = ("created_at", "updated_at")
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "stock_quantity",
+        "reserved_quantity",
+        "available_quantity",
+        "in_stock",
+    )
     inlines = (ProductImageInline,)
+
+
+@admin.register(StockAdjustment)
+class StockAdjustmentAdmin(ReadOnlyAdminMixin, admin.ModelAdmin):
+    list_display = (
+        "product",
+        "actor",
+        "before_quantity",
+        "after_quantity",
+        "created_at",
+    )

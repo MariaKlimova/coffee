@@ -9,6 +9,12 @@ import { orderDetailQueryOptions, orderListQueryOptions } from './orderQueryOpti
  * Параметры `useOrder`: интервал поллинга и условие остановки.
  */
 export interface UseOrderOptions {
+  /** Разрешение запроса после подготовки вызывающего сценария. */
+  enabled?: boolean
+  /** Непрозрачная область кэша; задаётся вызывающим слоем без токенов. */
+  cacheScope?: string
+  /** Срок хранения неиспользуемого результата в миллисекундах. */
+  gcTime?: number
   /**
    * Интервал refetch, пока заказ в `pending`.
    * `false` — без поллинга.
@@ -39,13 +45,21 @@ export function useOrders(params: OrderListParams = {}) {
  * Заказ по id. Опциональный поллинг, пока `status === 'pending'`.
  */
 export function useOrder(orderId: string | null, options: UseOrderOptions = {}) {
-  const { refetchIntervalMs = false, stopPolling = false } = options
+  const {
+    refetchIntervalMs = false,
+    stopPolling = false,
+    enabled = true,
+    cacheScope,
+    gcTime,
+  } = options
+  const detailOptions = orderDetailQueryOptions(orderId ?? '', cacheScope)
 
   return useQuery({
-    ...orderDetailQueryOptions(orderId ?? ''),
-    enabled: Boolean(orderId),
+    ...detailOptions,
+    ...(gcTime === undefined ? {} : { gcTime }),
+    enabled: enabled && Boolean(orderId),
     refetchInterval: (query) => {
-      if (!orderId || stopPolling || refetchIntervalMs === false) {
+      if (!enabled || !orderId || stopPolling || refetchIntervalMs === false) {
         return false
       }
       const status = query.state.data?.status

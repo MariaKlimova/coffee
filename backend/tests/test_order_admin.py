@@ -9,7 +9,9 @@ from django.contrib.auth.models import Permission
 from django.test import RequestFactory
 from django.urls import reverse
 
+from apps.cart.models import Cart, CartItem
 from apps.orders.models import Order, OrderItem
+from apps.orders.services import create_order_from_cart
 from apps.payments.models import Payment
 
 pytestmark = pytest.mark.django_db
@@ -17,18 +19,12 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def purchase(user, products):
-    order = Order.objects.create(
-        user=user,
-        delivery_address="Synthetic address",
-        total_amount=Decimal("1000.00"),
+    cart = Cart.objects.create(user=user)
+    CartItem.objects.create(cart=cart, product=products["cheap"], quantity=2)
+    order = create_order_from_cart(
+        cart=cart, delivery_address="Synthetic address", user=user
     )
-    item = OrderItem.objects.create(
-        order=order,
-        product=products["cheap"],
-        product_name="Snapshot coffee",
-        product_price=Decimal("500.00"),
-        quantity=2,
-    )
+    item = order.items.get()
     payment = Payment.objects.create(
         order=order,
         provider_payment_id="synthetic-admin-payment",

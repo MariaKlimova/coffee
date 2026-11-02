@@ -57,6 +57,8 @@ class ProductImageSerializer(serializers.ModelSerializer):
 class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight product row for catalog grids."""
 
+    available_quantity = serializers.IntegerField(read_only=True)
+    in_stock = serializers.BooleanField(read_only=True)
     price = MoneyField()
     old_price = MoneyField(allow_null=True)
     category = serializers.SlugRelatedField(slug_field="slug", read_only=True)
@@ -74,6 +76,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "old_price",
             "category",
             "in_stock",
+            "available_quantity",
             "image_url",
             "is_favorite",
         )
