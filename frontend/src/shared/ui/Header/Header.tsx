@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
-import { CART_PAGE_COPY, FAVORITES_PAGE_COPY, MANAGE_COPY } from '@shared/lib/copy'
+import { CART_PAGE_COPY, FAVORITES_PAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { HeartIcon } from '@shared/ui/icons'
 
@@ -73,11 +73,6 @@ export function Header({
         </div>
 
         <div className={styles['Header-Actions']}>
-          {managementEnabled ? (
-            <Link to={APP_ROUTES.manage} className={styles['Header-ManageLink']}>
-              {MANAGE_COPY.entry}
-            </Link>
-          ) : null}
           {shoppingEnabled ? (
             <>
               <HeaderCounterLink
@@ -99,7 +94,6 @@ export function Header({
             user={user}
             onLogout={onLogout}
             shoppingEnabled={shoppingEnabled}
-            managementEnabled={managementEnabled}
           />
         </div>
       </div>

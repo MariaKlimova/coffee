@@ -38,19 +38,6 @@
   border-radius: var(--radius-sm);
 }
 
-.Header-ManageLink {
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
-  text-underline-offset: var(--space-2xs);
-}
-
-.Header-ManageLink:focus-visible {
-  outline: none;
-  box-shadow: var(--focus-ring);
-  border-radius: var(--radius-sm);
-}
-
 .Header-SearchRow {
   display: flex;
   flex: 1;

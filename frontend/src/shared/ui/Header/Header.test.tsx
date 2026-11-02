@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Header } from '@shared/ui/Header'
 
 describe('Header', () => {
-  it('keeps owner entry visible and removes buyer controls in navigation and account', async () => {
+  it('keeps one owner entry in primary navigation with profile and logout in the account', async () => {
     const user = userEvent.setup()
     const { rerender } = render(
       <MemoryRouter>
@@ -18,16 +18,22 @@ describe('Header', () => {
         .getAllByRole('link', { name: 'Управление' })
         .every((link) => link.getAttribute('href') === '/manage'),
     ).toBe(true)
-    expect(screen.getAllByRole('link', { name: 'Управление' })).toHaveLength(2)
+    expect(screen.getAllByRole('link', { name: 'Управление' })).toHaveLength(1)
+    expect(
+      within(screen.getByRole('navigation', { name: 'Основная навигация' })).getByRole(
+        'link',
+        { name: 'Управление' },
+      ),
+    ).toHaveAttribute('href', '/manage')
     expect(
       screen.queryByRole('link', { name: /Корзина|Избранное|Заказы/ }),
     ).not.toBeInTheDocument()
     expect(screen.getByRole('searchbox')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Владелец' }))
-    expect(screen.getByRole('menuitem', { name: 'Управление' })).toHaveAttribute(
-      'href',
-      '/manage',
-    )
+    expect(
+      screen.queryByRole('menuitem', { name: 'Управление' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Управление' })).toHaveLength(1)
     expect(screen.getByRole('menuitem', { name: 'Профиль' })).toBeInTheDocument()
     expect(screen.getByRole('menuitem', { name: 'Выйти' })).toBeInTheDocument()
     expect(
@@ -47,6 +53,23 @@ describe('Header', () => {
     expect(
       screen.queryByRole('menuitem', { name: 'Управление' }),
     ).not.toBeInTheDocument()
+  })
+
+  it('offers the same single management entry when the primary menu opens', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <Header user={{ name: 'Владелец' }} shoppingEnabled={false} managementEnabled />
+      </MemoryRouter>,
+    )
+    const trigger = screen.getByRole('button', { name: 'Меню' })
+    await user.click(trigger)
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    const management = screen.getByRole('link', { name: 'Управление' })
+    expect(management).toHaveAttribute('href', '/manage')
+    await user.click(management)
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getAllByRole('link', { name: 'Управление' })).toHaveLength(1)
   })
 
   it('shows login for a guest', () => {

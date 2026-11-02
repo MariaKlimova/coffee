@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
-import { AUTH_COPY, ORDERS_PAGE_COPY, MANAGE_COPY } from '@shared/lib/copy'
+import { AUTH_COPY, ORDERS_PAGE_COPY } from '@shared/lib/copy'
 import { cx } from '@shared/lib/cx'
 import { Button } from '@shared/ui/Button'
 
@@ -15,7 +15,6 @@ export function HeaderAccount({
   onLogout,
   className,
   shoppingEnabled = true,
-  managementEnabled = false,
 }: HeaderAccountProps) {
   const { open, setOpen, rootRef, triggerRef, closeAndRestoreFocus } =
     useHeaderDisclosure()
@@ -95,18 +94,6 @@ export function HeaderAccount({
               {AUTH_COPY.profileTitle}
             </Link>
           </li>
-          {managementEnabled ? (
-            <li role="none">
-              <Link
-                to={APP_ROUTES.manage}
-                role="menuitem"
-                className={styles['Header-AccountItem']}
-                onClick={closeAndRestoreFocus}
-              >
-                {MANAGE_COPY.entry}
-              </Link>
-            </li>
-          ) : null}
           {shoppingEnabled ? (
             <li role="none">
               <Link
