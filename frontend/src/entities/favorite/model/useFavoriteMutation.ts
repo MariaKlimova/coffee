@@ -1,10 +1,11 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { productKeys } from '@entities/product'
 import {
   isSameCustomerSession,
   selectCanUseFavorites,
   useAuthStore,
+  useCustomerMutation,
 } from '@entities/user'
 
 import { addFavorite, removeFavorite } from '../api/favoriteApi'
@@ -27,15 +28,18 @@ export interface FavoriteMutationVariables {
 export function useFavoriteMutation() {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: async ({ productId, isFavorite }: FavoriteMutationVariables) => {
+  return useCustomerMutation({
+    mutationFn: async (
+      { productId, isFavorite }: FavoriteMutationVariables,
+      assertActor,
+    ) => {
       if (!selectCanUseFavorites(useAuthStore.getState()))
         throw new Error('Покупательское действие недоступно')
       if (isFavorite) {
-        await removeFavorite(productId)
+        await removeFavorite(productId, assertActor)
         return
       }
-      await addFavorite(productId)
+      await addFavorite(productId, assertActor)
     },
     onMutate: async ({ productId, isFavorite }) => {
       const session = useAuthStore.getState()

@@ -1,6 +1,11 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 
-import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
+import {
+  isSameCustomerSession,
+  selectCanShop,
+  useAuthStore,
+  useCustomerMutation,
+} from '@entities/user'
 
 import { addItem, removeItem, updateItem } from '../api/cartApi'
 import {
@@ -45,11 +50,11 @@ export interface CartRemoveVariables {
 export function useCartMutations() {
   const queryClient = useQueryClient()
 
-  const addMutation = useMutation({
-    mutationFn: ({ productId, quantity }: CartAddVariables) => {
+  const addMutation = useCustomerMutation({
+    mutationFn: ({ productId, quantity }: CartAddVariables, assertActor) => {
       if (!selectCanShop(useAuthStore.getState()))
         throw new Error('Покупательское действие недоступно')
-      return addItem(productId, quantity)
+      return addItem(productId, quantity, assertActor)
     },
     onMutate: async ({ productId, quantity }) => {
       const session = useAuthStore.getState()
@@ -81,11 +86,11 @@ export function useCartMutations() {
     },
   })
 
-  const updateMutation = useMutation({
-    mutationFn: ({ itemId, quantity }: CartUpdateVariables) => {
+  const updateMutation = useCustomerMutation({
+    mutationFn: ({ itemId, quantity }: CartUpdateVariables, assertActor) => {
       if (!selectCanShop(useAuthStore.getState()))
         throw new Error('Покупательское действие недоступно')
-      return updateItem(itemId, quantity)
+      return updateItem(itemId, quantity, assertActor)
     },
     onMutate: async ({ itemId, quantity }) => {
       const session = useAuthStore.getState()
@@ -112,11 +117,11 @@ export function useCartMutations() {
     },
   })
 
-  const removeMutation = useMutation({
-    mutationFn: ({ itemId }: CartRemoveVariables) => {
+  const removeMutation = useCustomerMutation({
+    mutationFn: ({ itemId }: CartRemoveVariables, assertActor) => {
       if (!selectCanShop(useAuthStore.getState()))
         throw new Error('Покупательское действие недоступно')
-      return removeItem(itemId)
+      return removeItem(itemId, assertActor)
     },
     onMutate: async ({ itemId }) => {
       const session = useAuthStore.getState()

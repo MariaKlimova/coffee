@@ -32,6 +32,7 @@ export function bindAuthBridge(): void {
 
 export const useAuthStore = create<AuthStoreState>((set, get) => ({
   status: 'idle',
+  sessionGeneration: 0,
   accessToken: null,
   refreshToken: readRefreshToken(),
   user: null,
@@ -40,6 +41,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     writeRefreshToken(session.refreshToken)
     set({
       status: 'authenticated',
+      sessionGeneration: get().sessionGeneration + 1,
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       user: session.user,
@@ -50,6 +52,7 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     clearRefreshToken()
     set({
       status: 'guest',
+      sessionGeneration: get().sessionGeneration + 1,
       accessToken: null,
       refreshToken: null,
       user: null,

@@ -21,3 +21,4 @@ export {
   selectCanManage,
   selectCanUseFavorites,
 } from './model/accountAccess'
+export { useCustomerMutation } from './model/useCustomerMutation'

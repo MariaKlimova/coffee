@@ -33,6 +33,6 @@ export function isSameCustomerSession(
     selectCanShop(current) &&
     current.status === previous.status &&
     current.user?.id === previous.user?.id &&
-    current.refreshToken === previous.refreshToken
+    current.sessionGeneration === previous.sessionGeneration
   )
 }
