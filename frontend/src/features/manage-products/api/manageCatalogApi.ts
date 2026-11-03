@@ -110,3 +110,60 @@ export async function hideManageProduct(id: string, assertActor: () => void) {
   await http.delete(`/api/manage/products/${id}/`, guardRequest(assertActor))
   assertActor()
 }
+
+/** Разрешённые поля формы; фотографии и серверные счётчики сюда не входят. */
+export interface ProductFormWrite {
+  /** Название товара. */
+  name: string
+  /** Категория товара. */
+  category: ProductCategorySlug
+  /** Краткое описание. */
+  short_description: string
+  /** Полное описание. */
+  description: string
+  /** Текущая цена в рублях. */
+  price: string
+  /** Предыдущая цена либо отсутствие скидки. */
+  old_price: string | null
+  /** Характеристики выбранной категории. */
+  attributes: Record<string, string | number>
+  /** Физический остаток. */
+  stock_quantity: number
+  /** Публикация на витрине. */
+  is_published: boolean
+  /** Явное согласие сохранить демо-товар как свой. */
+  save_as_owner?: boolean
+}
+
+export async function fetchManageProduct(
+  id: string,
+  signal: AbortSignal,
+  assertActor: () => void,
+) {
+  const { data } = await http.get<ManageProduct>(
+    `/api/manage/products/${encodeURIComponent(id)}/`,
+    {
+      ...guardRequest(assertActor),
+      signal,
+    },
+  )
+  assertActor()
+  return data
+}
+
+export async function saveManageProduct(
+  values: ProductFormWrite,
+  id: string | undefined,
+  assertActor: () => void,
+) {
+  const config = guardRequest(assertActor)
+  const response = id
+    ? await http.patch<ManageProduct>(
+        `/api/manage/products/${encodeURIComponent(id)}/`,
+        values,
+        config,
+      )
+    : await http.post<ManageProduct>('/api/manage/products/', values, config)
+  assertActor()
+  return response.data
+}

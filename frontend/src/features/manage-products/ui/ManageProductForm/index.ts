@@ -1,0 +1,1 @@
+export { ManageProductForm } from './ManageProductForm'

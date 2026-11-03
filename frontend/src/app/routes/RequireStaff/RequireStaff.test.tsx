@@ -1,6 +1,10 @@
 import { act, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { AxiosHeaders } from 'axios'
+import { http } from '@shared/api'
+import { ToastProvider } from '@shared/ui/Toast'
 
 import { useAuthStore } from '@entities/user'
 import { getRedirectPath } from '@features/auth'
@@ -56,6 +60,11 @@ const paths = [
   '/manage/products/new',
   '/manage/products/test-product/edit',
 ]
+
+const originalAdapter = http.defaults.adapter
+afterEach(() => {
+  http.defaults.adapter = originalAdapter
+})
 
 describe('RequireStaff', () => {
   beforeEach(() => {
@@ -123,20 +132,47 @@ describe('RequireStaff', () => {
   })
 
   it('returns from the real login page to the requested management page', async () => {
+    http.defaults.adapter = async (config) => ({
+      config,
+      status: 200,
+      statusText: 'OK',
+      headers: new AxiosHeaders(),
+      data: {
+        id: 'test-product',
+        name: 'Кофе',
+        category: 'coffee',
+        short_description: 'Описание',
+        description: '',
+        price: '450.00',
+        old_price: null,
+        stock_quantity: 3,
+        reserved_quantity: 0,
+        available_quantity: 3,
+        is_published: true,
+        origin: 'owner',
+        attributes: {},
+        images: [],
+      },
+    })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     render(
-      <MemoryRouter
-        initialEntries={['/manage/products/test-product/edit?tab=photos#details']}
-      >
-        <Routes>
-          <Route path={APP_ROUTES.login} element={<LoginPage />} />
-          <Route element={<RequireStaff />}>
-            <Route
-              path={APP_ROUTES.manageProductEdit}
-              element={<ManageProductEditPage />}
-            />
-          </Route>
-        </Routes>
-      </MemoryRouter>,
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <MemoryRouter
+            initialEntries={['/manage/products/test-product/edit?tab=photos#details']}
+          >
+            <Routes>
+              <Route path={APP_ROUTES.login} element={<LoginPage />} />
+              <Route element={<RequireStaff />}>
+                <Route
+                  path={APP_ROUTES.manageProductEdit}
+                  element={<ManageProductEditPage />}
+                />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>,
     )
     expect(
       screen.getByRole('heading', { name: AUTH_COPY.loginTitle }),
