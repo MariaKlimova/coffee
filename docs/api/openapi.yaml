@@ -73,6 +73,7 @@ tags:
   - name: Favorites
   - name: Cart
   - name: Orders
+  - name: Manage orders
   - name: Payments
 
 paths:
@@ -752,6 +753,78 @@ paths:
                 $ref: "#/components/schemas/Order"
         "404":
           $ref: "#/components/responses/NotFound"
+
+  /api/manage/orders/:
+    get:
+      tags: [Manage orders]
+      summary: List all store orders (staff only)
+      operationId: listManageOrders
+      description: |
+        Read-only staff endpoint. Includes guest and account orders, ordered by
+        created_at descending, then UUID descending for stable timestamp ties.
+        No provider request or reservation/status change is performed.
+        Customer contacts use stored guest contacts, falling back to the linked
+        account's current email/phone; account contacts are not checkout snapshots.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: search
+          in: query
+          description: Case-insensitive UUID (full or substring, with or without hyphens), email or phone substring. Phone punctuation may be omitted. Whitespace-only search is ignored.
+          schema: {type: string, maxLength: 255}
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
+        - name: date_from
+          in: query
+          description: Inclusive UTC calendar date, YYYY-MM-DD.
+          schema: {type: string, format: date}
+        - name: date_to
+          in: query
+          description: Inclusive UTC calendar date, YYYY-MM-DD; must not precede date_from.
+          schema: {type: string, format: date}
+      responses:
+        "200":
+          description: Paginated store orders
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResponse"
+                  - type: object
+                    properties:
+                      results:
+                        type: array
+                        items: {$ref: "#/components/schemas/ManageOrderListItem"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/manage/orders/{id}/:
+    get:
+      tags: [Manage orders]
+      summary: Read any store order and its payment attempts (staff only)
+      operationId: getManageOrder
+      description: |
+        Includes frozen line names/prices even when a product is changed or
+        deleted. Payments are ordered newest first, then UUID descending.
+        Payment status is the stored local status; this read does not re-fetch
+        YooKassa. No provider IDs, redirect URLs, tokens or raw payloads are exposed.
+        Writes and order status transitions are not supported here.
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Store order
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManageOrder"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
 
   /api/payments/create/:
     post:
@@ -1510,6 +1583,53 @@ components:
             updated_at:
               type: string
               format: date-time
+
+    ManageOrderListItem:
+      allOf:
+        - $ref: "#/components/schemas/OrderListItem"
+        - type: object
+          required: [customer_email, customer_phone]
+          properties:
+            customer_email:
+              type: string
+              format: email
+              nullable: true
+              readOnly: true
+            customer_phone:
+              type: string
+              nullable: true
+              readOnly: true
+
+    ManageOrder:
+      allOf:
+        - $ref: "#/components/schemas/ManageOrderListItem"
+        - type: object
+          required: [delivery_address, items, payments, updated_at]
+          properties:
+            delivery_address: {type: string, readOnly: true}
+            items:
+              type: array
+              readOnly: true
+              items: {$ref: "#/components/schemas/OrderItem"}
+            payments:
+              type: array
+              readOnly: true
+              items: {$ref: "#/components/schemas/ManagePayment"}
+            updated_at: {type: string, format: date-time, readOnly: true}
+
+    ManagePayment:
+      type: object
+      additionalProperties: false
+      required: [id, status, amount, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid, readOnly: true}
+        status:
+          type: string
+          enum: [pending, succeeded, failed, canceled]
+          readOnly: true
+        amount: {$ref: "#/components/schemas/Money"}
+        created_at: {type: string, format: date-time, readOnly: true}
+        updated_at: {type: string, format: date-time, readOnly: true}
 
     PaymentSession:
       type: object
