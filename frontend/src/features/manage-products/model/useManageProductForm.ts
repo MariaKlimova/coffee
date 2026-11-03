@@ -1,12 +1,11 @@
 import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { selectCanManage, useAuthStore } from '@entities/user'
+import { bindStaff, selectCanManage, useAuthStore } from '@entities/user'
 import {
   fetchManageProduct,
   saveManageProduct,
   type ProductFormWrite,
 } from '../api/manageCatalogApi'
-import { bindStaff } from './bindStaff'
 
 export function useManageProductForm(id?: string) {
   const client = useQueryClient()

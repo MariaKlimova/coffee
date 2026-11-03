@@ -30,6 +30,25 @@ describe('getRedirectPath', () => {
   })
 
   it.each([
+    '/manage/orders?search=6060&page=2#results',
+    '/manage/orders/ac2f449c-9de4-44be-a15f-12f258e74001?search=6060#attempts',
+  ])('preserves the order management return URL: %s', (path) => {
+    const location = new URL(path, 'https://coffee.invalid')
+    expect(
+      getRedirectPath(
+        {
+          from: {
+            pathname: location.pathname,
+            search: location.search,
+            hash: location.hash,
+          },
+        },
+        '/coffee',
+      ),
+    ).toBe(path)
+  })
+
+  it.each([
     'https://example.com',
     '//example.com',
     '/\\example.com',
@@ -39,6 +58,10 @@ describe('getRedirectPath', () => {
     '/manage/../login',
     '/manage/products/../new',
     '/manage/products/new?next=//example.com',
+    '/manage/orders/../login',
+    '/manage/orders/%2e%2e',
+    '/manage/orders//example.com',
+    '/manage/orders?next=//example.com',
   ])('rejects an unsafe or unsupported pathname: %s', (pathname) => {
     expect(getRedirectPath({ from: { pathname } })).toBe('/')
   })

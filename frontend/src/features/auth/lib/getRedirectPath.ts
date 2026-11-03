@@ -18,6 +18,8 @@ const RETURN_PATHS = [
   APP_ROUTES.manageProducts,
   APP_ROUTES.manageProductNew,
   APP_ROUTES.manageProductEdit,
+  APP_ROUTES.manageOrders,
+  APP_ROUTES.manageOrderDetail,
 ]
 
 /**

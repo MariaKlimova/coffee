@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { selectCanManage, useAuthStore } from '@entities/user'
+import { bindStaff, selectCanManage, useAuthStore } from '@entities/user'
 
 import {
   changeManageProduct,
@@ -12,8 +12,6 @@ import {
   type ManageFilters,
   type ProductChange,
 } from '../api/manageCatalogApi'
-
-import { bindStaff } from './bindStaff'
 
 /** Отдельный кэш каждой сессии без показа данных предыдущего владельца. */
 export function useManageCatalog(filters: ManageFilters) {

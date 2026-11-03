@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 
 import { APP_ROUTES } from '@shared/config'
-import { MANAGE_COPY } from '@shared/lib/copy'
+import { MANAGE_COPY, MANAGE_ORDERS_COPY } from '@shared/lib/copy'
 
 import styles from './ManageLayout.module.css'
 
@@ -22,6 +22,9 @@ export function ManageLayout() {
             to={APP_ROUTES.manageProducts}
           >
             {MANAGE_COPY.productsTitle}
+          </NavLink>
+          <NavLink className={styles['ManageLayout-Link']} to={APP_ROUTES.manageOrders}>
+            {MANAGE_ORDERS_COPY.title}
           </NavLink>
           <Link className={styles['ManageLayout-Link']} to={APP_ROUTES.coffee}>
             {MANAGE_COPY.storefront}
