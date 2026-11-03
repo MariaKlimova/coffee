@@ -13,21 +13,7 @@ import {
   type ProductChange,
 } from '../api/manageCatalogApi'
 
-/** Захватывает инициатора до любого ожидания и проверяет его также на транспортной границе. */
-function bindStaff() {
-  const actor = useAuthStore.getState()
-  return () => {
-    const current = useAuthStore.getState()
-    if (
-      !selectCanManage(actor) ||
-      !selectCanManage(current) ||
-      actor.sessionGeneration !== current.sessionGeneration ||
-      actor.user?.id !== current.user?.id
-    ) {
-      throw new Error('Сессия управления завершена')
-    }
-  }
-}
+import { bindStaff } from './bindStaff'
 
 /** Отдельный кэш каждой сессии без показа данных предыдущего владельца. */
 export function useManageCatalog(filters: ManageFilters) {
