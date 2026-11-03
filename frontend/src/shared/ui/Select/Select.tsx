@@ -15,6 +15,8 @@ export function Select({
   disabled,
   value,
   defaultValue,
+  multiple,
+  size,
   ...rest
 }: SelectProps) {
   const { fieldId, hintId, errorId, hasError, describedBy } = useFieldA11y({
@@ -22,6 +24,7 @@ export function Select({
     helperText,
     errorText,
   })
+  const isDropdown = !multiple && (size === undefined || size <= 1)
 
   return (
     <div
@@ -37,27 +40,36 @@ export function Select({
           {label}
         </label>
       ) : null}
-      <select
-        {...rest}
-        id={fieldId}
-        className={styles['Select-Field']}
-        disabled={disabled}
-        value={value}
-        defaultValue={defaultValue ?? (placeholder ? '' : undefined)}
-        aria-invalid={hasError || undefined}
-        aria-describedby={describedBy}
+      <div
+        className={cx(
+          styles['Select-Control'],
+          isDropdown && styles['Select-Control--dropdown'],
+        )}
       >
-        {placeholder ? (
-          <option value="" disabled>
-            {placeholder}
-          </option>
-        ) : null}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        <select
+          {...rest}
+          id={fieldId}
+          className={styles['Select-Field']}
+          disabled={disabled}
+          value={value}
+          defaultValue={defaultValue ?? (placeholder ? '' : undefined)}
+          multiple={multiple}
+          size={size}
+          aria-invalid={hasError || undefined}
+          aria-describedby={describedBy}
+        >
+          {placeholder ? (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          ) : null}
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
       <FieldFeedback
         hasError={hasError}
         errorText={errorText}
