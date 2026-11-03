@@ -1,0 +1,1 @@
+export { ManageOrderDetail } from './ManageOrderDetail'

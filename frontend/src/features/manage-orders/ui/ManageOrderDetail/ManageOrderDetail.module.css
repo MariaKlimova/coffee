@@ -1,0 +1,85 @@
+.ManageOrderDetail {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ManageOrderDetail h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+}
+.ManageOrderDetail h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+.ManageOrderDetail p {
+  margin: 0;
+}
+.ManageOrderDetail-Header,
+.ManageOrderDetail-Stack {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.ManageOrderDetail-Header > * {
+  max-width: 100%;
+}
+.ManageOrderDetail-Columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-lg);
+}
+.ManageOrderDetail-Stack {
+  justify-items: stretch;
+  align-content: start;
+  gap: var(--space-lg);
+}
+.ManageOrderDetail-Section {
+  display: grid;
+  align-content: start;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.ManageOrderDetail-Hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+.ManageOrderDetail-List {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--space-md);
+}
+.ManageOrderDetail-Line {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-xs);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  min-width: 0;
+}
+.ManageOrderDetail-Line > * {
+  max-width: 100%;
+}
+.ManageOrderDetail-Total {
+  font-size: var(--text-lg);
+}
+.ManageOrderDetail-Address {
+  white-space: pre-wrap;
+}
+@media (max-width: 48rem) {
+  .ManageOrderDetail-Columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ManageOrderDetail-Section {
+    padding: var(--space-md);
+  }
+}

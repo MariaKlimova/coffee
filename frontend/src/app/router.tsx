@@ -37,6 +37,21 @@ const appRoutes: RouteObject[] = [
               return { Component: ManageProductsPage }
             },
           },
+          {
+            path: APP_ROUTES.manageOrders,
+            lazy: async () => {
+              const { ManageOrdersPage } = await import('@pages/ManageOrdersPage')
+              return { Component: ManageOrdersPage }
+            },
+          },
+          {
+            path: APP_ROUTES.manageOrderDetail,
+            lazy: async () => {
+              const { ManageOrderDetailPage } =
+                await import('@pages/ManageOrderDetailPage')
+              return { Component: ManageOrderDetailPage }
+            },
+          },
           { path: APP_ROUTES.manageProductNew, element: <ManageProductCreatePage /> },
           { path: APP_ROUTES.manageProductEdit, element: <ManageProductEditPage /> },
         ],

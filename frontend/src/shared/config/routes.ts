@@ -36,6 +36,10 @@ export const APP_ROUTES = {
   manageProductNew: '/manage/products/new',
   /** Редактирование товара по идентификатору. */
   manageProductEdit: '/manage/products/:id/edit',
+  /** Заказы магазина, только для сотрудников. */
+  manageOrders: '/manage/orders',
+  /** Детали заказа магазина, только для сотрудников. */
+  manageOrderDetail: '/manage/orders/:id',
   /** Contacts anchor (пока без отдельной страницы). */
   contacts: '/coffee#contacts',
   /** Design-system playground (DEV only). */

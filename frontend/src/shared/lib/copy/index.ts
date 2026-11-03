@@ -19,3 +19,4 @@ export {
 } from './phrases'
 export { PRODUCT_PAGE_COPY } from './product'
 export { MANAGE_COPY } from './manage'
+export { MANAGE_ORDERS_COPY } from './manageOrders'

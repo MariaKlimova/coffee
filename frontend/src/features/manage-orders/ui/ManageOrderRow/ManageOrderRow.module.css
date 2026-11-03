@@ -1,0 +1,40 @@
+.ManageOrderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow-wrap: anywhere;
+}
+.ManageOrderRow-Identity,
+.ManageOrderRow-Contact,
+.ManageOrderRow-Status {
+  min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: var(--space-xs);
+}
+.ManageOrderRow-Link {
+  color: var(--color-primary);
+}
+.ManageOrderRow-Link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.ManageOrderRow-Identity time {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+.ManageOrderRow-Total {
+  font-size: var(--text-lg);
+}
+@media (max-width: 48rem) {
+  .ManageOrderRow {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-md);
+  }
+}
