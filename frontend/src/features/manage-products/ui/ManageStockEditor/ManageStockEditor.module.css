@@ -1,0 +1,23 @@
+.ManageStockEditor {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.ManageStockEditor p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+.ManageStockEditor-Consent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+}
+.ManageStockEditor-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}

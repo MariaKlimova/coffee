@@ -13,7 +13,6 @@ import { FavoritesPage } from '@pages/FavoritesPage'
 import { LoginPage } from '@pages/LoginPage'
 import { MachinesPage } from '@pages/MachinesPage'
 import { ManagePage } from '@pages/ManagePage'
-import { ManageProductsPage } from '@pages/ManageProductsPage'
 import { ManageProductCreatePage } from '@pages/ManageProductCreatePage'
 import { ManageProductEditPage } from '@pages/ManageProductEditPage'
 import { OrderDetailPage } from '@pages/OrderDetailPage'
@@ -31,7 +30,13 @@ const appRoutes: RouteObject[] = [
         element: <ManageLayout />,
         children: [
           { path: APP_ROUTES.manage, element: <ManagePage /> },
-          { path: APP_ROUTES.manageProducts, element: <ManageProductsPage /> },
+          {
+            path: APP_ROUTES.manageProducts,
+            lazy: async () => {
+              const { ManageProductsPage } = await import('@pages/ManageProductsPage')
+              return { Component: ManageProductsPage }
+            },
+          },
           { path: APP_ROUTES.manageProductNew, element: <ManageProductCreatePage /> },
           { path: APP_ROUTES.manageProductEdit, element: <ManageProductEditPage /> },
         ],

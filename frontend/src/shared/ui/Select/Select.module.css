@@ -14,6 +14,8 @@
 
 .Select-Field {
   box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   min-height: var(--control-height-md);
   padding: var(--space-xs) var(--space-sm);
   background: var(--color-surface);
@@ -27,6 +29,31 @@
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
+}
+
+.Select-Control {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.Select-Control--dropdown .Select-Field {
+  appearance: none;
+  padding-inline-end: calc(var(--space-sm) + var(--space-xs) + var(--space-sm));
+}
+
+.Select-Control--dropdown::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-sm);
+  width: var(--space-xs);
+  height: var(--space-xs);
+  border-inline-end: 1px solid currentColor;
+  border-block-end: 1px solid currentColor;
+  color: var(--color-text);
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events: none;
 }
 
 .Select-Field:focus {
@@ -44,7 +71,10 @@
 }
 
 .Select--disabled .Select-Field {
-  opacity: 0.5;
   cursor: not-allowed;
   background: var(--color-bg);
+}
+
+.Select--disabled .Select-Control {
+  opacity: 0.5;
 }

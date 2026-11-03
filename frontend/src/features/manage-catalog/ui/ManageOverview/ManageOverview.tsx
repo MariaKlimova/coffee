@@ -11,6 +11,7 @@ export function ManageOverview() {
     <section className={styles.ManageOverview}>
       <h1 className={styles['ManageOverview-Title']}>{MANAGE_COPY.homeTitle}</h1>
       <p>{MANAGE_COPY.homeDescription}</p>
+      <Link to={APP_ROUTES.manageProducts}>{MANAGE_COPY.productsTitle}</Link>
       <section className={styles['ManageOverview-Section']}>
         <h2>{MANAGE_COPY.reviewTitle}</h2>
         <p>{MANAGE_COPY.reviewDescription}</p>

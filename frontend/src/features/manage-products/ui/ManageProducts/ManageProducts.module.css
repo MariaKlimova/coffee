@@ -1,0 +1,45 @@
+.ManageProducts {
+  display: grid;
+  gap: var(--space-lg);
+  min-width: 0;
+}
+.ManageProducts-Header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.ManageProducts-Header h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  margin: 0 0 var(--space-xs);
+}
+.ManageProducts-Header p {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+.ManageProducts-Filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-sm);
+}
+.ManageProducts-Filters > :first-child {
+  flex: 1 1 var(--size-search-max);
+  min-width: 0;
+}
+.ManageProducts-List {
+  list-style: none;
+  display: grid;
+  gap: var(--space-md);
+  margin: 0;
+  padding: 0;
+}
+.ManageProducts-Pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
