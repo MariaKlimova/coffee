@@ -1,3 +1,5 @@
+import { RETRY } from './phrases'
+
 /** Подписи обзорного раздела заказов для сотрудника. */
 export const MANAGE_ORDERS_COPY = {
   title: 'Заказы',
@@ -18,7 +20,7 @@ export const MANAGE_ORDERS_COPY = {
   loading: 'Загрузка заказов',
   error: 'Не удалось загрузить заказы',
   errorDescription: 'Проверь соединение и попробуй ещё раз.',
-  retry: 'Попробовать ещё раз',
+  retry: RETRY,
   empty: 'Заказы не найдены',
   emptyDescription:
     'Здесь появятся заказы магазина. Если заданы фильтры, попробуй изменить их.',

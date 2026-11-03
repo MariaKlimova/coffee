@@ -1,26 +1,10 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { selectCanManage, useAuthStore } from '@entities/user'
+import { bindStaff, selectCanManage, useAuthStore } from '@entities/user'
 
 import { fetchManageOrder, fetchManageOrders } from '../api/manageOrdersApi'
 import type { ManageOrderFilters } from '../api/manageOrdersApi.typings'
-
-/** Отложенный запрос привязан к сотруднику и поколению его сессии. */
-function bindStaff() {
-  const actor = useAuthStore.getState()
-  return () => {
-    const current = useAuthStore.getState()
-    if (
-      !selectCanManage(actor) ||
-      !selectCanManage(current) ||
-      actor.sessionGeneration !== current.sessionGeneration ||
-      actor.user?.id !== current.user?.id
-    ) {
-      throw new Error('Сессия управления завершена')
-    }
-  }
-}
 
 function useStaffScope() {
   const client = useQueryClient()

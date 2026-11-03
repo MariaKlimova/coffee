@@ -293,9 +293,14 @@ describe('Обзор заказов сотрудника', () => {
       expect(calls).toHaveLength(0)
     },
   )
-  it.each(['list', 'detail'])(
-    'очищает %s при смене сессии и отвергает поздний ответ старого сотрудника',
-    async (mode) => {
+  it.each([
+    ['list', 'staff-b'],
+    ['detail', 'staff-b'],
+    ['list', 'staff-a'],
+    ['detail', 'staff-a'],
+  ])(
+    'очищает %s при новом входе %s и отвергает поздний ответ прежнего поколения',
+    async (mode, nextStaffId) => {
       let release: (() => void) | undefined
       let reads = 0
       http.defaults.adapter = async (config) => {
@@ -323,7 +328,7 @@ describe('Обзор заказов сотрудника', () => {
         true,
       )
       await waitFor(() => expect(release).toBeDefined())
-      act(() => staff('staff-b'))
+      act(() => staff(nextStaffId))
       expect(await screen.findByText('new-private@example.invalid')).toBeVisible()
       await act(async () => {
         release?.()
@@ -334,7 +339,9 @@ describe('Обзор заказов сотрудника', () => {
         client
           .getQueryCache()
           .getAll()
-          .filter((query) => query.queryKey[2] === 'staff-a'),
+          .filter(
+            (query) => query.queryKey[1] !== useAuthStore.getState().sessionGeneration,
+          ),
       ).toHaveLength(0)
       act(() => useAuthStore.getState().clearSession())
       expect(screen.queryByText('new-private@example.invalid')).not.toBeInTheDocument()
@@ -346,34 +353,37 @@ describe('Обзор заказов сотрудника', () => {
       ).toHaveLength(0)
     },
   )
-  it('не отправляет отложенный staff GET с токеном следующего входа', async () => {
-    let release: (() => void) | undefined
-    let first = true
-    const gate = http.interceptors.request.use(async (config) => {
-      if (first) {
-        first = false
-        await new Promise<void>((resolve) => {
-          release = resolve
-        })
-      }
-      return config
-    })
-    const calls = installAdapter()
-    try {
-      setup()
-      await waitFor(() => expect(release).toBeDefined())
-      act(() => staff('staff-b'))
-      await screen.findByText(copy.number(id))
-      await act(async () => {
-        release?.()
-        await Promise.resolve()
+  it.each(['staff-a', 'staff-b'])(
+    'не отправляет отложенный staff GET после нового входа %s',
+    async (nextStaffId) => {
+      let release: (() => void) | undefined
+      let first = true
+      const gate = http.interceptors.request.use(async (config) => {
+        if (first) {
+          first = false
+          await new Promise<void>((resolve) => {
+            release = resolve
+          })
+        }
+        return config
       })
-      expect(calls).toHaveLength(1)
-      expect(calls[0].headers.Authorization).toBe('Bearer synthetic-staff-b')
-    } finally {
-      http.interceptors.request.eject(gate)
-    }
-  })
+      const calls = installAdapter()
+      try {
+        setup()
+        await waitFor(() => expect(release).toBeDefined())
+        act(() => staff(nextStaffId))
+        await screen.findByText(copy.number(id))
+        await act(async () => {
+          release?.()
+          await Promise.resolve()
+        })
+        expect(calls).toHaveLength(1)
+        expect(calls[0].headers.Authorization).toBe(`Bearer synthetic-${nextStaffId}`)
+      } finally {
+        http.interceptors.request.eject(gate)
+      }
+    },
+  )
   it('показывает снимки удалённых товаров и все безопасные попытки, без действий оплаты', async () => {
     const calls = installAdapter()
     setup(`/manage/orders/${id}?status=processing&page=2`)
