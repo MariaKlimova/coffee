@@ -266,6 +266,33 @@ describe('Форма товара без галереи', () => {
     expect(screen.queryByLabelText(MANAGE_COPY.demoConsent)).not.toBeInTheDocument()
   })
 
+  it('не возвращает в прежнюю форму и не показывает toast после ухода во время сохранения', async () => {
+    let finish: (() => void) | undefined
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'patch')
+        await new Promise<void>((resolve) => {
+          finish = resolve
+        })
+      return response(config, product)
+    }
+    setup()
+    const user = userEvent.setup()
+    await screen.findByLabelText(COPY.name)
+    await user.click(screen.getByRole('button', { name: MANAGE_COPY.save }))
+    await waitFor(() => expect(finish).toBeDefined())
+    await user.click(screen.getByRole('link', { name: MANAGE_COPY.backToProducts }))
+    expect(screen.getByText('Список')).toBeVisible()
+    await act(async () => {
+      finish?.()
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    })
+    expect(screen.getByText('Список')).toBeVisible()
+    expect(
+      screen.queryByRole('heading', { name: MANAGE_COPY.editTitle }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText(MANAGE_COPY.saved)).not.toBeInTheDocument()
+  })
+
   it('сбрасывает черновик и блокирует отложенный запрос после смены staff', async () => {
     let release: (() => void) | undefined
     const write = vi.fn()

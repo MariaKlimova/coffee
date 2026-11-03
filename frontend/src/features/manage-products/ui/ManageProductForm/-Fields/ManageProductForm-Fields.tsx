@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CATEGORY_LABELS, type ProductCategorySlug } from '@entities/product'
 import { APP_ROUTES } from '@shared/config'
@@ -28,6 +28,13 @@ export function ManageProductFields({ product, onSave }: ManageProductFieldsProp
   const [consent, setConsent] = useState(false)
   const [pending, setPending] = useState(false)
   const [nextCategory, setNextCategory] = useState<ProductCategorySlug | null>(null)
+  const active = useRef(false)
+  useEffect(() => {
+    active.current = true
+    return () => {
+      active.current = false
+    }
+  }, [])
   const submitting = useRef(false)
   const form = useRef<HTMLFormElement>(null)
   const navigate = useNavigate()
@@ -63,6 +70,7 @@ export function ManageProductFields({ product, onSave }: ManageProductFieldsProp
         setPending(true)
         try {
           const saved = await onSave(formPayload(values, demo))
+          if (!active.current) return
           showToast({
             message: product ? MANAGE_COPY.saved : COPY.created,
             variant: 'success',
@@ -72,6 +80,7 @@ export function ManageProductFields({ product, onSave }: ManageProductFieldsProp
             { replace: true },
           )
         } catch (error) {
+          if (!active.current) return
           const fields = mapFormError(error)
           setErrors(fields)
           setFormError(
@@ -80,7 +89,7 @@ export function ManageProductFields({ product, onSave }: ManageProductFieldsProp
           focusError()
         } finally {
           submitting.current = false
-          setPending(false)
+          if (active.current) setPending(false)
         }
       }}
     >

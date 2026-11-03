@@ -1,3 +1,5 @@
+import { RETRY } from './phrases'
+
 /** Строки формы товара владельца. */
 export const PRODUCT_FORM_COPY = {
   name: 'Название',
@@ -41,7 +43,7 @@ export const PRODUCT_FORM_COPY = {
   loading: 'Загрузка товара',
   loadError: 'Не удалось загрузить товар.',
   notFound: 'Не нашли такой товар.',
-  retry: 'Попробовать ещё раз',
+  retry: RETRY,
   created: 'Товар добавлен',
   currentAvailability: 'Доступность после последнего сохранения',
   availabilityHint:
