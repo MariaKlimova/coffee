@@ -765,6 +765,9 @@ paths:
         No provider request or reservation/status change is performed.
         Customer contacts use stored guest contacts, falling back to the linked
         account's current email/phone; account contacts are not checkout snapshots.
+        latest_payment_status is the stored local status of the latest payment
+        attempt by created_at descending, then UUID descending, or null if none.
+        It is not an aggregate financial outcome and is not inferred from order status.
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
@@ -1588,7 +1591,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/OrderListItem"
         - type: object
-          required: [customer_email, customer_phone]
+          required: [customer_email, customer_phone, latest_payment_status]
           properties:
             customer_email:
               type: string
@@ -1599,6 +1602,12 @@ components:
               type: string
               nullable: true
               readOnly: true
+            latest_payment_status:
+              type: string
+              enum: [pending, succeeded, failed, canceled]
+              nullable: true
+              readOnly: true
+              description: Stored local status of the latest attempt ordered by created_at then UUID descending, or null when no attempt exists. Not an aggregate financial outcome; independent of order status. No provider re-fetch.
 
     ManageOrder:
       allOf:

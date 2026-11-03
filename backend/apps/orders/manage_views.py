@@ -1,6 +1,6 @@
 """Staff-only order reads. Buyer endpoints and lifecycle writes remain separate."""
 
-from django.db.models import Prefetch
+from django.db.models import OuterRef, Prefetch, Subquery
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.permissions import IsAdminUser
@@ -28,7 +28,9 @@ from apps.payments.models import Payment
         ],
         description="Staff only. Newest first, UUID descending breaks timestamp ties. "
         "Dates are inclusive UTC calendar dates. Account contacts are current profile "
-        "values, not checkout snapshots. No provider request is performed.",
+        "values, not checkout snapshots. latest_payment_status is the stored status "
+        "of the latest attempt, not an aggregate financial outcome; null means no "
+        "attempt. No provider request is performed.",
     ),
     retrieve=extend_schema(tags=["Manage orders"]),
 )
@@ -48,6 +50,13 @@ class ManageOrderViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = (
             Order.objects.select_related("user")
             .defer("user__password", "user__last_login")
+            .annotate(
+                latest_payment_status=Subquery(
+                    Payment.objects.filter(order_id=OuterRef("pk"))
+                    .order_by("-created_at", "-id")
+                    .values("status")[:1]
+                )
+            )
             .order_by("-created_at", "-id")
         )
         if self.action == "list":

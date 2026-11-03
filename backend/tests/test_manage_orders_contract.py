@@ -17,6 +17,11 @@ def test_manage_order_endpoints_and_projection_are_documented():
             contract["paths"][path]["get"]["responses"]
         )
     payment = contract["components"]["schemas"]["ManagePayment"]
+    order = contract["components"]["schemas"]["ManageOrderListItem"]["allOf"][1]
+    assert "latest_payment_status" in order["required"]
+    latest = order["properties"]["latest_payment_status"]
+    assert latest["nullable"] is True and latest["readOnly"] is True
+    assert set(latest["enum"]) == {"pending", "succeeded", "failed", "canceled"}
     validator = Draft202012Validator(
         {**contract, "$ref": "#/components/schemas/ManagePayment"}
     )
@@ -48,6 +53,10 @@ def test_generated_schema_exposes_read_only_paginated_staff_endpoints():
     detail = schema["paths"]["/api/manage/orders/{id}/"]
     assert set(detail) == {"get"}
     payment = schema["components"]["schemas"]["ManagePayment"]
+    latest = schema["components"]["schemas"]["ManageOrderList"]["properties"][
+        "latest_payment_status"
+    ]
+    assert latest["nullable"] is True and latest["readOnly"] is True
     assert set(payment["properties"]) == {
         "id",
         "status",

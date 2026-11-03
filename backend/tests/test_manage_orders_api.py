@@ -68,6 +68,100 @@ def test_staff_finds_both_types_and_minimal_contacts(staff_client, orders):
     assert "payments" not in rows[str(orders[1].pk)]
 
 
+def test_latest_payment_status_is_null_without_attempts(staff_client, orders):
+    response = staff_client.get(LIST)
+    assert all(row["latest_payment_status"] is None for row in response.data["results"])
+    detail = staff_client.get(f"{LIST}{orders[1].pk}/")
+    assert detail.data["status"] == "payment_review"
+    assert detail.data["latest_payment_status"] is None
+
+
+@pytest.mark.parametrize(
+    "older_status, latest_status",
+    [
+        ("succeeded", "pending"),
+        ("canceled", "succeeded"),
+        ("canceled", "failed"),
+        ("pending", "canceled"),
+    ],
+)
+def test_latest_attempt_status_is_not_aggregate_or_order_status(
+    staff_client, orders, older_status, latest_status
+):
+    order = orders[0]
+    Order.objects.filter(pk=order.pk).update(status=Order.Status.PAID)
+    older = Payment.objects.create(
+        order=order,
+        provider_payment_id="synthetic-older-59",
+        status=older_status,
+        amount="750.00",
+    )
+    latest = Payment.objects.create(
+        order=order,
+        provider_payment_id="synthetic-latest-59",
+        status=latest_status,
+        amount="750.00",
+        confirmation_url="https://example.test/private-token",
+        raw_payload={"private_provider_payload": "private-synthetic-marker"},
+    )
+    Payment.objects.filter(pk=older.pk).update(
+        created_at=datetime(2026, 1, 1, tzinfo=UTC)
+    )
+    Payment.objects.filter(pk=latest.pk).update(
+        created_at=datetime(2026, 1, 2, tzinfo=UTC)
+    )
+    response = staff_client.get(LIST, {"search": str(order.pk)})
+    row = response.data["results"][0]
+    assert row["status"] == "paid"
+    assert row["latest_payment_status"] == latest_status
+    assert (
+        staff_client.get(f"{LIST}{order.pk}/").data["latest_payment_status"]
+        == latest_status
+    )
+    for forbidden in (
+        "provider_payment_id",
+        "confirmation_url",
+        "raw_payload",
+        "private_provider_payload",
+        "private-synthetic-marker",
+        "private-token",
+    ):
+        assert forbidden not in response.content.decode()
+    # The buyer contract remains independent of staff payment projections.
+    assert (
+        "latest_payment_status" not in staff_client.get(f"/api/orders/{order.pk}/").data
+    )
+    assert (
+        "latest_payment_status" not in staff_client.get("/api/orders/").content.decode()
+    )
+
+
+def test_latest_attempt_timestamp_ties_use_descending_uuid(staff_client, orders):
+    order = orders[0]
+    low = Payment.objects.create(
+        id=uuid.UUID(int=1),
+        order=order,
+        provider_payment_id="synthetic-low-59",
+        status="pending",
+        amount="750.00",
+    )
+    high = Payment.objects.create(
+        id=uuid.UUID(int=2),
+        order=order,
+        provider_payment_id="synthetic-high-59",
+        status="canceled",
+        amount="750.00",
+    )
+    Payment.objects.filter(pk__in=[low.pk, high.pk]).update(
+        created_at=datetime(2026, 1, 1, tzinfo=UTC)
+    )
+    row = staff_client.get(LIST, {"search": str(order.pk)}).data["results"][0]
+    assert row["latest_payment_status"] == "canceled"
+    detail = staff_client.get(f"{LIST}{order.pk}/").data
+    assert detail["payments"][0]["id"] == str(high.pk)
+    assert detail["latest_payment_status"] == detail["payments"][0]["status"]
+
+
 @pytest.mark.parametrize(
     "search,index",
     [
