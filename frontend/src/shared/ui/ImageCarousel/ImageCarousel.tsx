@@ -62,7 +62,7 @@ export function ImageCarousel({
   }
   const isTouch = useCoarsePointer()
   const swiped = useRef(false)
-  const touchStartX = useRef<number | null>(null)
+  const touchStart = useRef<{ x: number; y: number; identifier: number } | null>(null)
   const count = images.length
   const hasMultiple = count > 1
   const safeIndex = count === 0 ? 0 : index % count
@@ -95,18 +95,27 @@ export function ImageCarousel({
 
   const onTouchStart = (event: TouchEvent<HTMLDivElement>) => {
     swiped.current = false
-    touchStartX.current = event.changedTouches[0]?.clientX ?? null
+    const touch = event.touches.length === 1 ? event.changedTouches[0] : undefined
+    touchStart.current = touch
+      ? { x: touch.clientX, y: touch.clientY, identifier: touch.identifier }
+      : null
   }
 
   const onTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
-    const startX = touchStartX.current
-    const endX = event.changedTouches[0]?.clientX
-    touchStartX.current = null
-    if (startX === null || endX === undefined) {
+    const start = touchStart.current
+    const end = Array.from(event.changedTouches).find(
+      (touch) => touch.identifier === start?.identifier,
+    )
+    touchStart.current = null
+    if (!start || !end) {
       return
     }
-    const delta = endX - startX
-    if (Math.abs(delta) < SWIPE_THRESHOLD_PX) {
+    const delta = end.clientX - start.x
+    const verticalDelta = end.clientY - start.y
+    if (
+      Math.abs(delta) < SWIPE_THRESHOLD_PX ||
+      Math.abs(delta) <= Math.abs(verticalDelta)
+    ) {
       return
     }
     swiped.current = true
@@ -147,6 +156,10 @@ export function ImageCarousel({
       onKeyDown={onKeyDown}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
+      onTouchCancel={() => {
+        touchStart.current = null
+        swiped.current = false
+      }}
     >
       {imageHref ? (
         <Link

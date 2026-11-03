@@ -318,6 +318,28 @@ describe('ProductPage navigation and actions', () => {
     expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 600, behavior: 'instant' })
   })
 
+  it('waits for a cached catalog background refresh before restoring scroll', async () => {
+    const user = userEvent.setup()
+    const { router } = renderStore('/coffee?ordering=price')
+    const links = await screen.findAllByRole('link', { name: listItem.name })
+    vi.spyOn(window, 'scrollY', 'get').mockReturnValue(840)
+    await user.click(links[0])
+    await screen.findByRole('heading', { name: listItem.name, level: 1 })
+    delayList = true
+    vi.mocked(window.scrollTo).mockClear()
+    await act(() => router.navigate(-1))
+    await screen.findByRole('heading', { name: listItem.name, level: 3 })
+    await waitFor(() => expect(resolveList).toBeDefined())
+    expect(window.scrollTo).not.toHaveBeenCalled()
+    await act(async () => resolveList?.())
+    await waitFor(() =>
+      expect(window.scrollTo).toHaveBeenLastCalledWith({
+        top: 840,
+        behavior: 'instant',
+      }),
+    )
+  })
+
   it('keeps cart and favorite controls on the detail page, updating the existing cart line', async () => {
     useAuthStore.setState({
       status: 'authenticated',
