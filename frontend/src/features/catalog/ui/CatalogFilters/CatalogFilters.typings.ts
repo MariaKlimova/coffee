@@ -2,20 +2,20 @@ import type { ProductOrdering } from '@entities/product'
 
 import type { CatalogFilterPatch } from '../../lib/catalogSearchParams.typings'
 
-/**
- * Props for the catalog filter sidebar.
- */
+/** Параметры фильтров, применённые к каталогу. */
 export interface CatalogFiltersProps {
-  /** Current minimum price as typed in the URL, or undefined. */
+  /** Нижняя граница цены из URL. */
   priceMin?: string
-  /** Current maximum price as typed in the URL, or undefined. */
+  /** Верхняя граница цены из URL. */
   priceMax?: string
-  /** Whether the in-stock-only checkbox is checked. */
+  /** Показывать только товары в наличии. */
   inStockOnly: boolean
-  /** Current sort order. */
+  /** Применённая сортировка. */
   ordering: ProductOrdering
-  /** Applies a filter patch (resets page/expand upstream). */
+  /** Применить параметры и сбросить страницу. */
   onChange: (patch: CatalogFilterPatch) => void
-  /** Optional extra class name. */
+  /** Ключ навигации: закрывает черновик при переходе по истории. */
+  navigationKey?: string
+  /** Дополнительный класс. */
   className?: string
 }

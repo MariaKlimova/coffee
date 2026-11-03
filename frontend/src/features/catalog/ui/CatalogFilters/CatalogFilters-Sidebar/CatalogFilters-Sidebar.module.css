@@ -1,4 +1,4 @@
-.CatalogFilters {
+.CatalogFilters-Sidebar {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -9,7 +9,7 @@
   border-radius: var(--radius-lg);
 }
 
-.CatalogFilters-Title {
+.CatalogFilters-Sidebar-Title {
   margin: 0;
   font-family: var(--font-sans);
   font-size: var(--text-2xs);
@@ -17,10 +17,4 @@
   letter-spacing: var(--letter-spacing-overline);
   text-transform: uppercase;
   color: var(--color-text-muted);
-}
-
-.CatalogFilters-PriceRow {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-sm);
 }

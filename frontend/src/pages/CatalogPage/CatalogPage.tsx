@@ -73,6 +73,7 @@ export function CatalogPage({ category }: CatalogPageProps) {
             inStockOnly={params.inStockOnly}
             ordering={params.ordering}
             onChange={setFilters}
+            navigationKey={location.key}
           />
         </aside>
 
