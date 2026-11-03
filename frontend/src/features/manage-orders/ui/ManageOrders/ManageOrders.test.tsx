@@ -8,10 +8,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RequireStaff } from '@app/routes/RequireStaff'
 import { ManageLayout } from '@app/layouts/ManageLayout'
 import { bindAuthBridge, useAuthStore } from '@entities/user'
+import { LoginPage } from '@pages/LoginPage'
 import { ManageOrdersPage } from '@pages/ManageOrdersPage'
 import { ManageOrderDetailPage } from '@pages/ManageOrderDetailPage'
 import { http } from '@shared/api'
-import { MANAGE_COPY, MANAGE_ORDERS_COPY as copy } from '@shared/lib/copy'
+import { AUTH_COPY, MANAGE_COPY, MANAGE_ORDERS_COPY as copy } from '@shared/lib/copy'
 
 import type { ManageOrder } from '../../api/manageOrdersApi.typings'
 
@@ -75,6 +76,7 @@ function LocationProbe() {
     <output aria-label="location">
       {location.pathname}
       {location.search}
+      {location.hash}
     </output>
   )
 }
@@ -87,7 +89,7 @@ function LoginProbe() {
     </p>
   )
 }
-function setup(path = '/manage/orders', guarded = false) {
+function setup(path = '/manage/orders', guarded = false, realLogin = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const view = render(
     <QueryClientProvider client={client}>
@@ -107,7 +109,7 @@ function setup(path = '/manage/orders', guarded = false) {
               <Route path="/manage/orders/:id" element={<ManageOrderDetailPage />} />
             </>
           )}
-          <Route path="/login" element={<LoginProbe />} />
+          <Route path="/login" element={realLogin ? <LoginPage /> : <LoginProbe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -140,6 +142,63 @@ afterEach(() => {
 })
 
 describe('Обзор заказов сотрудника', () => {
+  it.each([
+    '/manage/orders?search=6060&page=2#results',
+    `/manage/orders/${id}?search=6060#attempts`,
+  ])(
+    'после настоящей формы входа возвращается на %s и загружает staff данные',
+    async (path) => {
+      useAuthStore.getState().clearSession()
+      const calls: InternalAxiosRequestConfig[] = []
+      http.defaults.adapter = async (config) => {
+        calls.push(config)
+        if (config.url === '/api/auth/login/')
+          return response(config, {
+            access: 'synthetic-new-access',
+            refresh: 'synthetic-new-refresh',
+            user: {
+              id: 'staff-return',
+              email: 'staff-return@example.invalid',
+              is_staff: true,
+            },
+          })
+        return response(
+          config,
+          config.url === '/api/manage/orders/'
+            ? { results: [order], count: 21, next: null, previous: 'previous-page' }
+            : order,
+        )
+      }
+      setup(path, true, true)
+      expect(screen.getByRole('heading', { name: AUTH_COPY.loginTitle })).toBeVisible()
+      expect(calls).toHaveLength(0)
+      const user = userEvent.setup()
+      await user.type(
+        screen.getByLabelText(AUTH_COPY.emailLabel),
+        'staff-return@example.invalid',
+      )
+      await user.type(
+        screen.getByLabelText(AUTH_COPY.passwordLabel),
+        'synthetic-password',
+      )
+      await user.click(screen.getByRole('button', { name: AUTH_COPY.loginSubmit }))
+      expect(await screen.findByText(order.customer_email!)).toBeVisible()
+      expect(screen.getByLabelText('location')).toHaveTextContent(path)
+      expect(
+        screen.queryByRole('heading', { name: AUTH_COPY.loginTitle }),
+      ).not.toBeInTheDocument()
+      expect(calls.map((call) => [call.method, call.url])).toEqual([
+        ['post', '/api/auth/login/'],
+        [
+          'get',
+          path.startsWith('/manage/orders?')
+            ? '/api/manage/orders/'
+            : `/api/manage/orders/${id}/`,
+        ],
+      ])
+      expect(calls[1].headers.Authorization).toBe('Bearer synthetic-new-access')
+    },
+  )
   it('показывает отдельные статусы заказа и последней попытки оплаты без покупательских запросов', async () => {
     const calls = installAdapter()
     setup('/manage/orders', true)
