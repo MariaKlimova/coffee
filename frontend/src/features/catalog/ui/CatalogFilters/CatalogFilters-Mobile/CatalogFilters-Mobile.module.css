@@ -1,0 +1,35 @@
+.CatalogFilters-Mobile {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.CatalogFilters-Mobile-Toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--space-xs);
+}
+
+.CatalogFilters-Mobile-Toolbar > button {
+  flex: 0 1 auto;
+}
+
+.CatalogFilters-Mobile-Sort {
+  flex: 1 1 var(--size-catalog-sort-min);
+  min-width: 0;
+}
+
+.CatalogFilters-Mobile-Sort select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.CatalogFilters-Mobile-Applied {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+}
