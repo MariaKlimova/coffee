@@ -10,6 +10,36 @@ afterEach(() => {
 })
 
 describe('resolveProductImages', () => {
+  it('убирает мок после сохранения демо как рабочего товара без пересборки', () => {
+    vi.stubEnv('VITE_ENABLE_DEMO_CATALOG_IMAGES', 'true')
+    const product = { id: importedCoffeeId, image_url: null }
+    expect(resolveProductImages({ ...product, origin: 'demo' })).toEqual([
+      DEMO_CATALOG_IMAGES.get(importedCoffeeId),
+    ])
+    expect(resolveProductImages({ ...product, origin: 'owner' })).toEqual([])
+  })
+
+  it('получает демо-состояние от нового API без флага сборки', () => {
+    vi.stubEnv('VITE_ENABLE_DEMO_CATALOG_IMAGES', 'false')
+    expect(
+      resolveProductImages({ id: importedCoffeeId, image_url: null, origin: 'demo' }),
+    ).toEqual([DEMO_CATALOG_IMAGES.get(importedCoffeeId)])
+  })
+
+  it('сохраняет настоящую галерею рабочего товара и исключает отмеченный мок', () => {
+    expect(
+      resolveProductImages({
+        id: importedCoffeeId,
+        image_url: null,
+        origin: 'owner',
+        images: [
+          { url: '/mock.webp', order: 0, is_main: true, is_mock: true },
+          { url: '/upload.webp', order: 1, is_main: false, is_mock: false },
+        ],
+      }),
+    ).toEqual(['/upload.webp'])
+  })
+
   it.each([undefined, 'false', '1', 'True'])(
     'не включает демо при флаге %s',
     (flag) => {

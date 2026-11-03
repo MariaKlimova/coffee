@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from PIL import Image
 
-from apps.catalog.models import Category, Product, ProductImage
+from apps.catalog.models import CatalogState, Category, Product, ProductImage
 
 COFFEE_PRODUCTS: list[dict] = [
     {
@@ -299,6 +299,10 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options) -> None:
+        state, _ = CatalogState.objects.get_or_create(pk=1)
+        if not state.demo_enabled:
+            self.stdout.write("Demo catalog disabled; nothing seeded.")
+            return
         coffee, _ = Category.objects.get_or_create(
             slug="coffee",
             defaults={"name": "Кофе"},
@@ -339,6 +343,8 @@ class Command(BaseCommand):
                     # Owner must enter physical counts explicitly. Repeated
                     # seeds never update existing products or their stock.
                     "stock_quantity": 0,
+                    "origin": Product.Origin.DEMO,
+                    "demo_source": "seed_catalog",
                     "attributes": item.get("attributes", {}),
                 },
             )
@@ -350,6 +356,7 @@ class Command(BaseCommand):
                     image=_placeholder_png(color, f"{product.slug}.png"),
                     order=0,
                     is_main=True,
+                    is_mock=True,
                 )
                 created += 1
         return created

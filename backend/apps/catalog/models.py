@@ -43,6 +43,10 @@ class Product(models.Model):
     with a closed key set per category (validated in clean()).
     """
 
+    class Origin(models.TextChoices):
+        OWNER = "owner", "Owner"
+        DEMO = "demo", "Demo"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
@@ -77,6 +81,12 @@ class Product(models.Model):
     stock_quantity = models.PositiveIntegerField(default=0, editable=False)
     reserved_quantity = models.PositiveIntegerField(default=0, editable=False)
     is_published = models.BooleanField(default=True)
+    origin = models.CharField(
+        max_length=10, choices=Origin.choices, default=Origin.OWNER
+    )
+    demo_source = models.CharField(
+        max_length=100, blank=True, default="", editable=False
+    )
     attributes = models.JSONField(
         default=dict,
         blank=True,
@@ -172,6 +182,7 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to="products/%Y/%m/")
     order = models.PositiveIntegerField(default=0)
     is_main = models.BooleanField(default=False)
+    is_mock = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "product image"
@@ -220,3 +231,21 @@ class StockAdjustment(models.Model):
 
     class Meta:
         ordering = ["-created_at", "-pk"]
+
+
+class CatalogState(models.Model):
+    """One persisted switch; deployment and demo seeding never reset it."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    demo_enabled = models.BooleanField(default=True)
+    switched_at = models.DateTimeField(null=True, blank=True)
+    switched_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT
+    )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(id=1), name="catalog_state_singleton"
+            )
+        ]
