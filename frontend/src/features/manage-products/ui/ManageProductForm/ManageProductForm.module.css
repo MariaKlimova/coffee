@@ -1,0 +1,70 @@
+.ManageProductForm,
+.ManageProductForm-Fields {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-lg);
+}
+.ManageProductForm h1 {
+  font-family: var(--font-display);
+  font-size: var(--text-display-sm);
+  margin: 0 0 var(--space-xs);
+}
+.ManageProductForm h2 {
+  font-size: var(--text-lg);
+  margin: 0;
+}
+.ManageProductForm p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ManageProductForm header p {
+  color: var(--color-text-secondary);
+}
+.ManageProductForm-Section {
+  display: grid;
+  min-width: 0;
+  gap: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin: 0;
+  background: var(--color-surface);
+}
+.ManageProductForm-Section legend {
+  padding: 0 var(--space-xs);
+  font-weight: var(--weight-semibold);
+}
+.ManageProductForm-Grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--grid-card-min)), 1fr));
+  gap: var(--space-md);
+}
+.ManageProductForm-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.ManageProductForm-Actions > * {
+  white-space: normal;
+  max-width: 100%;
+}
+.ManageProductForm-Notice {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+.ManageProductForm-Checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+.ManageProductForm-Checkbox input {
+  flex-shrink: 0;
+  accent-color: var(--color-primary);
+}
+.ManageProductForm-Error {
+  color: var(--color-danger);
+}
