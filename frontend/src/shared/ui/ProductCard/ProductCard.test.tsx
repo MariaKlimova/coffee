@@ -168,14 +168,16 @@ describe('ProductCard', () => {
       { initialEntries: ['/coffee'] },
     )
     const image = screen.getByRole('img')
-    fireEvent.touchStart(image, { changedTouches: [{ clientX: 220 }] })
-    fireEvent.touchEnd(image, { changedTouches: [{ clientX: 100 }] })
+    const start = { clientX: 220, clientY: 100, identifier: 1 }
+    const end = { clientX: 100, clientY: 100, identifier: 1 }
+    fireEvent.touchStart(image, { touches: [start], changedTouches: [start] })
+    fireEvent.touchEnd(image, { touches: [], changedTouches: [end] })
     await user.click(image)
     expect(router.state.location.pathname).toBe('/coffee')
     expect(onOpen).not.toHaveBeenCalled()
     expect(image).toHaveAttribute('src', '/b.jpg')
-    fireEvent.touchStart(image, { changedTouches: [{ clientX: 100 }] })
-    fireEvent.touchEnd(image, { changedTouches: [{ clientX: 100 }] })
+    fireEvent.touchStart(image, { touches: [end], changedTouches: [end] })
+    fireEvent.touchEnd(image, { touches: [], changedTouches: [end] })
     await user.click(image)
     expect(router.state.location.pathname).toBe('/product/ethiopia')
     expect(onOpen).toHaveBeenCalledOnce()

@@ -47,7 +47,9 @@ export function CatalogPage({ category }: CatalogPageProps) {
   const skeletonCount = products.length > 0 ? products.length : CATALOG_PAGE_SIZE
   const showInitialSkeleton = productsQuery.isPending && !productsQuery.data
   const { productLinkState, rememberScroll } = useCatalogReturn(
-    productsQuery.isSuccess && !productsQuery.isPlaceholderData,
+    productsQuery.isSuccess &&
+      !productsQuery.isPlaceholderData &&
+      !productsQuery.isFetching,
   )
 
   const legacySlug = new URLSearchParams(location.search).get('product')?.trim()

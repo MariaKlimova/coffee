@@ -1,12 +1,13 @@
 .ScaleRow {
   display: grid;
-  grid-template-columns: minmax(var(--size-scale-label), auto) 1fr auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: var(--space-xs);
   align-items: center;
   margin-bottom: var(--space-sm);
 }
 
 .ScaleRow-Label {
+  overflow-wrap: anywhere;
   font-family: var(--font-sans);
   font-size: var(--text-caption);
   color: var(--color-text-secondary);
@@ -14,6 +15,7 @@
 
 .ScaleRow-Track {
   display: flex;
+  min-width: 0;
   gap: var(--space-2xs);
 }
 

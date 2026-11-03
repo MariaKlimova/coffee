@@ -94,17 +94,6 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
       )}
       aria-labelledby={titleId}
     >
-      {presentation === 'page' ? (
-        <h1
-          className={cx(
-            styles['ExpandedProductCard-Title'],
-            styles['ExpandedProductCard-PageTitle'],
-          )}
-          id={titleId}
-        >
-          {title}
-        </h1>
-      ) : null}
       <div className={styles['ExpandedProductCard-Media']}>
         <ImageCarousel images={images} alt={title} size="expanded" />
       </div>
@@ -146,11 +135,15 @@ export function ExpandedProductCard(props: ExpandedProductCardProps) {
         >
           {categoryLabel}
         </p>
-        {presentation === 'inline' ? (
+        {presentation === 'page' ? (
+          <h1 className={styles['ExpandedProductCard-Title']} id={titleId}>
+            {title}
+          </h1>
+        ) : (
           <h2 className={styles['ExpandedProductCard-Title']} id={titleId}>
             {title}
           </h2>
-        ) : null}
+        )}
         <p className={styles['ExpandedProductCard-Description']}>{description}</p>
         <div className={styles['ExpandedProductCard-PriceRow']}>
           {oldPrice ? (
