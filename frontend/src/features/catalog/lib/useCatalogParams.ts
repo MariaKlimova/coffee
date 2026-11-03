@@ -37,7 +37,7 @@ export function useCatalogParams() {
         ...patch,
         page: 1,
       },
-      { replace: true },
+      { replace: false },
     )
   }
 
@@ -61,7 +61,7 @@ export function useCatalogParams() {
         ordering: DEFAULT_ORDERING,
         page: 1,
       },
-      { replace: true },
+      { replace: false },
     )
   }
 

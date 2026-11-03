@@ -1,4 +1,5 @@
 .ProductCard {
+  min-width: 0;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -84,6 +85,7 @@
 
 .ProductCard-Title {
   margin: var(--space-2xs) 0;
+  overflow-wrap: anywhere;
 }
 
 .ProductCard-Expand {
@@ -127,6 +129,7 @@
 
 .ProductCard-Footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-xs);
@@ -135,6 +138,8 @@
 
 .ProductCard-PriceRow {
   display: flex;
+  min-width: 0;
+  overflow-wrap: anywhere;
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2xs);
