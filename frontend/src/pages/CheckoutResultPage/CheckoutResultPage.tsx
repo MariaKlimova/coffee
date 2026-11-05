@@ -1,8 +1,8 @@
 import { formatOrderNumberLabel } from '@entities/order'
 import { selectIsAuthenticated, useAuthStore } from '@entities/user'
 import { useOrderPaymentResult } from '@features/checkout'
-import { APP_ROUTES } from '@shared/config/routes'
-import { ORDER_RESULT_COPY } from '@shared/lib/copy'
+import { APP_ROUTES, orderDetailPath } from '@shared/config/routes'
+import { CANCELLATION_COPY, ORDER_RESULT_COPY } from '@shared/lib/copy'
 import { Button, EmptyState } from '@shared/ui'
 
 import { ORDERS_HREF } from './CheckoutResultPage.const'
@@ -11,21 +11,25 @@ import styles from './CheckoutResultPage.module.css'
 /**
  * Результат оплаты после возврата с ЮKassa: успех, ожидание, задержка или ошибка.
  */
-export function CheckoutResultPage() {
+function CheckoutResultPageContent() {
   const isAuthenticated = useAuthStore(selectIsAuthenticated)
-  const { order, view, isRetrying, retryError, retryPayment, refetchOrder } =
+  const { orderId, order, view, isRetrying, retryError, retryPayment, refetchOrder } =
     useOrderPaymentResult()
 
   const successCta = isAuthenticated ? (
     <Button to={ORDERS_HREF}>{ORDER_RESULT_COPY.goToOrders}</Button>
   ) : (
-    <Button to={APP_ROUTES.coffee}>{ORDER_RESULT_COPY.goHome}</Button>
+    <Button to={orderId ? orderDetailPath(orderId) : APP_ROUTES.coffee}>
+      {orderId ? CANCELLATION_COPY.openOrder : ORDER_RESULT_COPY.goHome}
+    </Button>
   )
 
   const delayedCta = isAuthenticated ? (
     <Button to={ORDERS_HREF}>{ORDER_RESULT_COPY.goToOrders}</Button>
   ) : (
-    <Button to={APP_ROUTES.coffee}>{ORDER_RESULT_COPY.goHome}</Button>
+    <Button to={orderId ? orderDetailPath(orderId) : APP_ROUTES.coffee}>
+      {orderId ? CANCELLATION_COPY.openOrder : ORDER_RESULT_COPY.goHome}
+    </Button>
   )
 
   if (view === 'missing') {
@@ -104,6 +108,9 @@ export function CheckoutResultPage() {
             {ORDER_RESULT_COPY.pendingDescription}
           </p>
         </div>
+        {orderId && (
+          <Button to={orderDetailPath(orderId)}>{CANCELLATION_COPY.openOrder}</Button>
+        )}
       </section>
     )
   }
@@ -169,6 +176,11 @@ export function CheckoutResultPage() {
                   {retryError}
                 </p>
               ) : null}
+              {orderId && (
+                <Button to={orderDetailPath(orderId)} variant="secondary">
+                  {CANCELLATION_COPY.openOrder}
+                </Button>
+              )}
             </div>
           }
         />
@@ -177,4 +189,14 @@ export function CheckoutResultPage() {
   }
 
   return null
+}
+
+/** Смена покупателя сбрасывает локальные формы и незавершённые сетевые состояния. */
+export function CheckoutResultPage() {
+  const status = useAuthStore((state) => state.status)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const userId = useAuthStore((state) => state.user?.id)
+  return (
+    <CheckoutResultPageContent key={`${status}:${generation}:${userId ?? 'guest'}`} />
+  )
 }

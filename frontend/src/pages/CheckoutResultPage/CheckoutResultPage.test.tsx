@@ -16,7 +16,7 @@ import {
   readPaymentRecoveryOrderId,
 } from '@features/checkout'
 import { http } from '@shared/api'
-import { ORDER_RESULT_COPY } from '@shared/lib/copy'
+import { CANCELLATION_COPY, ORDER_RESULT_COPY } from '@shared/lib/copy'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
 
 import { CheckoutResultPage } from './CheckoutResultPage'
@@ -148,7 +148,7 @@ describe('CheckoutResultPage', () => {
       await screen.findByRole('heading', { name: ORDER_RESULT_COPY.successTitle }),
     ).toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: ORDER_RESULT_COPY.goHome }),
+      screen.getByRole('link', { name: CANCELLATION_COPY.openOrder }),
     ).toBeInTheDocument()
 
     await waitFor(() => {
@@ -301,9 +301,12 @@ describe('CheckoutResultPage', () => {
           name:
             authStatus === 'authenticated'
               ? ORDER_RESULT_COPY.goToOrders
-              : ORDER_RESULT_COPY.goHome,
+              : CANCELLATION_COPY.openOrder,
         }),
-      ).toHaveAttribute('href', authStatus === 'authenticated' ? '/orders' : '/coffee')
+      ).toHaveAttribute(
+        'href',
+        authStatus === 'authenticated' ? '/orders' : `/orders/${orderId}`,
+      )
       expect(readPaymentRecoveryOrderId()).toBeNull()
       expect(sessionStorage.getItem(PENDING_ORDER_ID_KEY)).toBeNull()
       expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)

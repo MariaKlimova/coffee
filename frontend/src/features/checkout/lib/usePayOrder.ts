@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { CanceledError, isCancel } from 'axios'
 
 import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
 import { createPayment } from '@entities/order'
@@ -29,9 +30,15 @@ export function usePayOrder({
   const [isPaying, setIsPaying] = useState(false)
   const [error, setError] = useState<string | undefined>()
   const payingRef = useRef(false)
+  const renderedActor = useAuthStore.getState()
 
   async function payOrder(orderId: string): Promise<void> {
-    if (!selectCanShop(useAuthStore.getState()) || !orderId || payingRef.current) {
+    if (
+      !selectCanShop(useAuthStore.getState()) ||
+      !isSameCustomerSession(renderedActor, useAuthStore.getState()) ||
+      !orderId ||
+      payingRef.current
+    ) {
       return
     }
     setError(undefined)
@@ -39,12 +46,21 @@ export function usePayOrder({
     setIsPaying(true)
     try {
       writePaymentRecoveryOrderId(orderId)
-      const session = useAuthStore.getState()
-      const payment = await createPayment(orderId)
+      const session = renderedActor
+      const assertActor = () => {
+        if (!isSameCustomerSession(session, useAuthStore.getState()))
+          throw new CanceledError('Сессия оплаты изменилась')
+      }
+      const payment = await createPayment(orderId, assertActor)
       if (!isSameCustomerSession(session, useAuthStore.getState())) return
       redirectToPayment(payment.payment_url)
       clearPaymentRecoveryOrderId()
-    } catch {
+    } catch (failure) {
+      if (
+        isCancel(failure) ||
+        !isSameCustomerSession(renderedActor, useAuthStore.getState())
+      )
+        return
       setError(CHECKOUT_COPY.paymentError)
       setIsPaying(false)
       payingRef.current = false

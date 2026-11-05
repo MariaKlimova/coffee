@@ -99,6 +99,20 @@ export const MANAGE_ORDERS_COPY = {
   emptyHistory:
     'Изменений пока не записано. Прежние события здесь не восстанавливаются.',
   sourceStaff: 'Действие сотрудника',
+  sourceBuyer: 'Действие покупателя',
+  cancellationRequest: 'Покупатель просит отменить заказ',
+  cancellationRequests: 'Запросы отмены',
+  acceptCancellation: 'Принять отмену',
+  declineCancellation: 'Отклонить запрос',
+  confirmCancellationDecision: 'Подтверди решение по запросу',
+  publicResponse: 'Ответ покупателю',
+  publicResponseHint:
+    'Обязательный ответ, до 500 символов. Покупатель увидит его в своём заказе.',
+  privateComment: 'Внутренний комментарий',
+  privateCommentHint: 'Необязательно, до 500 символов. Его увидят только сотрудники.',
+  publicResponseRequired: 'Напиши ответ покупателю.',
+  decisionSuccess: 'Решение сохранено. Покупатель увидит ответ в своём заказе.',
+  declineHint: 'Заказ продолжит обрабатываться. Товары и оплата не изменятся.',
   sourcePayment: 'Подтверждение оплаты',
   sourceExpiry: 'Истёк срок ожидания оплаты',
 } as const

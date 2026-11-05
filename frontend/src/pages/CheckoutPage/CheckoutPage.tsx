@@ -10,7 +10,7 @@ import {
   useCheckoutSubmit,
 } from '@features/checkout'
 import { APP_ROUTES } from '@shared/config/routes'
-import { CART_PAGE_COPY, CHECKOUT_COPY } from '@shared/lib/copy'
+import { CART_PAGE_COPY, CHECKOUT_COPY, CANCELLATION_COPY } from '@shared/lib/copy'
 import { Button, EmptyState, useToast } from '@shared/ui'
 
 import { CheckoutPageForm } from './CheckoutPage-Form'
@@ -21,7 +21,7 @@ import styles from './CheckoutPage.module.css'
 /**
  * Страница оформления: сводка корзины, контакты гостя, оплата через ЮKassa.
  */
-export function CheckoutPage() {
+function CheckoutPageContent() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [recoveredOrderId] = useState(() => resolvePaymentRecoveryOrderId(searchParams))
@@ -40,7 +40,10 @@ export function CheckoutPage() {
     fieldErrors,
     formError,
     isSubmitting,
+    isRecovering,
     createdOrderId,
+    unresolvedGuestCheckout,
+    recoverCheckout,
     clearFieldError,
     handleSubmit,
   } = useCheckoutSubmit({
@@ -57,16 +60,56 @@ export function CheckoutPage() {
   const isEmpty = cartQuery.isSuccess && !showInitialSkeleton && items.length === 0
 
   useEffect(() => {
-    if (!isEmpty || isSubmitting || createdOrderId || recoveredOrderId) {
+    if (
+      !isEmpty ||
+      isSubmitting ||
+      createdOrderId ||
+      recoveredOrderId ||
+      unresolvedGuestCheckout
+    ) {
       return
     }
     showToast({ message: CHECKOUT_COPY.emptyCartToast, variant: 'info' })
     void navigate(APP_ROUTES.cart, { replace: true })
-  }, [isEmpty, isSubmitting, createdOrderId, recoveredOrderId, navigate, showToast])
+  }, [
+    isEmpty,
+    isSubmitting,
+    createdOrderId,
+    recoveredOrderId,
+    unresolvedGuestCheckout,
+    navigate,
+    showToast,
+  ])
 
   if (authStatus === 'idle' || authStatus === 'restoring') {
     return null
   }
+
+  if (unresolvedGuestCheckout && (!isSubmitting || isRecovering))
+    return (
+      <section className={styles.CheckoutPage}>
+        <EmptyState
+          title={CANCELLATION_COPY.checkoutRecoveryTitle}
+          description={CANCELLATION_COPY.checkoutRecoveryHint}
+          action={
+            <Button
+              loading={isSubmitting}
+              onClick={() => {
+                void recoverCheckout()
+              }}
+            >
+              {CANCELLATION_COPY.check}
+            </Button>
+          }
+        />
+        {formError && <p role="alert">{formError}</p>}
+        {formError && (
+          <Button to={APP_ROUTES.contacts} variant="ghost">
+            {CANCELLATION_COPY.contactStore}
+          </Button>
+        )}
+      </section>
+    )
 
   const shouldResumeSavedOrder = !isNewCheckout && (recoverFromUrl || isEmpty)
   const recoveryOrderId =
@@ -192,4 +235,12 @@ export function CheckoutPage() {
       )}
     </section>
   )
+}
+
+/** Смена покупателя сбрасывает локальные формы и незавершённые сетевые состояния. */
+export function CheckoutPage() {
+  const status = useAuthStore((state) => state.status)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const userId = useAuthStore((state) => state.user?.id)
+  return <CheckoutPageContent key={`${status}:${generation}:${userId ?? 'guest'}`} />
 }

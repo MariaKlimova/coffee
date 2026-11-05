@@ -26,7 +26,7 @@ export const APP_ROUTES = {
   profile: '/profile',
   /** Orders list (auth). */
   orders: '/orders',
-  /** Order detail pattern for the router (auth). */
+  /** Приватная карточка владельца или гостя с сохранённым подтверждением. */
   orderDetail: '/orders/:id',
   /** Главная страница управления каталогом (для сотрудников). */
   manage: '/manage',

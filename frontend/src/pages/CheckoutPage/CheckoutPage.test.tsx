@@ -5,10 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Route, Routes } from 'react-router-dom'
 
 import { useCartStore } from '@entities/cart'
+import { writeGuestCheckoutIntent, readGuestOrderProof } from '@entities/order'
 import { useAuthStore } from '@entities/user'
 import { writePaymentRecoveryOrderId } from '@features/checkout'
 import { http } from '@shared/api'
-import { CHECKOUT_COPY, ORDER_RESULT_COPY } from '@shared/lib/copy'
+import { CANCELLATION_COPY, CHECKOUT_COPY, ORDER_RESULT_COPY } from '@shared/lib/copy'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
 import { ToastProvider } from '@shared/ui'
 
@@ -77,6 +78,7 @@ describe('CheckoutPage', () => {
     adapter.mockReset()
     http.defaults.adapter = adapter
     sessionStorage.clear()
+    localStorage.clear()
     useCartStore.setState({ cartToken: 'guest-token' })
     useAuthStore.setState({
       status: 'guest',
@@ -89,8 +91,51 @@ describe('CheckoutPage', () => {
   afterEach(() => {
     delete http.defaults.adapter
     sessionStorage.clear()
+    localStorage.clear()
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
+  })
+
+  it('проверяет потерянное оформление до редиректа из пустой корзины и открывает прежний заказ', async () => {
+    writeGuestCheckoutIntent({
+      checkoutRequestId: 'synthetic-lost-intent',
+      originalCartToken: 'synthetic-original-cart',
+    })
+    useCartStore.setState({ cartToken: 'synthetic-current-cart' })
+    const posts: string[] = []
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+      if (config.url === '/api/cart/')
+        return jsonResponse(config, 200, {
+          ...cartPayload,
+          items: [],
+          total: '0.00',
+          items_count: 0,
+        })
+      if (config.method === 'post') {
+        posts.push(config.url ?? '')
+        expect(config.url).toBe('/api/orders/checkout-recovery/')
+        expect(config.headers.get('X-Cart-Token')).toBe('synthetic-original-cart')
+        return jsonResponse(config, 200, {
+          order: { id: 'synthetic-lost-order', status: 'pending' },
+          guest_action_token: 'synthetic-recovered-cap',
+          guest_action_version: 2,
+        })
+      }
+      return jsonResponse(config, 200, {
+        id: 'synthetic-lost-order',
+        status: 'pending',
+      })
+    })
+    const { router } = renderCheckout()
+    expect(
+      await screen.findByText(CANCELLATION_COPY.checkoutRecoveryTitle),
+    ).toBeVisible()
+    expect(router.state.location.pathname).toBe('/checkout')
+    await userEvent.click(screen.getByRole('button', { name: CANCELLATION_COPY.check }))
+    expect(await screen.findByText(ORDER_RESULT_COPY.recoveryTitle)).toBeVisible()
+    expect(posts).toEqual(['/api/orders/checkout-recovery/'])
+    expect(router.state.location.pathname).toBe('/checkout/result')
+    expect(readGuestOrderProof('synthetic-lost-order')?.version).toBe(2)
   })
 
   it('redirects to cart with toast when the cart is empty', async () => {
@@ -133,12 +178,15 @@ describe('CheckoutPage', () => {
         const body =
           typeof config.data === 'string' ? JSON.parse(config.data) : config.data
         expect(body).toEqual({
+          checkout_request_id: expect.any(String),
           delivery_address: 'Москва, Тверская 1',
           guest_email: 'guest@example.com',
           guest_phone: '+79991234567',
         })
         return jsonResponse(config, 201, {
           id: 'order-1',
+          guest_action_token: 'issued-order-proof',
+          guest_action_version: 1,
           status: 'pending',
           total: '1000.00',
           created_at: '2026-01-01T00:00:00Z',
@@ -151,6 +199,8 @@ describe('CheckoutPage', () => {
         return jsonResponse(config, 201, {
           id: 'pay-1',
           order_id: 'order-1',
+          guest_action_token: 'issued-order-proof',
+          guest_action_version: 1,
           status: 'pending',
           amount: '1000.00',
           payment_url: 'https://pay.example/session',
@@ -280,6 +330,8 @@ describe('CheckoutPage', () => {
         return jsonResponse(config, 201, {
           id: 'pay-1',
           order_id: 'order-1',
+          guest_action_token: 'issued-order-proof',
+          guest_action_version: 1,
           status: 'pending',
           amount: '1000.00',
           payment_url: 'https://pay.example/session',
@@ -307,6 +359,8 @@ describe('CheckoutPage', () => {
     resolveOrder?.(
       jsonResponse({} as InternalAxiosRequestConfig, 201, {
         id: 'order-1',
+        guest_action_token: 'issued-order-proof',
+        guest_action_version: 1,
         status: 'pending',
         total: '1000.00',
         created_at: '2026-01-01T00:00:00Z',
@@ -345,6 +399,8 @@ describe('CheckoutPage', () => {
       let resolveRetry: ((value: AxiosResponse) => void) | undefined
       const order = {
         id: 'order-recovery',
+        guest_action_token: 'issued-order-proof',
+        guest_action_version: 1,
         status: 'pending',
         total: '1000.00',
         items: [],

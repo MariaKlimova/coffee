@@ -21,6 +21,7 @@ import { orderFilterParams, readOrderFilters } from '../../model/orderFilters'
 import { useManageOrder } from '../../model/useManageOrders'
 import { ManageOrderHistory } from '../ManageOrderHistory'
 import { ManageOrderWorkflow } from '../ManageOrderWorkflow'
+import { ManageOrderCancellationRequests } from '../ManageOrderCancellationRequests'
 import styles from './ManageOrderDetail.module.css'
 
 export function ManageOrderDetail() {
@@ -132,6 +133,17 @@ export function ManageOrderDetail() {
             refreshing={query.isFetching}
             verified={!query.isError}
             refresh={async () => (await query.refetch()).isSuccess}
+            onUnavailable={onUnavailable}
+          />
+          <ManageOrderCancellationRequests
+            key={`requests:${scope}`}
+            order={order}
+            refreshing={query.isFetching}
+            verified={!query.isError}
+            refresh={async () => {
+              const result = await query.refetch()
+              return result.isSuccess ? result.data : null
+            }}
             onUnavailable={onUnavailable}
           />
           <div className={styles['ManageOrderDetail-Columns']}>

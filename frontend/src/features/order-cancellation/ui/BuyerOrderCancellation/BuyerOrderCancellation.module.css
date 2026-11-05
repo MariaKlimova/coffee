@@ -1,0 +1,44 @@
+.BuyerOrderCancellation {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.BuyerOrderCancellation h2,
+.BuyerOrderCancellation h3,
+.BuyerOrderCancellation p {
+  margin: 0;
+}
+
+.BuyerOrderCancellation-Form,
+.BuyerOrderCancellation-History {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.BuyerOrderCancellation-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.BuyerOrderCancellation-Hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.BuyerOrderCancellation-Error {
+  color: var(--color-danger);
+}
+
+.BuyerOrderCancellation-Request {
+  display: grid;
+  gap: var(--space-xs);
+  padding-block: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

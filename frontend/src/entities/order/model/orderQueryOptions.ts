@@ -14,22 +14,32 @@ export const orderKeys = {
 /**
  * Пагинированный список заказов текущего пользователя.
  */
-export function orderListQueryOptions(params: OrderListParams = {}) {
+export function orderListQueryOptions(
+  params: OrderListParams = {},
+  cacheScope?: string,
+  assertActor?: () => void,
+) {
   return queryOptions({
-    queryKey: orderKeys.list(params),
-    queryFn: () => listOrders(params),
+    queryKey: cacheScope
+      ? [...orderKeys.list(params), 'scope', cacheScope]
+      : orderKeys.list(params),
+    queryFn: () => listOrders(params, assertActor),
   })
 }
 
 /**
  * Детали заказа по UUID — для страницы результата оплаты и поллинга статуса.
  */
-export function orderDetailQueryOptions(orderId: string, cacheScope?: string) {
+export function orderDetailQueryOptions(
+  orderId: string,
+  cacheScope?: string,
+  assertActor?: () => void,
+) {
   const queryKey = cacheScope
     ? ([...orderKeys.detail(orderId), 'scope', cacheScope] as const)
     : orderKeys.detail(orderId)
   return queryOptions({
     queryKey,
-    queryFn: ({ signal }) => getOrder(orderId, signal),
+    queryFn: ({ signal }) => getOrder(orderId, signal, assertActor),
   })
 }
