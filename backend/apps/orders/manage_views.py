@@ -1,6 +1,7 @@
 """Staff order reads and explicit audited lifecycle actions."""
 
 from django.db.models import OuterRef, Prefetch, Subquery
+from django.db.models.functions import JSONObject
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -8,6 +9,8 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from apps.catalog.pagination import CatalogPagination
+from apps.orders.buyer_actions import decide_cancellation
+from apps.orders.buyer_serializers import CancellationDecisionSerializer
 from apps.orders.manage_filters import filter_manage_orders
 from apps.orders.manage_serializers import (
     ManageOrderListSerializer,
@@ -16,7 +19,7 @@ from apps.orders.manage_serializers import (
     OrderTransitionRequestSerializer,
     OrderTransitionResponseSerializer,
 )
-from apps.orders.models import Order
+from apps.orders.models import CancellationRequest, Order
 from apps.orders.workflow import transition_order
 from apps.payments.models import Payment
 
@@ -57,11 +60,27 @@ class ManageOrderViewSet(viewsets.ReadOnlyModelViewSet):
             Order.objects.select_related("user")
             .defer("user__password", "user__last_login")
             .annotate(
+                _open_cancellation_request=Subquery(
+                    CancellationRequest.objects.filter(
+                        order_id=OuterRef("pk"), state="open"
+                    )
+                    .annotate(
+                        payload=JSONObject(
+                            id="id",
+                            reason="reason",
+                            state="state",
+                            created_at="created_at",
+                            decided_at="decided_at",
+                            public_response="public_response",
+                        )
+                    )
+                    .values("payload")[:1]
+                ),
                 latest_payment_status=Subquery(
                     Payment.objects.filter(order_id=OuterRef("pk"))
                     .order_by("-created_at", "-id")
                     .values("status")[:1]
-                )
+                ),
             )
             .order_by("-created_at", "-id")
         )
@@ -70,6 +89,7 @@ class ManageOrderViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset.prefetch_related(
             "items",
             "status_history",
+            "cancellation_requests",
             Prefetch(
                 "payments",
                 queryset=Payment.objects.only(
@@ -106,3 +126,44 @@ class ManageOrderViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(
             {"order": ManageOrderSerializer(current).data, "replayed": replayed}
         )
+
+    @extend_schema(
+        tags=["Manage orders"],
+        parameters=[
+            OpenApiParameter(
+                "cancellation_id",
+                {"type": "string", "format": "uuid"},
+                location=OpenApiParameter.PATH,
+            )
+        ],
+        request=CancellationDecisionSerializer,
+        responses={
+            200: OrderTransitionResponseSerializer,
+            400: OrderTransitionErrorSerializer,
+            401: OrderTransitionErrorSerializer,
+            403: OrderTransitionErrorSerializer,
+            404: OrderTransitionErrorSerializer,
+            409: OrderTransitionErrorSerializer,
+        },
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"cancellation-requests/(?P<cancellation_id>[^/.]+)/decision",
+    )
+    def cancellation_decision(self, request, pk=None, cancellation_id=None):
+        order_id = self.get_object().pk
+        serializer = CancellationDecisionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        _order, replayed = decide_cancellation(
+            order_id=order_id,
+            cancellation_id=cancellation_id,
+            actor=request.user,
+            **serializer.validated_data,
+        )
+        current = self.get_queryset().get(pk=order_id)
+        response = Response(
+            {"order": ManageOrderSerializer(current).data, "replayed": replayed}
+        )
+        response["Cache-Control"] = "no-store"
+        return response

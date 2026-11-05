@@ -9,6 +9,7 @@ import styles from './ManageOrderHistory.module.css'
 
 const sources = {
   staff: copy.sourceStaff,
+  buyer: copy.sourceBuyer,
   payment: copy.sourcePayment,
   reservation_expiry: copy.sourceExpiry,
 }

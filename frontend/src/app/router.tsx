@@ -88,12 +88,12 @@ const appRoutes: RouteObject[] = [
           { path: APP_ROUTES.cart, element: <CartPage /> },
           { path: APP_ROUTES.checkout, element: <CheckoutPage /> },
           { path: APP_ROUTES.checkoutResult, element: <CheckoutResultPage /> },
+          { path: APP_ROUTES.orderDetail, element: <OrderDetailPage /> },
           {
             element: <RequireAuth />,
             children: [
               { path: APP_ROUTES.favorites, element: <FavoritesPage /> },
               { path: APP_ROUTES.orders, element: <OrdersPage /> },
-              { path: APP_ROUTES.orderDetail, element: <OrderDetailPage /> },
             ],
           },
         ],

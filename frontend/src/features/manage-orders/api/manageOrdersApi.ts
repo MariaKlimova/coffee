@@ -7,6 +7,7 @@ import type {
   ManageOrderListItem,
   OrderTransitionResponse,
   OrderTransitionWrite,
+  CancellationDecisionWrite,
 } from './manageOrdersApi.typings'
 
 export const MANAGE_ORDERS_PAGE_SIZE = 20
@@ -25,6 +26,22 @@ export async function fetchManageOrders(
   const { data } = await http.get<Paginated<ManageOrderListItem>>(
     '/api/manage/orders/',
     { ...guardRequest(assertStaff), params, signal },
+  )
+  assertStaff()
+  return data
+}
+
+export async function decideCancellationRequest(
+  id: string,
+  requestId: string,
+  values: CancellationDecisionWrite,
+  assertStaff: () => void,
+) {
+  assertStaff()
+  const { data } = await http.post<OrderTransitionResponse>(
+    `/api/manage/orders/${encodeURIComponent(id)}/cancellation-requests/${encodeURIComponent(requestId)}/decision/`,
+    values,
+    guardRequest(assertStaff),
   )
   assertStaff()
   return data

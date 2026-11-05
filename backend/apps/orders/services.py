@@ -6,13 +6,20 @@ from datetime import timedelta
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from apps.cart.models import Cart, CartItem
 from apps.catalog.models import Product
 from apps.catalog.services import lock_products, validate_available
+from apps.orders.guest_access import (
+    body_digest,
+    cart_proof,
+    issue_guest_token,
+    reject_checkout_replay,
+    validate_checkout_intent_for_user,
+)
 from apps.orders.history import record_status_transition
 from apps.orders.models import (
     Order,
@@ -24,10 +31,30 @@ from apps.orders.models import (
 
 @transaction.atomic
 def create_order_from_cart(
-    *, cart, delivery_address, user, guest_email=None, guest_phone=None
+    *,
+    cart,
+    delivery_address,
+    user,
+    guest_email=None,
+    guest_phone=None,
+    checkout_request_id=None,
 ):
     # Cart lock serializes add/PATCH/merge/delete/checkout, even for an empty cart.
-    Cart.objects.select_for_update().get(pk=cart.pk)
+    locked_cart = Cart.objects.select_for_update().get(pk=cart.pk)
+    validate_checkout_intent_for_user(user, checkout_request_id)
+    order_user = user if user is not None and user.is_authenticated else None
+    proof = cart_proof(locked_cart.cart_token) if order_user is None else ""
+    checkout_body = dict(
+        delivery_address=delivery_address,
+        guest_email=guest_email,
+        guest_phone=guest_phone,
+    )
+    if checkout_request_id is not None:
+        prior = Order.objects.filter(checkout_request_id=checkout_request_id).first()
+        if prior:
+            reject_checkout_replay(
+                prior, original_cart_token=locked_cart.cart_token, body=checkout_body
+            )
     items = list(CartItem.objects.filter(cart=cart).order_by("product_id"))
     if not items:
         raise ValidationError(
@@ -40,17 +67,36 @@ def create_order_from_cart(
         (products[item.product_id].price * item.quantity for item in items),
         Decimal("0.00"),
     )
-    order_user = user if user is not None and user.is_authenticated else None
-    order = Order.objects.create(
-        user=order_user,
-        guest_email=guest_email if order_user is None else None,
-        guest_phone=guest_phone if order_user is None else None,
-        delivery_address=delivery_address,
-        total_amount=total,
-        reservation_state=Order.ReservationState.ACTIVE,
-        reservation_expires_at=timezone.now()
-        + timedelta(seconds=settings.STOCK_RESERVATION_TTL_SECONDS),
-    )
+    try:
+        with transaction.atomic():
+            order = Order.objects.create(
+                user=order_user,
+                checkout_proof_digest=proof,
+                checkout_request_id=checkout_request_id,
+                checkout_body_digest=(
+                    body_digest(checkout_body) if checkout_request_id else ""
+                ),
+                guest_email=guest_email if order_user is None else None,
+                guest_phone=guest_phone if order_user is None else None,
+                delivery_address=delivery_address,
+                total_amount=total,
+                reservation_state=Order.ReservationState.ACTIVE,
+                reservation_expires_at=timezone.now()
+                + timedelta(seconds=settings.STOCK_RESERVATION_TTL_SECONDS),
+            )
+    except IntegrityError:
+        # The database UUID constraint also serializes intents on different Carts.
+        # Never disclose another guest's checkout if that concurrent intent won.
+        prior = (
+            Order.objects.filter(checkout_request_id=checkout_request_id).first()
+            if checkout_request_id
+            else None
+        )
+        if prior:
+            reject_checkout_replay(
+                prior, original_cart_token=locked_cart.cart_token, body=checkout_body
+            )
+        raise
     OrderItem.objects.bulk_create(
         [
             OrderItem(
@@ -77,6 +123,8 @@ def create_order_from_cart(
             reserved_quantity=product.reserved_quantity + item.quantity
         )
     CartItem.objects.filter(cart=cart).delete()
+    if order_user is None:
+        order._guest_action_token = issue_guest_token(order)
     return order
 
 

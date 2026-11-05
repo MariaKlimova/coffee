@@ -11,6 +11,7 @@ import type {
   OrderTransitionWrite,
 } from '../../api/manageOrdersApi.typings'
 import { useOrderTransition } from '../../model/useOrderTransition'
+import { inventoryHint } from '../../lib/inventoryHint'
 import type { ManageOrderWorkflowProps } from './ManageOrderWorkflow.typings'
 import styles from './ManageOrderWorkflow.module.css'
 
@@ -25,13 +26,6 @@ function actionLabel(action: AllowedOrderTransition) {
   if (action.to_status in actionLabels)
     return actionLabels[action.to_status as keyof typeof actionLabels]
   return null
-}
-
-function inventoryHint(action: AllowedOrderTransition) {
-  if (action.inventory_reason === 'legacy_uncounted') return copy.legacyStock
-  if (action.inventory_effect === 'release_reservation') return copy.releaseReservation
-  if (action.inventory_effect === 'restore_stock') return copy.restoreStock
-  return copy.unchangedStock
 }
 
 /** Подтверждение одной серверной команды с сохранением UUID неопределённого повтора. */

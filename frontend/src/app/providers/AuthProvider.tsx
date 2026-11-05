@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { cartKeys, mergeCart, useCartStore } from '@entities/cart'
 import { favoriteKeys } from '@entities/favorite'
 import { productKeys } from '@entities/product'
+import { orderKeys } from '@entities/order'
+import { clearBuyerIntents } from '@features/order-cancellation'
 import { selectAccountMode, selectCanShop, useAuthStore } from '@entities/user'
 
 interface AuthProviderProps {
@@ -22,7 +24,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const status = useAuthStore((state) => state.status)
   const mode = useAuthStore(selectAccountMode)
   const userId = useAuthStore((state) => state.user?.id)
-  const previousSessionRef = useRef({ status, mode, userId })
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const previousSessionRef = useRef({ status, mode, userId, generation })
 
   useEffect(() => {
     if (status !== 'idle') {
@@ -33,19 +36,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const previous = previousSessionRef.current
-    previousSessionRef.current = { status, mode, userId }
+    previousSessionRef.current = { status, mode, userId, generation }
     const previousStatus = previous.status
 
     if (
       previousStatus === status &&
       previous.mode === mode &&
-      previous.userId === userId
+      previous.userId === userId &&
+      previous.generation === generation
     ) {
       return
     }
     if (status !== 'authenticated' && status !== 'guest') {
       return
     }
+
+    const oldScope = `${previous.generation}:${previous.status}:${previous.userId ?? 'guest'}`
+    const oldOrders = {
+      queryKey: orderKeys.all,
+      predicate: (query: { queryKey: readonly unknown[] }) =>
+        query.queryKey.some(
+          (part) => typeof part === 'string' && part.startsWith(oldScope),
+        ),
+    }
+    void queryClient.cancelQueries(oldOrders)
+    queryClient.removeQueries(oldOrders)
+    const oldBuyer = {
+      queryKey: ['buyer-orders', previous.generation, previous.userId ?? 'guest'],
+    }
+    void queryClient.cancelQueries(oldBuyer)
+    queryClient.removeQueries(oldBuyer)
+    if (previousStatus === 'authenticated' || previousStatus === 'guest')
+      clearBuyerIntents()
 
     void queryClient.cancelQueries({ queryKey: productKeys.all })
     void queryClient.resetQueries({ queryKey: productKeys.all })
@@ -101,7 +123,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       }
     })()
-  }, [status, mode, userId, queryClient])
+  }, [status, mode, userId, generation, queryClient])
 
   return children
 }

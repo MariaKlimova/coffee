@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { BuyerOrderCancellation } from '@features/order-cancellation'
 
 import {
   formatOrderDate,
@@ -19,23 +20,30 @@ import styles from './OrdersPage-Item.module.css'
  */
 export function OrdersPageItem({ order }: OrdersPageItemProps) {
   return (
-    <Link to={orderDetailPath(order.id)} className={styles['OrdersPage-Item']}>
-      <div className={styles['OrdersPage-Item-Main']}>
-        <span className={styles['OrdersPage-Item-Number']}>
-          {formatOrderNumberLabel(ORDERS_PAGE_COPY.orderNumber, order.id)}
+    <article className={styles['OrdersPage-Item']}>
+      <Link to={orderDetailPath(order.id)} className={styles['OrdersPage-Item-Link']}>
+        <div className={styles['OrdersPage-Item-Main']}>
+          <span className={styles['OrdersPage-Item-Number']}>
+            {formatOrderNumberLabel(ORDERS_PAGE_COPY.orderNumber, order.id)}
+          </span>
+          <time className={styles['OrdersPage-Item-Date']} dateTime={order.created_at}>
+            {formatOrderDate(order.created_at)}
+          </time>
+        </div>
+        <span className={styles['OrdersPage-Item-Status']}>
+          <Badge variant={getOrderStatusBadgeVariant(order.status)}>
+            {getOrderStatusLabel(order.status)}
+          </Badge>
         </span>
-        <time className={styles['OrdersPage-Item-Date']} dateTime={order.created_at}>
-          {formatOrderDate(order.created_at)}
-        </time>
-      </div>
-      <span className={styles['OrdersPage-Item-Status']}>
-        <Badge variant={getOrderStatusBadgeVariant(order.status)}>
-          {getOrderStatusLabel(order.status)}
-        </Badge>
-      </span>
-      <span className={styles['OrdersPage-Item-Total']}>
-        {formatMoney(order.total)}
-      </span>
-    </Link>
+        <span className={styles['OrdersPage-Item-Total']}>
+          {formatMoney(order.total)}
+        </span>
+      </Link>
+      {(order.status === 'pending' ||
+        order.status === 'paid' ||
+        order.status === 'processing') && (
+        <BuyerOrderCancellation id={order.id} inline />
+      )}
+    </article>
   )
 }

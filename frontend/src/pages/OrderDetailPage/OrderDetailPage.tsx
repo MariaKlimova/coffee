@@ -7,20 +7,17 @@ import {
   formatOrderNumberLabel,
   getOrderStatusBadgeVariant,
   getOrderStatusLabel,
-  useOrder,
 } from '@entities/order'
+import { useAuthStore } from '@entities/user'
 import { usePayOrder } from '@features/checkout'
+import { BuyerOrderActions, useBuyerOrder } from '@features/order-cancellation'
 import { APP_ROUTES } from '@shared/config'
-import { ORDER_DETAIL_COPY } from '@shared/lib/copy'
+import { GO_TO_CATALOG, ORDER_DETAIL_COPY } from '@shared/lib/copy'
 import { formatMoney } from '@shared/lib/formatMoney'
 import { Badge, Button, EmptyState } from '@shared/ui'
 
 import { OrderDetailPageLine } from './OrderDetailPage-Line'
 import styles from './OrderDetailPage.module.css'
-
-function isNotFoundError(error: unknown): boolean {
-  return isAxiosError(error) && error.response?.status === 404
-}
 
 function canPayOrder(status: string): boolean {
   return status === 'pending'
@@ -29,11 +26,14 @@ function canPayOrder(status: string): boolean {
 /**
  * Деталка заказа: снимок позиций, адрес и статус.
  */
-export function OrderDetailPage() {
+function OrderDetailPageContent() {
   const { id } = useParams<{ id: string }>()
   const orderId = id ?? null
-  const orderQuery = useOrder(orderId)
-  const order = orderQuery.data
+  const orderQuery = useBuyerOrder(orderId ?? '')
+  const order = orderQuery.data?.order
+  const isGuest = useAuthStore((state) => state.status === 'guest')
+  const backTo = isGuest ? APP_ROUTES.coffee : APP_ROUTES.orders
+  const backLabel = isGuest ? GO_TO_CATALOG : ORDER_DETAIL_COPY.backToOrders
   const { payOrder, isPaying, error: paymentError } = usePayOrder()
 
   if (!orderId) {
@@ -50,28 +50,34 @@ export function OrderDetailPage() {
     )
   }
 
-  if (orderQuery.isError) {
-    const notFound = isNotFoundError(orderQuery.error)
+  if (
+    !orderQuery.ready ||
+    (isAxiosError(orderQuery.error) &&
+      [401, 403, 404].includes(orderQuery.error.response?.status ?? 0))
+  )
+    return (
+      <section className={styles.OrderDetailPage}>
+        <Button to={backTo} variant="ghost">
+          {backLabel}
+        </Button>
+        <BuyerOrderActions key={orderQuery.scope} id={orderId} buyer={orderQuery} />
+      </section>
+    )
+
+  if (orderQuery.isError && !order) {
     return (
       <section className={styles.OrderDetailPage}>
         <EmptyState
-          title={
-            notFound ? ORDER_DETAIL_COPY.notFoundTitle : ORDER_DETAIL_COPY.errorTitle
-          }
-          description={notFound ? ORDER_DETAIL_COPY.notFoundDescription : undefined}
+          title={ORDER_DETAIL_COPY.errorTitle}
           action={
-            notFound ? (
-              <Button to={APP_ROUTES.orders}>{ORDER_DETAIL_COPY.backToOrders}</Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={() => {
-                  void orderQuery.refetch()
-                }}
-              >
-                {ORDER_DETAIL_COPY.retry}
-              </Button>
-            )
+            <Button
+              type="button"
+              onClick={() => {
+                void orderQuery.refetch()
+              }}
+            >
+              {ORDER_DETAIL_COPY.retry}
+            </Button>
           }
         />
       </section>
@@ -100,8 +106,8 @@ export function OrderDetailPage() {
   return (
     <section className={styles.OrderDetailPage}>
       <div className={styles['OrderDetailPage-Header']}>
-        <Button to={APP_ROUTES.orders} variant="ghost">
-          {ORDER_DETAIL_COPY.backToOrders}
+        <Button to={backTo} variant="ghost">
+          {backLabel}
         </Button>
         <div className={styles['OrderDetailPage-TitleRow']}>
           <h1 className={styles['OrderDetailPage-Title']}>
@@ -148,7 +154,9 @@ export function OrderDetailPage() {
         <p className={styles['OrderDetailPage-Address']}>{order.delivery_address}</p>
       </div>
 
-      {showPay ? (
+      <BuyerOrderActions key={orderQuery.scope} id={order.id} buyer={orderQuery} />
+
+      {showPay && orderQuery.data?.allowed_actions.includes('cancel') ? (
         <div className={styles['OrderDetailPage-Pay']}>
           <Button
             type="button"
@@ -167,5 +175,18 @@ export function OrderDetailPage() {
         </div>
       ) : null}
     </section>
+  )
+}
+
+/** Смена заказа или покупателя сбрасывает формы и незавершённые сетевые состояния. */
+export function OrderDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const status = useAuthStore((state) => state.status)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const userId = useAuthStore((state) => state.user?.id)
+  return (
+    <OrderDetailPageContent
+      key={`${id}:${status}:${generation}:${userId ?? 'guest'}`}
+    />
   )
 }

@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { CanceledError } from 'axios'
 
-import { useAuthStore } from '@entities/user'
+import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
 
 import type { OrderListParams } from '../api/orderApi.typings'
 import { orderDetailQueryOptions, orderListQueryOptions } from './orderQueryOptions'
@@ -33,11 +34,28 @@ export interface UseOrderOptions {
  */
 export function useOrders(params: OrderListParams = {}) {
   const status = useAuthStore((state) => state.status)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const userId = useAuthStore((state) => state.user?.id)
+  const canShop = useAuthStore(selectCanShop)
+  const actor = useAuthStore.getState()
+  const scope = `${generation}:${status}:${userId ?? 'guest'}`
+  const assertActor = () => {
+    if (
+      !canShop ||
+      status !== 'authenticated' ||
+      !isSameCustomerSession(actor, useAuthStore.getState())
+    )
+      throw new CanceledError('Сессия заказов изменилась')
+  }
 
   return useQuery({
-    ...orderListQueryOptions(params),
-    enabled: status === 'authenticated',
-    placeholderData: keepPreviousData,
+    ...orderListQueryOptions(params, scope, assertActor),
+    enabled: status === 'authenticated' && canShop,
+    gcTime: 0,
+    placeholderData: (previous, previousQuery) => {
+      if (previousQuery?.queryKey.at(-1) === scope) return keepPreviousData(previous)
+      return undefined
+    },
   })
 }
 
@@ -45,6 +63,11 @@ export function useOrders(params: OrderListParams = {}) {
  * Заказ по id. Опциональный поллинг, пока `status === 'pending'`.
  */
 export function useOrder(orderId: string | null, options: UseOrderOptions = {}) {
+  const status = useAuthStore((state) => state.status)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const userId = useAuthStore((state) => state.user?.id)
+  const canShop = useAuthStore(selectCanShop)
+  const actor = useAuthStore.getState()
   const {
     refetchIntervalMs = false,
     stopPolling = false,
@@ -52,12 +75,20 @@ export function useOrder(orderId: string | null, options: UseOrderOptions = {}) 
     cacheScope,
     gcTime,
   } = options
-  const detailOptions = orderDetailQueryOptions(orderId ?? '', cacheScope)
+  const assertActor = () => {
+    if (!canShop || !isSameCustomerSession(actor, useAuthStore.getState()))
+      throw new CanceledError('Сессия заказа изменилась')
+  }
+  const detailOptions = orderDetailQueryOptions(
+    orderId ?? '',
+    `${generation}:${status}:${userId ?? 'guest'}:${cacheScope ?? ''}`,
+    assertActor,
+  )
 
   return useQuery({
     ...detailOptions,
     ...(gcTime === undefined ? {} : { gcTime }),
-    enabled: enabled && Boolean(orderId),
+    enabled: enabled && canShop && Boolean(orderId),
     refetchInterval: (query) => {
       if (!enabled || !orderId || stopPolling || refetchIntervalMs === false) {
         return false

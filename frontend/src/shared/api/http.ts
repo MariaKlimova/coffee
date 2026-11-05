@@ -190,7 +190,7 @@ http.interceptors.request.use((config: RetryableRequestConfig) => {
 
   if (shouldAttachGuestCartToken(config.url)) {
     const cartToken = getCartBridge().getCartToken()
-    if (cartToken) {
+    if (cartToken && !config.headers.has(CART_TOKEN_HEADER)) {
       config.headers[CART_TOKEN_HEADER] = cartToken
     }
   }

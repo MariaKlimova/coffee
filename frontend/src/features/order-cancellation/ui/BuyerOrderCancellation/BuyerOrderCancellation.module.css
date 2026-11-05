@@ -1,0 +1,99 @@
+.BuyerOrderCancellation {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.BuyerOrderCancellation--inline {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.BuyerOrderCancellation--expanded {
+  flex-basis: 100%;
+  flex-grow: 1;
+}
+
+.BuyerOrderCancellation h2,
+.BuyerOrderCancellation h3,
+.BuyerOrderCancellation p {
+  margin: 0;
+}
+
+.BuyerOrderCancellation-Form,
+.BuyerOrderCancellation-History {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.BuyerOrderCancellation-History {
+  padding-block-start: var(--space-md);
+  border-block-start: 1px solid var(--color-border);
+}
+
+.BuyerOrderCancellation-History > h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.BuyerOrderCancellation-Fields,
+.BuyerOrderCancellation-Fields > div {
+  display: grid;
+  gap: var(--space-2xs);
+}
+
+.BuyerOrderCancellation-Fields {
+  margin: 0;
+  gap: var(--space-sm);
+}
+
+.BuyerOrderCancellation-Fields dt {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.BuyerOrderCancellation-Fields dd {
+  margin: 0;
+}
+
+.BuyerOrderCancellation-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.BuyerOrderCancellation-Hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.BuyerOrderCancellation-Error {
+  color: var(--color-danger);
+}
+
+.BuyerOrderCancellation-Request {
+  display: grid;
+  gap: var(--space-xs);
+  padding-block: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.BuyerOrderCancellation--inline .BuyerOrderCancellation-History {
+  margin-inline-start: var(--space-xs);
+  padding-inline-start: var(--space-md);
+  padding-block-start: 0;
+  border-block-start: 0;
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.BuyerOrderCancellation--inline .BuyerOrderCancellation-History > h3 {
+  font-size: var(--text-sm);
+}
+
+.BuyerOrderCancellation-History > h3 + .BuyerOrderCancellation-Request {
+  padding-block-start: 0;
+  border-block-start: 0;
+}

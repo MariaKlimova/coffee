@@ -7,7 +7,7 @@ import { Route, Routes } from 'react-router-dom'
 import { useAuthStore } from '@entities/user'
 import { PENDING_ORDER_ID_KEY } from '@features/checkout'
 import { http } from '@shared/api'
-import { ORDER_DETAIL_COPY } from '@shared/lib/copy'
+import { CANCELLATION_COPY, ORDER_DETAIL_COPY } from '@shared/lib/copy'
 import { renderWithProviders } from '@shared/lib/test/renderWithProviders'
 
 import { OrderDetailPage } from './OrderDetailPage'
@@ -46,6 +46,14 @@ const orderPayload = {
     },
   ],
   updated_at: '2026-09-19T10:00:00Z',
+}
+
+function buyerPayload(order: typeof orderPayload) {
+  return {
+    order,
+    allowed_actions: order.status === 'pending' ? ['cancel'] : [],
+    cancellation_requests: [],
+  }
 }
 
 function renderDetail(initialPath = `/orders/${orderId}`) {
@@ -87,7 +95,7 @@ describe('OrderDetailPage', () => {
 
   it('shows snapshot items, address and total', async () => {
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
-      jsonResponse(config, 200, orderPayload),
+      jsonResponse(config, 200, buyerPayload(orderPayload)),
     )
 
     renderDetail()
@@ -116,7 +124,7 @@ describe('OrderDetailPage', () => {
 
     renderDetail()
 
-    expect(await screen.findByText(ORDER_DETAIL_COPY.notFoundTitle)).toBeInTheDocument()
+    expect(await screen.findByText(CANCELLATION_COPY.unavailable)).toBeInTheDocument()
     expect(
       screen.getByRole('link', { name: ORDER_DETAIL_COPY.backToOrders }),
     ).toHaveAttribute('href', '/orders')
@@ -124,7 +132,7 @@ describe('OrderDetailPage', () => {
 
   it('keeps a cancelled order visible with conditional refund guidance and no payment action', async () => {
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
-      jsonResponse(config, 200, { ...orderPayload, status: 'cancelled' }),
+      jsonResponse(config, 200, buyerPayload({ ...orderPayload, status: 'cancelled' })),
     )
 
     renderDetail()
@@ -133,6 +141,10 @@ describe('OrderDetailPage', () => {
       await screen.findByText(ORDER_DETAIL_COPY.cancelledDescription),
     ).toBeInTheDocument()
     expect(screen.getByText('Отменён')).toBeInTheDocument()
+    expect(screen.queryByText(CANCELLATION_COPY.noActions)).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: CANCELLATION_COPY.title }),
+    ).not.toBeInTheDocument()
     expect(screen.getByText('Эфиопия Иргачеффе')).toBeInTheDocument()
     expect(screen.getByText(/2\s*580/)).toBeInTheDocument()
     expect(
@@ -145,7 +157,7 @@ describe('OrderDetailPage', () => {
     'does not describe a %s order as cancelled and only offers payment for pending',
     async (status) => {
       adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
-        jsonResponse(config, 200, { ...orderPayload, status }),
+        jsonResponse(config, 200, buyerPayload({ ...orderPayload, status })),
       )
 
       renderDetail()
@@ -157,6 +169,8 @@ describe('OrderDetailPage', () => {
       expect(
         Boolean(screen.queryByRole('button', { name: ORDER_DETAIL_COPY.pay })),
       ).toBe(status === 'pending')
+      if (status !== 'pending')
+        expect(screen.getByText(CANCELLATION_COPY.noActions)).toBeInTheDocument()
     },
   )
 
@@ -167,7 +181,11 @@ describe('OrderDetailPage', () => {
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
       if (config.method === 'get' && config.url?.includes(`/api/orders/${orderId}/`)) {
-        return jsonResponse(config, 200, { ...orderPayload, status: 'pending' })
+        return jsonResponse(
+          config,
+          200,
+          buyerPayload({ ...orderPayload, status: 'pending' }),
+        )
       }
       if (config.method === 'post' && config.url?.includes('/api/payments/create/')) {
         return jsonResponse(config, 201, {

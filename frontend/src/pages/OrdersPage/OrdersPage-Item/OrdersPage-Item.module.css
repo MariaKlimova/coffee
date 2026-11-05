@@ -1,19 +1,28 @@
 .OrdersPage-Item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--space-md);
   align-items: center;
   padding: var(--space-md) 0;
   border-bottom: 1px solid var(--color-border);
+}
+
+.OrdersPage-Item-Link {
+  flex: 1 1 calc(var(--layout-max-width) / 2);
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-md);
+  align-items: center;
   text-decoration: none;
   color: inherit;
 }
 
-.OrdersPage-Item:hover .OrdersPage-Item-Number {
+.OrdersPage-Item-Link:hover .OrdersPage-Item-Number {
   color: var(--color-primary);
 }
 
-.OrdersPage-Item:focus-visible {
+.OrdersPage-Item-Link:focus-visible {
   outline: none;
   border-radius: var(--radius-sm);
   box-shadow: var(--focus-ring);
@@ -54,7 +63,8 @@
 }
 
 @media (max-width: 40rem) {
-  .OrdersPage-Item {
+  .OrdersPage-Item-Link {
+    flex-basis: 100%;
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       'main total'

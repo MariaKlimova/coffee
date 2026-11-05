@@ -41,6 +41,9 @@ export function ManageOrderRow({ order, search }: ManageOrderRowProps) {
         <span>
           {MANAGE_ORDERS_COPY.payment}: {paymentLabel(order.latest_payment_status)}
         </span>
+        {order.open_cancellation_request && (
+          <Badge>{MANAGE_ORDERS_COPY.cancellationRequest}</Badge>
+        )}
       </div>
       <strong className={styles['ManageOrderRow-Total']}>
         {formatManageMoney(order.total)}

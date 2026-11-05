@@ -1,8 +1,9 @@
 import type { Paginated } from '@entities/product'
-import { http } from '@shared/api'
+import { guardRequest, http } from '@shared/api'
 
 import type {
   Order,
+  OrderCreated,
   OrderCreate,
   OrderListItem,
   OrderListParams,
@@ -27,8 +28,16 @@ function toQueryParams(params: OrderListParams): Record<string, string> {
 /**
  * Создаёт заказ из текущей корзины (JWT или гость с `X-Cart-Token`).
  */
-export async function createOrder(payload: OrderCreate): Promise<Order> {
-  const { data } = await http.post<Order>('/api/orders/', payload)
+export async function createOrder(
+  payload: OrderCreate,
+  assertActor?: () => void,
+  cartToken?: string,
+): Promise<OrderCreated> {
+  const { data } = await http.post<OrderCreated>('/api/orders/', payload, {
+    ...guardRequest(assertActor),
+    headers: cartToken ? { 'X-Cart-Token': cartToken } : undefined,
+  })
+  assertActor?.()
   return data
 }
 
@@ -37,28 +46,44 @@ export async function createOrder(payload: OrderCreate): Promise<Order> {
  */
 export async function listOrders(
   params: OrderListParams = {},
+  assertActor?: () => void,
 ): Promise<Paginated<OrderListItem>> {
   const { data } = await http.get<Paginated<OrderListItem>>('/api/orders/', {
+    ...guardRequest(assertActor),
     params: toQueryParams(params),
   })
+  assertActor?.()
   return data
 }
 
 /**
  * Загружает заказ по UUID (`GET /api/orders/{id}/`).
  */
-export async function getOrder(orderId: string, signal?: AbortSignal): Promise<Order> {
-  const { data } = await http.get<Order>(`/api/orders/${orderId}/`, { signal })
+export async function getOrder(
+  orderId: string,
+  signal?: AbortSignal,
+  assertActor?: () => void,
+): Promise<Order> {
+  const { data } = await http.get<Order>(`/api/orders/${orderId}/`, {
+    ...guardRequest(assertActor),
+    signal,
+  })
+  assertActor?.()
   return data
 }
 
 /**
  * Создаёт платёжную сессию ЮKassa и возвращает URL для редиректа.
  */
-export async function createPayment(orderId: string): Promise<PaymentSession> {
+export async function createPayment(
+  orderId: string,
+  assertActor?: () => void,
+): Promise<PaymentSession> {
   const body: PaymentCreate = { order_id: orderId }
   const { data } = await http.post<PaymentSession>('/api/payments/create/', body, {
+    ...guardRequest(assertActor),
     timeout: PAYMENT_CREATE_TIMEOUT_MS,
   })
+  assertActor?.()
   return data
 }

@@ -21,3 +21,31 @@ export {
   orderListQueryOptions,
 } from './model/orderQueryOptions'
 export { ORDERS_PAGE_SIZE } from './order.const'
+export {
+  fetchBuyerActions,
+  submitBuyerAction,
+  recoverGuestCheckout,
+} from './api/buyerOrderApi'
+export type {
+  BuyerOrder,
+  BuyerAction,
+  BuyerActions,
+  BuyerActionWrite,
+  BuyerActionResponse,
+  CancellationRequest,
+  OrderCreated,
+} from './api/orderApi.typings'
+export {
+  readGuestOrderProof,
+  writeGuestOrderProof,
+  guestOrderProofVersion,
+  subscribeGuestOrderProof,
+  readGuestCheckoutIntent,
+  writeGuestCheckoutIntent,
+  clearGuestCheckoutIntent,
+} from './model/guestOrderStorage'
+export type {
+  GuestOrderProof,
+  GuestCheckoutIntent,
+  GuestCheckoutBody,
+} from './model/guestOrderStorage'

@@ -707,6 +707,15 @@ paths:
         and the request fails with 400. Unlike cart endpoints, this response
         does **not** set an `X-Cart-Token` header.
 
+        New guest clients MUST persist checkout_request_id plus the original private
+        cart proof before POST. A successful guest response includes a random
+        guest_action_token and monotonic guest_action_version (initially 1).
+        Store per-order proof before payment navigation, independently of pending
+        payment IDs. Never put proof in URLs, provider return URLs, analytics/logs,
+        or public GET. Exact guest checkout replay returns checkout_recovery_required;
+        changed body returns idempotency_conflict; wrong original proof returns404.
+        Authenticated checkout_request_id is unsupported. Secret responses are no-store.
+
         Fails if the cart is empty or any line product is out of stock.
       operationId: createOrder
       security: []
@@ -724,9 +733,132 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Order"
+                $ref: "#/components/schemas/OrderCreateResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/OrderActionConflict"}
+
+  /api/orders/checkout-recovery/:
+    post:
+      tags: [Orders]
+      summary: Recover a new guest checkout using the original private cart proof
+      description: Anonymous only. Requires immutable original X-Cart-Token and the UUID persisted before checkout. Rotates the dedicated action proof under the Order lock; increments guest_action_version. Does not use the current Cart owner, claim a guest order after login, or change order/payment/stock. Wrong proof and unknown intent return identical 404. Response is no-store. Older orders or missing original proof require assisted support. Serialize recovery attempts; ignore responses older than the retained version.
+      security: []
+      parameters:
+        - name: X-Cart-Token
+          in: header
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/GuestCheckoutRecovery"}
+      responses:
+        "200":
+          description: Private recovered order proof; Cache-Control no-store
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/GuestCheckoutRecoveryResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/orders/{id}/buyer-actions/:
+    get:
+      tags: [Orders]
+      security: [{bearerAuth: []}, {}]
+      summary: Read the current buyer-only order and cancellation result
+      description: JWT is optional because anonymous guest proof is supported; the empty security alternative never grants proof-free access. Anonymous guests must send their dedicated X-Order-Action-Token; authenticated callers must be the active persisted owner. Active persisted account owner, or anonymous guest with X-Order-Action-Token. Public UUID/contact knowledge and staff privileges alone do not grant buyer authority. No staff history, private comments, contacts or provider data. Reads never expire reservations or write business state. Response is no-store.
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/OrderActionToken"
+      responses:
+        "200":
+          description: Private current buyer snapshot
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BuyerActions"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/orders/{id}/cancel/:
+    post:
+      tags: [Orders]
+      security: [{bearerAuth: []}, {}]
+      summary: Buyer confirms self-cancellation of an unpaid pending order
+      description: JWT is optional because anonymous guest proof is supported; the empty security alternative never grants proof-free access. Anonymous guests must send their dedicated X-Order-Action-Token; authenticated callers must be the active persisted owner. Owner/proof authorized before idempotency replay. Atomic Order-first locking and one reserve release. UUID plus normalized body and stable buyer principal persist for retries, including after token rotation or late confirmed payment. Exact replay returns current state; changed intent or stale state returns409. Never refunds or calls the provider. Response is no-store.
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/OrderActionToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/BuyerCancelRequest"}
+      responses:
+        "200":
+          description: Current buyer snapshot and replay indicator
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BuyerActionResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/OrderActionConflict"}
+
+  /api/orders/{id}/cancellation-requests/:
+    post:
+      tags: [Orders]
+      security: [{bearerAuth: []}, {}]
+      summary: Buyer requests cancellation before shipment
+      description: JWT is optional because anonymous guest proof is supported; the empty security alternative never grants proof-free access. Anonymous guests must send their dedicated X-Order-Action-Token; authenticated callers must be the active persisted owner. Same private buyer authorization as self-cancellation. For paid/processing with a valid cancellation matrix. Persists only a request; no order, payment, stock or provider mutation. At most one open request. Exact UUID/body/principal replay is safe; another intent while open returns cancellation_request_open. Request does not block shipment. Monetary refund is a separate manual process.
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - $ref: "#/components/parameters/OrderActionToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/BuyerCancellationRequest"}
+      responses:
+        "200":
+          description: Current buyer snapshot and replay indicator
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/BuyerActionResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/OrderActionConflict"}
+
+  /api/manage/orders/{id}/cancellation-requests/{cancellation_id}/decision/:
+    post:
+      tags: [Manage orders]
+      summary: Staff accepts or declines a buyer cancellation request
+      description: Persisted active staff required. Order-first lock, expected live paid/processing status and open request required. Acceptance uses the COFFEE-61 private domain core and counted inventory once; decline only closes request. Mandatory public_response is separate from private_comment. Both intent stores share a UUID namespace. A real shipment/payment_review transition closes open requests unavailable; ordinary staff cancellation accepts them without copying internal comments. No provider refund/cancel.
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+        - name: cancellation_id
+          in: path
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CancellationDecision"}
+      responses:
+        "200":
+          description: Current staff order snapshot and replay indicator
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OrderTransitionResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/OrderActionConflict"}
 
   /api/orders/{id}/:
     get:
@@ -968,6 +1100,12 @@ components:
       bearerFormat: JWT
 
   parameters:
+    OrderActionToken:
+      name: X-Order-Action-Token
+      in: header
+      required: false
+      description: Dedicated private proof for anonymous guest buyer actions; required for guests. Active authenticated owners use JWT instead. Never a URL/query parameter.
+      schema: {type: string}
     Page:
       name: page
       in: query
@@ -1032,6 +1170,11 @@ components:
         format: uuid
 
   responses:
+    OrderActionConflict:
+      description: Live status/matrix conflict or persisted UUID intent conflict; refresh current private projection. Codes include order_status_conflict, transition_not_allowed, cancellation_request_open, cancellation_request_conflict, idempotency_conflict, checkout_recovery_required.
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
     Forbidden:
       description: Authenticated account has no staff access
       content:
@@ -1534,10 +1677,127 @@ components:
           type: string
           format: date-time
 
+    GuestCheckoutRecovery:
+      type: object
+      additionalProperties: false
+      required: [checkout_request_id]
+      properties:
+        checkout_request_id: {type: string, format: uuid}
+
+    BuyerOrder:
+      type: object
+      additionalProperties: false
+      required: [id, status, total, delivery_address, items, created_at, updated_at, reservation_state, reservation_expires_at]
+      properties:
+        id: {type: string, format: uuid}
+        status: {type: string, enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]}
+        total: {$ref: "#/components/schemas/Money"}
+        delivery_address: {type: string}
+        items: {type: array, items: {$ref: "#/components/schemas/OrderItem"}}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        reservation_state: {type: string, enum: [none, active, consumed, released, restored]}
+        reservation_expires_at: {type: string, format: date-time, nullable: true}
+
+    GuestCheckoutRecoveryResponse:
+      type: object
+      required: [order, guest_action_token, guest_action_version]
+      properties:
+        order: {$ref: "#/components/schemas/BuyerOrder"}
+        guest_action_token: {type: string, readOnly: true, description: Private random proof; retained per-order only in the originating browser.}
+        guest_action_version: {type: integer, minimum: 1, readOnly: true}
+
+    OrderCreateResponse:
+      allOf:
+        - $ref: "#/components/schemas/Order"
+        - type: object
+          properties:
+            guest_action_token: {type: string, readOnly: true, description: Guest checkout only; never returned by public GET.}
+            guest_action_version: {type: integer, minimum: 1, readOnly: true, description: Guest checkout only; initially 1.}
+
+    PublicCancellationRequest:
+      type: object
+      additionalProperties: false
+      required: [id, reason, state, created_at, decided_at, public_response]
+      properties:
+        id: {type: string, format: uuid, readOnly: true}
+        reason: {type: string, maxLength: 500, readOnly: true}
+        state: {type: string, enum: [open, accepted, declined, closed_unavailable], readOnly: true}
+        created_at: {type: string, format: date-time, readOnly: true}
+        decided_at: {type: string, format: date-time, nullable: true, readOnly: true}
+        public_response: {type: string, maxLength: 500, readOnly: true}
+
+    ManageCancellationRequest:
+      type: object
+      additionalProperties: false
+      required: [id, reason, state, created_at, decided_at, public_response, private_comment, decided_by]
+      properties:
+        id: {type: string, format: uuid, readOnly: true}
+        reason: {type: string, maxLength: 500, readOnly: true}
+        state: {type: string, enum: [open, accepted, declined, closed_unavailable], readOnly: true}
+        created_at: {type: string, format: date-time, readOnly: true}
+        decided_at: {type: string, format: date-time, nullable: true, readOnly: true}
+        public_response: {type: string, maxLength: 500, readOnly: true}
+        private_comment: {type: string, maxLength: 500, readOnly: true}
+        decided_by:
+          type: object
+          nullable: true
+          required: [id, label]
+          properties:
+            id: {type: string, format: uuid, nullable: true}
+            label: {type: string}
+
+    BuyerActions:
+      type: object
+      additionalProperties: false
+      required: [order, allowed_actions, cancellation_requests]
+      properties:
+        order: {$ref: "#/components/schemas/BuyerOrder"}
+        allowed_actions: {type: array, items: {type: string, enum: [cancel, request_cancellation]}}
+        cancellation_requests: {type: array, items: {$ref: "#/components/schemas/PublicCancellationRequest"}}
+
+    BuyerCancelRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, expected_status]
+      properties:
+        request_id: {type: string, format: uuid}
+        expected_status: {type: string, enum: [pending]}
+        reason: {type: string, maxLength: 500, default: ""}
+
+    BuyerCancellationRequest:
+      type: object
+      additionalProperties: false
+      required: [request_id, expected_status, reason]
+      properties:
+        request_id: {type: string, format: uuid}
+        expected_status: {type: string, enum: [paid, processing]}
+        reason: {type: string, minLength: 1, maxLength: 500}
+
+    CancellationDecision:
+      type: object
+      additionalProperties: false
+      required: [request_id, decision, expected_status, public_response]
+      properties:
+        request_id: {type: string, format: uuid, description: Intent UUID; distinct from the path cancellation_id.}
+        decision: {type: string, enum: [accept, decline]}
+        expected_status: {type: string, enum: [paid, processing]}
+        public_response: {type: string, minLength: 1, maxLength: 500}
+        private_comment: {type: string, maxLength: 500, default: ""}
+
+    BuyerActionResponse:
+      type: object
+      required: [order, buyer_actions, replayed]
+      properties:
+        order: {$ref: "#/components/schemas/BuyerOrder"}
+        buyer_actions: {$ref: "#/components/schemas/BuyerActions"}
+        replayed: {type: boolean, readOnly: true}
+
     OrderCreate:
       type: object
       required: [delivery_address]
       properties:
+        checkout_request_id: {type: string, format: uuid, description: Optional for compatibility; mandatory in new guest clients for lost-response recovery. Not supported for authenticated checkout.}
         delivery_address:
           type: string
           description: Free-text delivery address (MVP)
@@ -1631,8 +1891,13 @@ components:
       allOf:
         - $ref: "#/components/schemas/OrderListItem"
         - type: object
-          required: [customer_email, customer_phone, latest_payment_status]
+          required: [customer_email, customer_phone, latest_payment_status, open_cancellation_request]
           properties:
+            open_cancellation_request:
+              nullable: true
+              readOnly: true
+              allOf:
+                - $ref: "#/components/schemas/PublicCancellationRequest"
             customer_email:
               type: string
               format: email
@@ -1653,7 +1918,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/ManageOrderListItem"
         - type: object
-          required: [delivery_address, items, payments, updated_at, allowed_transitions, status_history]
+          required: [delivery_address, items, payments, updated_at, allowed_transitions, status_history, cancellation_requests]
           properties:
             delivery_address: {type: string, readOnly: true}
             items:
@@ -1669,6 +1934,10 @@ components:
               type: array
               readOnly: true
               items: {$ref: "#/components/schemas/AllowedOrderTransition"}
+            cancellation_requests:
+              type: array
+              readOnly: true
+              items: {$ref: "#/components/schemas/ManageCancellationRequest"}
             status_history:
               type: array
               readOnly: true
@@ -1718,7 +1987,7 @@ components:
           type: string
           enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
         created_at: {type: string, format: date-time, readOnly: true}
-        source: {type: string, enum: [staff, payment, reservation_expiry], readOnly: true}
+        source: {type: string, enum: [staff, buyer, payment, reservation_expiry], readOnly: true}
         actor:
           type: object
           nullable: true

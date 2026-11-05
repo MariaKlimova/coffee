@@ -1,8 +1,15 @@
-import type { OrderItem, OrderListItem, OrderStatus } from '@entities/order'
+import type {
+  CancellationRequest,
+  OrderItem,
+  OrderListItem,
+  OrderStatus,
+} from '@entities/order'
 
 export type ManagePaymentStatus = 'pending' | 'succeeded' | 'failed' | 'canceled'
 
 export interface ManageOrderListItem extends OrderListItem {
+  /** Открытый запрос отмены; отсутствует в прежнем API. */
+  open_cancellation_request?: CancellationRequest | null
   /** Статус самой новой попытки оплаты; null, если попыток нет. */
   latest_payment_status: ManagePaymentStatus | null
   /** Доступный email гостя или текущего профиля. */
@@ -25,6 +32,8 @@ export interface ManagePayment {
 }
 
 export interface ManageOrder extends ManageOrderListItem {
+  /** Обращения покупателей и приватные сведения о решении. */
+  cancellation_requests?: ManageCancellationRequest[]
   /** Сохранённый адрес доставки. */
   delivery_address: string
   /** Исторические позиции заказа. */
@@ -58,7 +67,7 @@ export interface OrderStatusHistoryEntry {
   /** Время события в UTC. */
   created_at: string
   /** Источник изменения. */
-  source: 'staff' | 'payment' | 'reservation_expiry'
+  source: 'staff' | 'buyer' | 'payment' | 'reservation_expiry'
   /** Снимок подписи сотрудника; отсутствует у автоматического события. */
   actor: {
     /** UUID сотрудника; null после удаления аккаунта. */
@@ -68,6 +77,31 @@ export interface OrderStatusHistoryEntry {
   } | null
   /** Обычный текст комментария. */
   comment: string
+}
+
+export interface ManageCancellationRequest extends CancellationRequest {
+  /** Комментарий только для сотрудников. */
+  private_comment: string
+  /** Сотрудник, принявший решение, без контактов. */
+  decided_by: {
+    /** UUID сотрудника или null после удаления. */
+    id: string | null
+    /** Снимок подписи сотрудника. */
+    label: string
+  } | null
+}
+
+export interface CancellationDecisionWrite {
+  /** UUID подтверждённого решения; отличается от UUID обращения в URL. */
+  request_id: string
+  /** Решение сотрудника. */
+  decision: 'accept' | 'decline'
+  /** Статус заказа при подтверждении. */
+  expected_status: OrderStatus
+  /** Обязательный публичный ответ покупателю. */
+  public_response: string
+  /** Необязательный комментарий только для сотрудников. */
+  private_comment: string
 }
 
 export interface OrderTransitionWrite {

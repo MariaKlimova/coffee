@@ -11,6 +11,8 @@ from rest_framework.views import APIView
 from apps.cart.services import CART_TOKEN_HEADER, get_or_create_cart
 from apps.catalog.pagination import CatalogPagination
 from apps.orders.access import can_view_order
+from apps.orders.buyer_serializers import OrderCreateResponseSerializer
+from apps.orders.guest_access import reject_checkout_replay
 from apps.orders.models import Order
 from apps.orders.serializers import (
     OrderCreateSerializer,
@@ -59,7 +61,7 @@ class OrderListCreateView(APIView):
         tags=["Orders"],
         parameters=[ORDER_CART_TOKEN_PARAM],
         request=OrderCreateSerializer,
-        responses={201: OrderSerializer},
+        responses={201: OrderCreateResponseSerializer},
     )
     def post(self, request: Request) -> Response:
         create_serializer = OrderCreateSerializer(
@@ -69,6 +71,19 @@ class OrderListCreateView(APIView):
         create_serializer.is_valid(raise_exception=True)
         data = create_serializer.validated_data
 
+        checkout_intent = data.get("checkout_request_id")
+        if checkout_intent is not None:
+            prior = Order.objects.filter(checkout_request_id=checkout_intent).first()
+            if prior:
+                reject_checkout_replay(
+                    prior,
+                    original_cart_token=request.headers.get(CART_TOKEN_HEADER),
+                    body=dict(
+                        delivery_address=data["delivery_address"],
+                        guest_email=data.get("guest_email"),
+                        guest_phone=data.get("guest_phone"),
+                    ),
+                )
         cart = get_or_create_cart(request)
         user = request.user if request.user.is_authenticated else None
 
@@ -78,12 +93,20 @@ class OrderListCreateView(APIView):
             user=user,
             guest_email=data.get("guest_email"),
             guest_phone=data.get("guest_phone"),
+            checkout_request_id=checkout_intent,
         )
+        token = getattr(order, "_guest_action_token", None)
+        issued_version = order.guest_action_version
         order = Order.objects.prefetch_related("items").get(pk=order.pk)
-        return Response(
-            OrderSerializer(order).data,
-            status=status.HTTP_201_CREATED,
-        )
+        body = OrderSerializer(order).data
+        if token:
+            body.update(
+                guest_action_token=token,
+                guest_action_version=issued_version,
+            )
+        response = Response(body, status=status.HTTP_201_CREATED)
+        response["Cache-Control"] = "no-store"
+        return response
 
 
 class OrderDetailView(APIView):

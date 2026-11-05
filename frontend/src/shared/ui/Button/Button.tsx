@@ -48,20 +48,22 @@ function ButtonContent({
   )
 }
 
-export function Button({
-  variant = 'primary',
-  size = 'md',
-  loading = false,
-  disabled = false,
-  iconLeft,
-  iconRight,
-  children,
-  className,
-  type = 'button',
-  to,
-  onClick,
-  ...rest
-}: ButtonProps) {
+export function Button(props: ButtonProps) {
+  const {
+    variant = 'primary',
+    size = 'md',
+    loading = false,
+    disabled = false,
+    iconLeft,
+    iconRight,
+    children,
+    className,
+    type = 'button',
+    to,
+    href,
+    onClick,
+    ...rest
+  } = props
   const isDisabled = disabled || loading
   const classNames = cx(
     styles.Button,
@@ -75,6 +77,27 @@ export function Button({
       {children}
     </ButtonContent>
   )
+
+  if (props.href !== undefined) {
+    return (
+      <a
+        href={href}
+        className={classNames}
+        aria-busy={loading || undefined}
+        aria-disabled={isDisabled || undefined}
+        tabIndex={isDisabled ? -1 : undefined}
+        onClick={(event) => {
+          if (isDisabled) {
+            event.preventDefault()
+            return
+          }
+          props.onClick?.(event)
+        }}
+      >
+        {content}
+      </a>
+    )
+  }
 
   if (to) {
     return (
@@ -104,7 +127,7 @@ export function Button({
       className={classNames}
       disabled={isDisabled}
       aria-busy={loading || undefined}
-      onClick={onClick}
+      onClick={props.onClick}
     >
       {content}
     </button>

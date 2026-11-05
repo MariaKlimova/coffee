@@ -2,12 +2,81 @@
  * Тело POST /api/orders/ (`OrderCreate` в OpenAPI).
  */
 export interface OrderCreate {
+  /** UUID гостевого оформления для восстановления потерянного ответа. */
+  checkout_request_id?: string
   /** Адрес доставки свободным текстом. */
   delivery_address: string
   /** Email гостя; обязателен без JWT. */
   guest_email?: string
   /** Телефон гостя; обязателен без JWT. */
   guest_phone?: string
+}
+
+/** Приватное подтверждение доступа выдаётся только при гостевом оформлении. */
+export interface OrderCreated extends Order {
+  /** Секрет действий; не сохраняется в кэше запросов. */
+  guest_action_token?: string
+  /** Монотонная версия гостевого секрета. */
+  guest_action_version?: number
+}
+
+/** Безопасная приватная карточка без контактов и служебных причин. */
+export type BuyerOrder = Omit<
+  Order,
+  'guest_email' | 'guest_phone' | 'stock_review_reason'
+>
+
+export type BuyerAction = 'cancel' | 'request_cancellation'
+
+export interface CancellationRequest {
+  /** UUID обращения. */
+  id: string
+  /** Причина, указанная покупателем. */
+  reason: string
+  /** Состояние рассмотрения обращения. */
+  state: 'open' | 'accepted' | 'declined' | 'closed_unavailable'
+  /** Дата обращения в ISO. */
+  created_at: string
+  /** Дата решения или null. */
+  decided_at: string | null
+  /** Ответ, предназначенный покупателю. */
+  public_response: string
+}
+
+export interface BuyerActions {
+  /** Актуальный безопасный снимок заказа. */
+  order: BuyerOrder
+  /** Разрешённые сервером действия. */
+  allowed_actions: BuyerAction[]
+  /** Только публичная история обращений. */
+  cancellation_requests: CancellationRequest[]
+}
+
+export interface BuyerActionWrite {
+  /** UUID неизменного подтверждённого действия. */
+  request_id: string
+  /** Статус при подтверждении. */
+  expected_status: OrderStatus
+  /** Причина; обязательна для обращения сотруднику. */
+  reason: string
+}
+
+export interface BuyerActionResponse {
+  /** Актуальный заказ. */
+  order: BuyerOrder
+  /** Актуальные права и обращения. */
+  buyer_actions: BuyerActions
+  /** Сервер подтвердил повтор ранее выполненного действия. */
+  replayed: boolean
+}
+
+export interface GuestCheckoutRecovery {
+  /** Восстановленный заказ без служебных данных. */
+  order: BuyerOrder
+  /** Новый гостевой секрет. */
+  guest_action_token: string
+  /** Версия секрета после восстановления. */
+  guest_action_version: number
 }
 
 /**

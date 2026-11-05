@@ -1,0 +1,42 @@
+.ManageOrderCancellationRequests {
+  display: grid;
+  gap: var(--space-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.ManageOrderCancellationRequests h2,
+.ManageOrderCancellationRequests h3,
+.ManageOrderCancellationRequests p {
+  margin: 0;
+}
+
+.ManageOrderCancellationRequests-Request,
+.ManageOrderCancellationRequests-Form {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.ManageOrderCancellationRequests-Request {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-md);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ManageOrderCancellationRequests-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.ManageOrderCancellationRequests-Hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.ManageOrderCancellationRequests-Error {
+  color: var(--color-danger);
+}
