@@ -48,3 +48,24 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.BuyerOrderCancellation--inline .BuyerOrderCancellation-History {
+  margin-inline-start: var(--space-xs);
+  padding-inline-start: var(--space-md);
+  border-inline-start: 1px solid var(--color-border);
+}
+
+.BuyerOrderCancellation--inline .BuyerOrderCancellation-History > h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.BuyerOrderCancellation--inline
+  .BuyerOrderCancellation-History
+  > h3
+  + .BuyerOrderCancellation-Request {
+  padding-block-start: 0;
+  border-block-start: 0;
+}
