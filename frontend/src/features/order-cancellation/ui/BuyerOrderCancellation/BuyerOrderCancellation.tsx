@@ -260,8 +260,7 @@ export function BuyerOrderActions({ id, buyer }: BuyerOrderActionsProps) {
     )
 
   return (
-    <section className={styles.BuyerOrderCancellation} aria-labelledby={titleId}>
-      <h2 id={titleId}>{copy.title}</h2>
+    <section className={styles.BuyerOrderCancellation} aria-label={copy.title}>
       {error && (
         <p role="alert" className={styles['BuyerOrderCancellation-Error']}>
           {error}
