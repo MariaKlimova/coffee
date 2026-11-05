@@ -168,6 +168,13 @@ describe('Покупательская отмена', () => {
     http.defaults.adapter = adapter
     setup()
     expect(await screen.findByText(copy.contact)).toBeVisible()
+    expect(screen.getByRole('link', { name: copy.contactStore })).toHaveAttribute(
+      'href',
+      '#contacts',
+    )
+    expect(screen.getByRole('link', { name: copy.contactStore })).not.toHaveAttribute(
+      'data-discover',
+    )
     expect(adapter).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: copy.cancel })).not.toBeInTheDocument()
   })

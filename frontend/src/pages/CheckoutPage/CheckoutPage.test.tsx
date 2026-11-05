@@ -223,6 +223,12 @@ describe('CheckoutPage', () => {
     ).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: CANCELLATION_COPY.check }))
     await screen.findByText(CANCELLATION_COPY.checkoutNotFound)
+    expect(
+      screen.getByRole('link', { name: CANCELLATION_COPY.contactStore }),
+    ).toHaveAttribute('href', '#contacts')
+    expect(
+      screen.getByRole('link', { name: CANCELLATION_COPY.contactStore }),
+    ).not.toHaveAttribute('data-discover')
     const retry = screen.getByRole('button', { name: CANCELLATION_COPY.retryCheckout })
     await waitFor(() => expect(retry).toBeEnabled())
     expect(screen.getByText(CANCELLATION_COPY.retryCheckoutHint)).toBeVisible()

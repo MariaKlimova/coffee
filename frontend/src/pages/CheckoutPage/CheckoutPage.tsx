@@ -146,7 +146,7 @@ function CheckoutPageContent() {
           <p>{CANCELLATION_COPY.retryCartUnverified}</p>
         )}
         {formError && (
-          <Button to={APP_ROUTES.contacts} variant="ghost">
+          <Button href="#contacts" variant="ghost">
             {CANCELLATION_COPY.contactStore}
           </Button>
         )}

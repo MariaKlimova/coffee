@@ -12,7 +12,6 @@ import {
   type OrderStatus,
 } from '@entities/order'
 import { CANCELLATION_COPY as copy } from '@shared/lib/copy'
-import { APP_ROUTES } from '@shared/config'
 import { Button } from '@shared/ui'
 import { Textarea } from '@shared/ui/Textarea'
 
@@ -242,7 +241,7 @@ export function BuyerOrderActions({ id, buyer }: BuyerOrderActionsProps) {
         <h2 id={titleId}>{copy.unavailable}</h2>
         <p>{copy.contact}</p>
         <div className={styles['BuyerOrderCancellation-Actions']}>
-          <Button to={APP_ROUTES.contacts} variant="secondary">
+          <Button href="#contacts" variant="secondary">
             {copy.contactStore}
           </Button>
           {buyer.actorKey === 'guest' && readGuestOrderProof(id) && (
