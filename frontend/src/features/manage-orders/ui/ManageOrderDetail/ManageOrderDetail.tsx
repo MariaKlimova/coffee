@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useParams, useSearchParams } from 'react-router-dom'
 
@@ -26,15 +28,24 @@ export function ManageOrderDetail() {
   const [params] = useSearchParams()
   const backSearch = orderFilterParams(readOrderFilters(params).filters).toString()
   const backTo = `${APP_ROUTES.manageOrders}${backSearch ? `?${backSearch}` : ''}`
-  const query = useManageOrder(id)
+  const client = useQueryClient()
   const generation = useAuthStore((state) => state.sessionGeneration)
   const userId = useAuthStore((state) => state.user?.id)
   const canManage = useAuthStore(selectCanManage)
+  const scope = `${generation}:${userId}:${id}`
+  const [unavailable, setUnavailable] = useState<{
+    scope: string
+    status: 401 | 403 | 404
+  } | null>(null)
+  const unavailableStatus =
+    unavailable?.scope === scope ? unavailable.status : undefined
+  const query = useManageOrder(id, unavailableStatus === undefined)
   const order = query.data
-  const notFound = !id || isNotFoundError(query.error)
-  const errorStatus = isAxiosError(query.error)
+  const notFound = !id || unavailableStatus === 404 || isNotFoundError(query.error)
+  const queryErrorStatus = isAxiosError(query.error)
     ? query.error.response?.status
     : undefined
+  const errorStatus = unavailableStatus ?? queryErrorStatus
   const denied = errorStatus === 401 || errorStatus === 403
   const transientError =
     query.isError &&
@@ -61,7 +72,7 @@ export function ManageOrderDetail() {
           {MANAGE_ORDERS_COPY.back}
         </Button>
       </div>
-      {(notFound || query.isError) && (
+      {(notFound || denied || query.isError) && (
         <EmptyState
           title={title}
           description={description}
@@ -79,7 +90,7 @@ export function ManageOrderDetail() {
           }
         />
       )}
-      {!notFound && query.isPending && (
+      {!notFound && !denied && query.isPending && (
         <p role="status">{MANAGE_ORDERS_COPY.loading}</p>
       )}
       {showOrder && order && (
@@ -104,11 +115,21 @@ export function ManageOrderDetail() {
             </p>
           </header>
           <ManageOrderWorkflow
-            key={`${generation}:${userId}:${id}`}
+            key={scope}
             order={order}
             refreshing={query.isFetching}
             verified={!query.isError}
             refresh={async () => (await query.refetch()).isSuccess}
+            onUnavailable={(status) => {
+              const actor = useAuthStore.getState()
+              if (actor.sessionGeneration !== generation || actor.user?.id !== userId)
+                return
+              setUnavailable({ scope, status })
+              client.removeQueries({
+                queryKey: ['manage-orders', generation, userId, 'detail', id],
+                exact: true,
+              })
+            }}
           />
           <div className={styles['ManageOrderDetail-Columns']}>
             <section className={styles['ManageOrderDetail-Section']}>

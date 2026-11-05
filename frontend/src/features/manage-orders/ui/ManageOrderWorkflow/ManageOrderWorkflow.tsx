@@ -40,6 +40,7 @@ export function ManageOrderWorkflow({
   refreshing,
   verified,
   refresh,
+  onUnavailable,
 }: ManageOrderWorkflowProps) {
   const titleId = useId()
   const confirmationId = useId()
@@ -148,7 +149,7 @@ export function ManageOrderWorkflow({
         setError(copy.transitionInvalid)
       } else if (status === 401 || status === 403 || status === 404) {
         close()
-        setError(status === 404 ? copy.transitionNotFound : copy.transitionDenied)
+        onUnavailable(status)
       } else {
         setError(copy.transitionError)
       }

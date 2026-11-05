@@ -9,4 +9,6 @@ export interface ManageOrderWorkflowProps {
   verified: boolean
   /** Проверяет заказ; true только при успешном чтении актуального состояния. */
   refresh: () => Promise<boolean>
+  /** Закрывает приватную карточку после подтверждённого отказа доступа. */
+  onUnavailable: (status: 401 | 403 | 404) => void
 }

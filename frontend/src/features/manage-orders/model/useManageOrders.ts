@@ -35,12 +35,12 @@ export function useManageOrders(filters: ManageOrderFilters, valid: boolean) {
   })
 }
 
-export function useManageOrder(id: string) {
+export function useManageOrder(id: string, available = true) {
   const { prefix, enabled, assertStaff } = useStaffScope()
   return useQuery({
     queryKey: [...prefix, 'detail', id],
     queryFn: ({ signal }) => fetchManageOrder(id, signal, assertStaff),
-    enabled: enabled && Boolean(id),
+    enabled: enabled && Boolean(id) && available,
     gcTime: 0,
   })
 }

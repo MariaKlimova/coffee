@@ -107,8 +107,12 @@ function changed(
     ...overrides,
   }
 }
-function setup(path = `/manage/orders/${id}?status=paid&page=2`) {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+function setup(
+  path = `/manage/orders/${id}?status=paid&page=2`,
+  queryClient?: QueryClient,
+) {
+  const client =
+    queryClient ?? new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const view = render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[path]}>
@@ -607,6 +611,7 @@ describe('Обработка заказа сотрудником', () => {
           refreshing={false}
           verified
           refresh={refresh}
+          onUnavailable={vi.fn()}
         />
       </QueryClientProvider>,
     )
@@ -627,6 +632,61 @@ describe('Обработка заказа сотрудником', () => {
     await screen.findByText(copy.transitionReplay)
     expect(posts[1]).toEqual(posts[0])
   })
+
+  it.each([401, 403, 404])(
+    'POST %s очищает только текущую карточку; следующий GET503 не возвращает приватный контекст',
+    async (status) => {
+      let reads = 0
+      let denied = false
+      if (status === 401)
+        vi.spyOn(axios, 'post').mockResolvedValue({
+          data: { access: 'synthetic-recovered' },
+        })
+      http.defaults.adapter = async (config) => {
+        if (config.method === 'post') {
+          denied = true
+          throw failure(config, status)
+        }
+        reads++
+        if (denied) throw failure(config, 503, 'unavailable')
+        return response(config, initial)
+      }
+      const view = setup()
+      const generation = useAuthStore.getState().sessionGeneration
+      const detailKey = ['manage-orders', generation, 'staff-a', 'detail', id]
+      const otherKey = ['manage-orders', generation - 1, 'staff-b', 'detail', id]
+      view.client.setQueryData(otherKey, { syntheticOtherActor: true })
+      const user = await choose()
+      await user.type(screen.getByLabelText(copy.comment), 'Недоступный черновик')
+      await user.click(screen.getByRole('button', { name: copy.confirm }))
+      const title = status === 404 ? copy.notFound : MANAGE_COPY.deniedTitle
+      expect(await screen.findByRole('heading', { name: title })).toBeVisible()
+      expect(view.client.getQueryData(detailKey)).toBeUndefined()
+      expect(view.client.getQueryData(otherKey)).toEqual({ syntheticOtherActor: true })
+      await act(async () => {
+        await view.client.invalidateQueries({ queryKey: detailKey })
+      })
+      expect(reads).toBe(1)
+      // Имитируем сторонний повтор чтения: локальный отказ имеет приоритет над 503.
+      await act(async () => {
+        await expect(
+          view.client.fetchQuery({
+            queryKey: detailKey,
+            retry: false,
+            queryFn: async () => (await http.get(`/api/manage/orders/${id}/`)).data,
+          }),
+        ).rejects.toBeInstanceOf(AxiosError)
+      })
+      expect(screen.getByRole('heading', { name: title })).toBeVisible()
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+      expect(screen.queryByRole('form')).not.toBeInTheDocument()
+      expect(screen.queryByText(copy.cachedOrder)).not.toBeInTheDocument()
+      view.unmount()
+      setup(undefined, view.client)
+      expect(await screen.findByRole('heading', { name: copy.error })).toBeVisible()
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+    },
+  )
 
   it.each(['staff-a', 'staff-b'])(
     'не отправляет отложенный POST после нового входа %s',
