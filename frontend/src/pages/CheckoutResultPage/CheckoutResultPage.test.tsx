@@ -240,9 +240,71 @@ describe('CheckoutResultPage', () => {
           ? ORDER_RESULT_COPY.reviewTitle
           : ORDER_RESULT_COPY.cancelledTitle
       expect(await screen.findByRole('heading', { name: title })).toBeInTheDocument()
+      const description =
+        status === 'payment_review'
+          ? ORDER_RESULT_COPY.reviewDescription
+          : ORDER_RESULT_COPY.cancelledDescription
+      expect(screen.getByText(description)).toBeInTheDocument()
+      if (status === 'payment_review') {
+        expect(
+          screen.queryByText(ORDER_RESULT_COPY.cancelledDescription),
+        ).not.toBeInTheDocument()
+      }
       expect(
         screen.queryByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
       ).not.toBeInTheDocument()
+      expect(sessionStorage.getItem(PENDING_ORDER_ID_KEY)).toBeNull()
+      expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
+    },
+  )
+
+  it.each(['guest', 'authenticated'] as const)(
+    'keeps a cancelled %s order out of saved payment recovery without promising a refund',
+    async (authStatus) => {
+      if (authStatus === 'authenticated') {
+        useAuthStore.setState({
+          status: 'authenticated',
+          accessToken: 'token',
+          refreshToken: 'refresh',
+          user: {
+            id: 'u1',
+            email: 'a@b.c',
+            first_name: 'A',
+            last_name: 'B',
+          },
+        })
+      }
+      writePaymentRecoveryOrderId(orderId)
+      adapter.mockImplementation(async (config: InternalAxiosRequestConfig) => {
+        if (config.method === 'get' && config.url === `/api/orders/${orderId}/`) {
+          return jsonResponse(config, 200, orderPayload('cancelled'))
+        }
+        throw new Error(`Unexpected ${config.method} ${config.url}`)
+      })
+
+      renderResult(`/checkout/result?order_id=${orderId}&payment=recovery`)
+
+      expect(
+        await screen.findByRole('heading', { name: ORDER_RESULT_COPY.cancelledTitle }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText(ORDER_RESULT_COPY.cancelledDescription),
+      ).toHaveTextContent('Если ты уже оплатил заказ')
+      expect(
+        screen.queryByRole('button', { name: ORDER_RESULT_COPY.tryAgain }),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('heading', { name: ORDER_RESULT_COPY.successTitle }),
+      ).not.toBeInTheDocument()
+      expect(
+        screen.getByRole('link', {
+          name:
+            authStatus === 'authenticated'
+              ? ORDER_RESULT_COPY.goToOrders
+              : ORDER_RESULT_COPY.goHome,
+        }),
+      ).toHaveAttribute('href', authStatus === 'authenticated' ? '/orders' : '/coffee')
+      expect(readPaymentRecoveryOrderId()).toBeNull()
       expect(sessionStorage.getItem(PENDING_ORDER_ID_KEY)).toBeNull()
       expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
     },

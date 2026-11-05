@@ -27,7 +27,8 @@
   overflow-wrap: anywhere;
 }
 
-.OrderDetailPage-Date {
+.OrderDetailPage-Date,
+.OrderDetailPage-CancellationNote {
   margin: 0;
   font-family: var(--font-sans);
   font-size: var(--text-sm);

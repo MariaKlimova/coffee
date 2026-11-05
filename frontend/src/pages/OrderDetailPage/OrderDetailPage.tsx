@@ -114,6 +114,11 @@ export function OrderDetailPage() {
         <time className={styles['OrderDetailPage-Date']} dateTime={order.created_at}>
           {formatOrderDate(order.created_at)}
         </time>
+        {order.status === 'cancelled' ? (
+          <p className={styles['OrderDetailPage-CancellationNote']}>
+            {ORDER_DETAIL_COPY.cancelledDescription}
+          </p>
+        ) : null}
       </div>
 
       <div className={styles['OrderDetailPage-Section']}>

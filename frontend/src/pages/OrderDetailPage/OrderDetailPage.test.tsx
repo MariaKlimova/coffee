@@ -122,6 +122,44 @@ describe('OrderDetailPage', () => {
     ).toHaveAttribute('href', '/orders')
   })
 
+  it('keeps a cancelled order visible with conditional refund guidance and no payment action', async () => {
+    adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+      jsonResponse(config, 200, { ...orderPayload, status: 'cancelled' }),
+    )
+
+    renderDetail()
+
+    expect(
+      await screen.findByText(ORDER_DETAIL_COPY.cancelledDescription),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Отменён')).toBeInTheDocument()
+    expect(screen.getByText('Эфиопия Иргачеффе')).toBeInTheDocument()
+    expect(screen.getByText(/2\s*580/)).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: ORDER_DETAIL_COPY.pay }),
+    ).not.toBeInTheDocument()
+    expect(adapter.mock.calls.every(([config]) => config.method === 'get')).toBe(true)
+  })
+
+  it.each(['pending', 'paid', 'processing', 'shipped', 'delivered', 'payment_review'])(
+    'does not describe a %s order as cancelled and only offers payment for pending',
+    async (status) => {
+      adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
+        jsonResponse(config, 200, { ...orderPayload, status }),
+      )
+
+      renderDetail()
+
+      await screen.findByRole('heading', { name: `Заказ ${orderId}` })
+      expect(
+        screen.queryByText(ORDER_DETAIL_COPY.cancelledDescription),
+      ).not.toBeInTheDocument()
+      expect(
+        Boolean(screen.queryByRole('button', { name: ORDER_DETAIL_COPY.pay })),
+      ).toBe(status === 'pending')
+    },
+  )
+
   it('pays a pending order via createPayment redirect', async () => {
     const user = userEvent.setup()
     const assign = vi.fn()
