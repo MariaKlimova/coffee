@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <p>Заказ {{ original.id }}. Текущий статус: {{ original.get_status_display }}.</p>
+  {% if allowed_actions %}
+    <p>Отмена оплаченного заказа до отправки возвращает учтённый товар на склад. Деньги автоматически не возвращаются.</p>
+    {% for action in allowed_actions %}
+      {% if action.inventory_reason == "legacy_uncounted" %}
+        <p>Для этого старого заказа списание не учитывалось. При отмене количество товара не увеличится.</p>
+      {% endif %}
+    {% endfor %}
+    <form method="post">{% csrf_token %}
+      {{ form.as_p }}
+      <input type="submit" value="Подтвердить переход">
+    </form>
+  {% else %}
+    <p>Нет доступных переходов. Оплата с уточнением наличия требует отдельной проверки; завершённые заказы здесь не меняются.</p>
+    {{ form.non_field_errors }}
+  {% endif %}
+  <h2>История статусов</h2>
+  <ul>
+    {% for event in history %}
+      <li>{{ event.created_at }}: {{ event.get_from_status_display }} → {{ event.get_to_status_display }}; {{ event.actor_label|default:event.get_source_display }}. {{ event.comment }}</li>
+    {% empty %}
+      <li>Переходов пока нет. История прежних заказов не восстанавливалась автоматически.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

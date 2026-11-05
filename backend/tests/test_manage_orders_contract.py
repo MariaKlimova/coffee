@@ -64,3 +64,35 @@ def test_generated_schema_exposes_read_only_paginated_staff_endpoints():
         "created_at",
         "updated_at",
     }
+
+
+def test_staff_workflow_action_and_detail_only_audit_match_the_draft():
+    contract = yaml.safe_load(
+        (Path(__file__).resolve().parents[2] / "docs/api/openapi.yaml").read_text()
+    )
+    generated = SchemaGenerator().get_schema(request=None, public=True)
+    path = "/api/manage/orders/{id}/transitions/"
+    for schema in (contract, generated):
+        assert set(schema["paths"][path]) == {"post"}
+    request = generated["components"]["schemas"]["OrderTransitionRequest"]
+    assert set(request["required"]) == {"expected_status", "to_status", "request_id"}
+    assert request["properties"]["comment"]["maxLength"] == 500
+    assert generated["paths"][path]["post"]["security"] == [{"jwtAuth": []}]
+    history = generated["components"]["schemas"]["OrderStatusHistory"]
+    assert set(history["properties"]) == {
+        "id",
+        "from_status",
+        "to_status",
+        "created_at",
+        "source",
+        "actor",
+        "comment",
+    }
+    detail = generated["components"]["schemas"]["ManageOrder"]
+    listing = generated["components"]["schemas"]["ManageOrderList"]
+    for name in ("allowed_transitions", "status_history"):
+        assert name in detail["required"] and detail["properties"][name]["readOnly"]
+        assert name not in listing["properties"]
+    draft = contract["components"]["schemas"]["OrderTransitionRequest"]
+    assert draft["additionalProperties"] is False
+    assert set(draft["properties"]) == set(request["properties"])

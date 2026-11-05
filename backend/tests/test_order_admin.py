@@ -201,6 +201,12 @@ def test_order_contact_edit_ignores_forged_financial_and_inline_changes(
             "items-1-product_name": "Forged extra line",
             "items-1-product_price": "0.01",
             "items-1-quantity": "999",
+            "status_history-TOTAL_FORMS": "0",
+            "status_history-INITIAL_FORMS": "0",
+            "status_history-MIN_NUM_FORMS": "0",
+            "status_history-MAX_NUM_FORMS": "0",
+            "status_history-0-to_status": "paid",
+            "status_history-0-comment": "Forged audit",
             "_save": "Save",
         },
     )

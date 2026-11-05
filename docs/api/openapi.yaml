@@ -816,7 +816,9 @@ paths:
         deleted. Payments are ordered newest first, then UUID descending.
         Payment status is the stored local status; this read does not re-fetch
         YooKassa. No provider IDs, redirect URLs, tokens or raw payloads are exposed.
-        Writes and order status transitions are not supported here.
+        Includes current allowed_transitions and chronological status_history of
+        new staff/payment/reservation-expiry changes; legacy history is not invented.
+        This detail URL remains read-only; use the explicit transitions action.
       parameters:
         - $ref: "#/components/parameters/OrderId"
       responses:
@@ -828,6 +830,44 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+
+  /api/manage/orders/{id}/transitions/:
+    post:
+      tags: [Manage orders]
+      summary: Confirm an audited order status transition (staff only)
+      operationId: transitionManageOrder
+      description: |
+        Atomically validates expected_status and the current allowed transition.
+        Paid → processing → shipped → delivered; pending/paid/processing may be
+        cancelled before shipment. No manual paid/payment status or automatic refund.
+        Pending cancellation releases its active reservation; counted paid cancellation
+        restores stock once. Legacy uncounted orders never add invented stock.
+        request_id is unique per order. The same actor and normalized body replay
+        with no mutation, returning current order state even if it has since advanced.
+        A different body/actor with the same key conflicts; comment is stripped
+        before validation and comparison. Unknown input fields are rejected.
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/OrderTransitionRequest"}
+      responses:
+        "200":
+          description: Current order and whether this exact intent was replayed
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OrderTransitionResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409":
+          description: order_status_conflict, transition_not_allowed or idempotency_conflict. Refetch detail and require a fresh confirmation; do not blindly retry a changed intent.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
 
   /api/payments/create/:
     post:
@@ -1547,8 +1587,8 @@ components:
         reservation_state:
           type: string
           readOnly: true
-          enum: [none, active, consumed, released]
-          description: none denotes legacy orders without counted stock; new pending orders are active
+          enum: [none, active, consumed, released, restored]
+          description: none denotes legacy orders without counted stock; new pending orders are active; restored means counted paid stock was returned once on cancellation
         reservation_expires_at:
           type: string
           format: date-time
@@ -1613,7 +1653,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/ManageOrderListItem"
         - type: object
-          required: [delivery_address, items, payments, updated_at]
+          required: [delivery_address, items, payments, updated_at, allowed_transitions, status_history]
           properties:
             delivery_address: {type: string, readOnly: true}
             items:
@@ -1625,6 +1665,68 @@ components:
               readOnly: true
               items: {$ref: "#/components/schemas/ManagePayment"}
             updated_at: {type: string, format: date-time, readOnly: true}
+            allowed_transitions:
+              type: array
+              readOnly: true
+              items: {$ref: "#/components/schemas/AllowedOrderTransition"}
+            status_history:
+              type: array
+              readOnly: true
+              description: Actual new changes ordered by created_at then UUID ascending. Empty legacy history is valid; no backfill is invented.
+              items: {$ref: "#/components/schemas/OrderStatusHistory"}
+
+    OrderTransitionRequest:
+      type: object
+      additionalProperties: false
+      required: [expected_status, to_status, request_id]
+      properties:
+        expected_status:
+          type: string
+          enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
+        to_status:
+          type: string
+          enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
+        request_id: {type: string, format: uuid}
+        comment: {type: string, maxLength: 500, default: "", description: Plain text; stripped before validation and idempotency comparison.}
+
+    OrderTransitionResponse:
+      type: object
+      required: [order, replayed]
+      properties:
+        order: {$ref: "#/components/schemas/ManageOrder"}
+        replayed: {type: boolean, readOnly: true}
+
+    AllowedOrderTransition:
+      type: object
+      required: [to_status, inventory_effect, inventory_reason]
+      properties:
+        to_status:
+          type: string
+          enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
+        inventory_effect: {type: string, enum: [release_reservation, restore_stock, none]}
+        inventory_reason: {type: string, enum: [legacy_uncounted], nullable: true}
+
+    OrderStatusHistory:
+      type: object
+      required: [id, from_status, to_status, created_at, source, actor, comment]
+      properties:
+        id: {type: string, format: uuid, readOnly: true}
+        from_status:
+          type: string
+          enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
+        to_status:
+          type: string
+          enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]
+        created_at: {type: string, format: date-time, readOnly: true}
+        source: {type: string, enum: [staff, payment, reservation_expiry], readOnly: true}
+        actor:
+          type: object
+          nullable: true
+          required: [id, label]
+          properties:
+            id: {type: string, format: uuid, nullable: true}
+            label: {type: string, description: "Snapshot Сотрудник #UUID; retained after account deletion, without email or contact details."}
+        comment: {type: string, maxLength: 500, readOnly: true}
 
     ManagePayment:
       type: object

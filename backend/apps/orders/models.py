@@ -31,6 +31,7 @@ class Order(models.Model):
         ACTIVE = "active", "Active"
         CONSUMED = "consumed", "Consumed"
         RELEASED = "released", "Released"
+        RESTORED = "restored", "Returned after paid cancellation"
 
     reservation_state = models.CharField(
         max_length=12,
@@ -125,5 +126,41 @@ class StockReservationLine(models.Model):
             ),
             models.CheckConstraint(
                 condition=models.Q(quantity__gte=1), name="orders_stock_line_positive"
+            ),
+        ]
+
+
+class OrderStatusTransition(models.Model):
+    """Append-only lifecycle audit; legacy orders have no invented events."""
+
+    class Source(models.TextChoices):
+        STAFF = "staff", "Staff"
+        PAYMENT = "payment", "Payment"
+        RESERVATION_EXPIRY = "reservation_expiry", "Reservation expiry"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="status_history"
+    )
+    from_status = models.CharField(max_length=20, choices=Order.Status.choices)
+    to_status = models.CharField(max_length=20, choices=Order.Status.choices)
+    source = models.CharField(max_length=24, choices=Source.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    actor_label = models.CharField(max_length=64, blank=True, default="")
+    comment = models.CharField(max_length=500, blank=True, default="")
+    request_id = models.UUIDField(null=True, blank=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "request_id"], name="orders_unique_transition_request"
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(from_status=models.F("to_status")),
+                name="orders_transition_changes_status",
             ),
         ]

@@ -5,6 +5,8 @@ import type {
   ManageOrder,
   ManageOrderFilters,
   ManageOrderListItem,
+  OrderTransitionResponse,
+  OrderTransitionWrite,
 } from './manageOrdersApi.typings'
 
 export const MANAGE_ORDERS_PAGE_SIZE = 20
@@ -36,6 +38,21 @@ export async function fetchManageOrder(
   const { data } = await http.get<ManageOrder>(
     `/api/manage/orders/${encodeURIComponent(id)}/`,
     { ...guardRequest(assertStaff), signal },
+  )
+  assertStaff()
+  return data
+}
+
+export async function transitionManageOrder(
+  id: string,
+  values: OrderTransitionWrite,
+  assertStaff: () => void,
+) {
+  assertStaff()
+  const { data } = await http.post<OrderTransitionResponse>(
+    `/api/manage/orders/${encodeURIComponent(id)}/transitions/`,
+    values,
+    guardRequest(assertStaff),
   )
   assertStaff()
   return data

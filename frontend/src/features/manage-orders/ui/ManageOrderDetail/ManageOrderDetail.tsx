@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { getOrderStatusBadgeVariant, getOrderStatusLabel } from '@entities/order'
+import { useAuthStore } from '@entities/user'
 import { isNotFoundError } from '@shared/api'
 import { APP_ROUTES } from '@shared/config'
 import { MANAGE_COPY, MANAGE_ORDERS_COPY } from '@shared/lib/copy'
@@ -16,6 +17,8 @@ import {
 } from '../../lib/orderDisplay'
 import { orderFilterParams, readOrderFilters } from '../../model/orderFilters'
 import { useManageOrder } from '../../model/useManageOrders'
+import { ManageOrderHistory } from '../ManageOrderHistory'
+import { ManageOrderWorkflow } from '../ManageOrderWorkflow'
 import styles from './ManageOrderDetail.module.css'
 
 export function ManageOrderDetail() {
@@ -24,6 +27,8 @@ export function ManageOrderDetail() {
   const backSearch = orderFilterParams(readOrderFilters(params).filters).toString()
   const backTo = `${APP_ROUTES.manageOrders}${backSearch ? `?${backSearch}` : ''}`
   const query = useManageOrder(id)
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const userId = useAuthStore((state) => state.user?.id)
   const order = query.data
   const notFound = !id || isNotFoundError(query.error)
   const denied = isAxiosError(query.error) && query.error.response?.status === 403
@@ -84,6 +89,12 @@ export function ManageOrderDetail() {
               </time>
             </p>
           </header>
+          <ManageOrderWorkflow
+            key={`${generation}:${userId}:${id}`}
+            order={order}
+            refreshing={query.isFetching}
+            refresh={() => query.refetch()}
+          />
           <div className={styles['ManageOrderDetail-Columns']}>
             <section className={styles['ManageOrderDetail-Section']}>
               <h2>{MANAGE_ORDERS_COPY.items}</h2>
@@ -163,9 +174,7 @@ export function ManageOrderDetail() {
               ))}
             </ul>
           </section>
-          <p className={styles['ManageOrderDetail-Hint']}>
-            {MANAGE_ORDERS_COPY.readOnly}
-          </p>
+          <ManageOrderHistory entries={order.status_history ?? []} />
         </>
       )}
     </section>

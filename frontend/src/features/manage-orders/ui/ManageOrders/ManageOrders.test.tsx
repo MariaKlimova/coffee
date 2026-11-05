@@ -53,6 +53,8 @@ const order: ManageOrder = {
       updated_at: '2026-01-02T10:31:00Z',
     },
   ],
+  allowed_transitions: [],
+  status_history: [],
 }
 function staff(userId = 'staff-a', canManage = true) {
   useAuthStore.getState().setSession({

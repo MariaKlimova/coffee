@@ -13,7 +13,13 @@ from rest_framework.exceptions import ValidationError
 from apps.cart.models import Cart, CartItem
 from apps.catalog.models import Product
 from apps.catalog.services import lock_products, validate_available
-from apps.orders.models import Order, OrderItem, StockReservationLine
+from apps.orders.history import record_status_transition
+from apps.orders.models import (
+    Order,
+    OrderItem,
+    OrderStatusTransition,
+    StockReservationLine,
+)
 
 
 @transaction.atomic
@@ -116,8 +122,33 @@ def cancel_unpaid_order(*, order_id):
 
 def consume_paid_reservation(order):
     """Caller holds order lock. Confirmed money never disappears after expiry."""
-    if order.reservation_state == Order.ReservationState.CONSUMED:
+    # Legacy paid cancellations keep NONE, since no counted stock existed.
+    # Their actual staff audit distinguishes them from an unpaid cancellation,
+    # whose first late payment must still become visible as payment_review.
+    cancelled_after_payment = (
+        order.status == Order.Status.CANCELLED
+        and order.status_history.filter(
+            source=OrderStatusTransition.Source.STAFF,
+            from_status__in=[Order.Status.PAID, Order.Status.PROCESSING],
+            to_status=Order.Status.CANCELLED,
+        ).exists()
+    )
+    if (
+        order.reservation_state
+        in (
+            Order.ReservationState.CONSUMED,
+            Order.ReservationState.RESTORED,
+        )
+        or cancelled_after_payment
+        or order.status
+        in (
+            Order.Status.PROCESSING,
+            Order.Status.SHIPPED,
+            Order.Status.DELIVERED,
+        )
+    ):
         return
+    previous_status = order.status
     if (
         order.reservation_state == Order.ReservationState.ACTIVE
         and order.reservation_expires_at > timezone.now()
@@ -148,6 +179,27 @@ def consume_paid_reservation(order):
             "updated_at",
         ]
     )
+    record_status_transition(
+        order, previous_status, source=OrderStatusTransition.Source.PAYMENT
+    )
+
+
+def restore_paid_stock(order):
+    """Caller holds Order lock; restore only the immutable counted allocation."""
+    if order.reservation_state != Order.ReservationState.CONSUMED:
+        return False
+    lines = list(order.stock_lines.order_by("product_id"))
+    products = lock_products([line.product_id for line in lines])
+    for line in lines:
+        product = products[line.product_id]
+        quantity = product.stock_quantity + line.quantity
+        if quantity > 2147483647:
+            raise ValidationError(
+                {"stock": ["Returned stock exceeds the storage limit."]}
+            )
+        Product.objects.filter(pk=product.pk).update(stock_quantity=quantity)
+    order.reservation_state = Order.ReservationState.RESTORED
+    return True
 
 
 def expire_stock_reservations(*, now=None, batch_size=100):
@@ -175,7 +227,13 @@ def expire_stock_reservations(*, now=None, batch_size=100):
             )
         )
         for order in orders:
+            previous_status = order.status
             _release_locked(order, products)
             order.status = Order.Status.CANCELLED
             order.save(update_fields=["status", "reservation_state", "updated_at"])
+            record_status_transition(
+                order,
+                previous_status,
+                source=OrderStatusTransition.Source.RESERVATION_EXPIRY,
+            )
         return len(orders)
