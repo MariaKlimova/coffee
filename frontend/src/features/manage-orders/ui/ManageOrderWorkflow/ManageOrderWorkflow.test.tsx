@@ -8,7 +8,7 @@ import {
   within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import axios, { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -165,6 +165,7 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
+  focusManager.setFocused(undefined)
   http.defaults.adapter = originalAdapter
   useAuthStore.getState().clearSession()
   vi.restoreAllMocks()
@@ -631,6 +632,136 @@ describe('Обработка заказа сотрудником', () => {
     await user.click(screen.getByRole('button', { name: copy.retryTransition }))
     await screen.findByText(copy.transitionReplay)
     expect(posts[1]).toEqual(posts[0])
+  })
+
+  it.each([401, 403, 404])(
+    'GET %s закрывает общий доступ; invalidate, refocus и следующий GET503 не возвращают старую карточку',
+    async (status) => {
+      let responseStatus = 200
+      let current = initial
+      let reads = 0
+      if (status === 401)
+        vi.spyOn(axios, 'post').mockResolvedValue({
+          data: { access: 'synthetic-recovered' },
+        })
+      http.defaults.adapter = async (config) => {
+        reads++
+        if (responseStatus !== 200) throw failure(config, responseStatus)
+        return response(config, current)
+      }
+      const view = setup()
+      await screen.findByText(initial.customer_email!)
+      const generation = useAuthStore.getState().sessionGeneration
+      const key = ['manage-orders', generation, 'staff-a', 'detail', id]
+      const otherKey = ['manage-orders', generation - 1, 'staff-b', 'detail', id]
+      view.client.setQueryData(otherKey, { syntheticOtherActor: true })
+      responseStatus = status
+      await act(async () => {
+        await view.client.invalidateQueries({ queryKey: key, exact: true })
+      })
+      const title = status === 404 ? copy.notFound : MANAGE_COPY.deniedTitle
+      expect(await screen.findByRole('heading', { name: title })).toBeVisible()
+      expect(view.client.getQueryData(key)).toBeUndefined()
+      expect(view.client.getQueryData(otherKey)).toEqual({ syntheticOtherActor: true })
+      const readsAfterDenial = reads
+      responseStatus = 503
+      await act(async () => {
+        await view.client.invalidateQueries({ queryKey: key, exact: true })
+        focusManager.setFocused(false)
+        focusManager.setFocused(true)
+        await Promise.resolve()
+      })
+      expect(reads).toBe(readsAfterDenial)
+      await act(async () => {
+        await expect(
+          view.client.fetchQuery({
+            queryKey: key,
+            retry: false,
+            queryFn: async () => (await http.get(`/api/manage/orders/${id}/`)).data,
+          }),
+        ).rejects.toBeInstanceOf(AxiosError)
+      })
+      expect(screen.getByRole('heading', { name: title })).toBeVisible()
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+      expect(screen.queryByText(initial.delivery_address)).not.toBeInTheDocument()
+      expect(screen.queryByText(copy.cachedOrder)).not.toBeInTheDocument()
+      view.unmount()
+      setup(undefined, view.client)
+      expect(await screen.findByRole('heading', { name: copy.error })).toBeVisible()
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+      responseStatus = 200
+      current = { ...initial, customer_email: 'fresh-authorized@example.invalid' }
+      const user = userEvent.setup()
+      await user.click(screen.getByRole('button', { name: copy.retry }))
+      expect(await screen.findByText(current.customer_email!)).toBeVisible()
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+    },
+  )
+
+  it.each(['staff-a', 'staff-b'])(
+    'после GET403 новый вход %s раскрывает данные только после нового успешного GET',
+    async (nextActor) => {
+      let responseStatus = 200
+      let current = initial
+      http.defaults.adapter = async (config) => {
+        if (responseStatus !== 200) throw failure(config, responseStatus)
+        return response(config, current)
+      }
+      const { client } = setup()
+      await screen.findByText(initial.customer_email!)
+      responseStatus = 403
+      await act(async () => {
+        await client.invalidateQueries({ queryKey: ['manage-orders'] })
+      })
+      await screen.findByRole('heading', { name: MANAGE_COPY.deniedTitle })
+      responseStatus = 503
+      act(() => staff(nextActor))
+      await screen.findByRole('heading', { name: copy.error })
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+      responseStatus = 200
+      current = { ...initial, customer_email: 'fresh-session@example.invalid' }
+      await userEvent.setup().click(screen.getByRole('button', { name: copy.retry }))
+      expect(await screen.findByText(current.customer_email!)).toBeVisible()
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+    },
+  )
+
+  it('поздний успешный POST не воссоздаёт приватный detail после подтверждённого GET403', async () => {
+    let release: (() => void) | undefined
+    let forbidden = false
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'post') {
+        await new Promise<void>((resolve) => {
+          release = resolve
+        })
+        return response(config, { order: changed(body(config)), replayed: false })
+      }
+      if (forbidden) throw failure(config, 403)
+      return response(config, initial)
+    }
+    const { client } = setup()
+    const user = await choose()
+    await user.click(screen.getByRole('button', { name: copy.confirm }))
+    await waitFor(() => expect(release).toBeDefined())
+    forbidden = true
+    await act(async () => {
+      await client.invalidateQueries({ queryKey: ['manage-orders'] })
+    })
+    await screen.findByRole('heading', { name: MANAGE_COPY.deniedTitle })
+    await act(async () => {
+      release?.()
+      await Promise.resolve()
+    })
+    const key = [
+      'manage-orders',
+      useAuthStore.getState().sessionGeneration,
+      'staff-a',
+      'detail',
+      id,
+    ]
+    expect(client.getQueryData(key)).toBeUndefined()
+    expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+    expect(screen.queryByText(copy.transitionSuccess)).not.toBeInTheDocument()
   })
 
   it.each([401, 403, 404])(

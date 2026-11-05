@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useParams, useSearchParams } from 'react-router-dom'
@@ -39,7 +39,19 @@ export function ManageOrderDetail() {
   } | null>(null)
   const unavailableStatus =
     unavailable?.scope === scope ? unavailable.status : undefined
-  const query = useManageOrder(id, unavailableStatus === undefined)
+  const onUnavailable = useCallback(
+    (status: 401 | 403 | 404) => {
+      const actor = useAuthStore.getState()
+      if (actor.sessionGeneration !== generation || actor.user?.id !== userId) return
+      setUnavailable({ scope, status })
+      client.removeQueries({
+        queryKey: ['manage-orders', generation, userId, 'detail', id],
+        exact: true,
+      })
+    },
+    [client, generation, id, scope, userId],
+  )
+  const query = useManageOrder(id, unavailableStatus === undefined, onUnavailable)
   const order = query.data
   const notFound = !id || unavailableStatus === 404 || isNotFoundError(query.error)
   const queryErrorStatus = isAxiosError(query.error)
@@ -120,16 +132,7 @@ export function ManageOrderDetail() {
             refreshing={query.isFetching}
             verified={!query.isError}
             refresh={async () => (await query.refetch()).isSuccess}
-            onUnavailable={(status) => {
-              const actor = useAuthStore.getState()
-              if (actor.sessionGeneration !== generation || actor.user?.id !== userId)
-                return
-              setUnavailable({ scope, status })
-              client.removeQueries({
-                queryKey: ['manage-orders', generation, userId, 'detail', id],
-                exact: true,
-              })
-            }}
+            onUnavailable={onUnavailable}
           />
           <div className={styles['ManageOrderDetail-Columns']}>
             <section className={styles['ManageOrderDetail-Section']}>

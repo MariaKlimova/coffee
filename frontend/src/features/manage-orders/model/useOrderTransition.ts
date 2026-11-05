@@ -30,7 +30,7 @@ export function useOrderTransition(id: string) {
       const detailKey = [...prefix, 'detail', id]
       const detail = client.getQueryCache().find({ queryKey: detailKey, exact: true })
       // Уход со страницы уже очистил приватный заказ: не создаём его заново.
-      if (detail?.getObserversCount()) client.setQueryData(detailKey, result.order)
+      if (detail?.isActive()) client.setQueryData(detailKey, result.order)
       // Исторический состав заказа не сохраняется в состоянии mutation.
       await Promise.all(keys.map((queryKey) => client.invalidateQueries({ queryKey })))
       assertActor()

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 
 import { bindStaff, selectCanManage, useAuthStore } from '@entities/user'
 
@@ -35,11 +36,23 @@ export function useManageOrders(filters: ManageOrderFilters, valid: boolean) {
   })
 }
 
-export function useManageOrder(id: string, available = true) {
+export function useManageOrder(
+  id: string,
+  available = true,
+  onUnavailable?: (status: 401 | 403 | 404) => void,
+) {
   const { prefix, enabled, assertStaff } = useStaffScope()
   return useQuery({
     queryKey: [...prefix, 'detail', id],
-    queryFn: ({ signal }) => fetchManageOrder(id, signal, assertStaff),
+    queryFn: async ({ signal }) => {
+      try {
+        return await fetchManageOrder(id, signal, assertStaff)
+      } catch (failure: unknown) {
+        const status = isAxiosError(failure) ? failure.response?.status : undefined
+        if (status === 401 || status === 403 || status === 404) onUnavailable?.(status)
+        throw failure
+      }
+    },
     enabled: enabled && Boolean(id) && available,
     gcTime: 0,
   })
