@@ -1,10 +1,16 @@
 .BuyerOrderCancellation {
   display: grid;
   gap: var(--space-md);
-  padding: var(--space-lg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface);
+}
+
+.BuyerOrderCancellation--inline {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.BuyerOrderCancellation--expanded {
+  flex-basis: 100%;
+  flex-grow: 1;
 }
 
 .BuyerOrderCancellation h2,

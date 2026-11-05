@@ -20,8 +20,8 @@ import styles from './OrdersPage-Item.module.css'
  */
 export function OrdersPageItem({ order }: OrdersPageItemProps) {
   return (
-    <article>
-      <Link to={orderDetailPath(order.id)} className={styles['OrdersPage-Item']}>
+    <article className={styles['OrdersPage-Item']}>
+      <Link to={orderDetailPath(order.id)} className={styles['OrdersPage-Item-Link']}>
         <div className={styles['OrdersPage-Item-Main']}>
           <span className={styles['OrdersPage-Item-Number']}>
             {formatOrderNumberLabel(ORDERS_PAGE_COPY.orderNumber, order.id)}
@@ -41,7 +41,9 @@ export function OrdersPageItem({ order }: OrdersPageItemProps) {
       </Link>
       {(order.status === 'pending' ||
         order.status === 'paid' ||
-        order.status === 'processing') && <BuyerOrderCancellation id={order.id} />}
+        order.status === 'processing') && (
+        <BuyerOrderCancellation id={order.id} inline />
+      )}
     </article>
   )
 }

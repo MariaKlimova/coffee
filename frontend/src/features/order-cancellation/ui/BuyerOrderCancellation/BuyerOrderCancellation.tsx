@@ -12,6 +12,7 @@ import {
   type OrderStatus,
 } from '@entities/order'
 import { CANCELLATION_COPY as copy } from '@shared/lib/copy'
+import { cx } from '@shared/lib/cx'
 import { Button } from '@shared/ui'
 import { Textarea } from '@shared/ui/Textarea'
 
@@ -29,13 +30,13 @@ import type {
 import styles from './BuyerOrderCancellation.module.css'
 
 /** Самостоятельный блок для строки списка; карточка передаёт уже загруженный запрос. */
-export function BuyerOrderCancellation({ id }: BuyerOrderCancellationProps) {
+export function BuyerOrderCancellation({ id, inline }: BuyerOrderCancellationProps) {
   const buyer = useBuyerOrder(id)
-  return <BuyerOrderActions key={buyer.scope} id={id} buyer={buyer} />
+  return <BuyerOrderActions key={buyer.scope} id={id} buyer={buyer} inline={inline} />
 }
 
 /** Подтверждает только свежее серверное действие, сохраняя неопределённый повтор. */
-export function BuyerOrderActions({ id, buyer }: BuyerOrderActionsProps) {
+export function BuyerOrderActions({ id, buyer, inline }: BuyerOrderActionsProps) {
   const client = useQueryClient()
   const titleId = useId()
   const confirmation = useRef<HTMLHeadingElement>(null)
@@ -63,6 +64,20 @@ export function BuyerOrderActions({ id, buyer }: BuyerOrderActionsProps) {
     (isAxiosError(buyer.error) &&
       [401, 403, 404].includes(buyer.error.response?.status ?? 0))
   const disabled = pending || buyer.isFetching || buyer.isError || !data
+  const expanded = Boolean(
+    selection ||
+    error ||
+    message ||
+    unavailable ||
+    buyer.isError ||
+    (data && !data.allowed_actions.length) ||
+    data?.cancellation_requests.length,
+  )
+  const className = cx(
+    styles.BuyerOrderCancellation,
+    inline && styles['BuyerOrderCancellation--inline'],
+    inline && expanded && styles['BuyerOrderCancellation--expanded'],
+  )
 
   useEffect(() => {
     mounted.current = true
@@ -237,7 +252,7 @@ export function BuyerOrderActions({ id, buyer }: BuyerOrderActionsProps) {
 
   if (unavailable)
     return (
-      <section className={styles.BuyerOrderCancellation} aria-labelledby={titleId}>
+      <section className={className} aria-labelledby={titleId}>
         <h2 id={titleId}>{copy.unavailable}</h2>
         <p>{copy.contact}</p>
         <div className={styles['BuyerOrderCancellation-Actions']}>
@@ -260,7 +275,7 @@ export function BuyerOrderActions({ id, buyer }: BuyerOrderActionsProps) {
     )
 
   return (
-    <section className={styles.BuyerOrderCancellation} aria-label={copy.title}>
+    <section className={className} aria-label={copy.title}>
       {error && (
         <p role="alert" className={styles['BuyerOrderCancellation-Error']}>
           {error}
