@@ -38,6 +38,7 @@ function inventoryHint(action: AllowedOrderTransition) {
 export function ManageOrderWorkflow({
   order,
   refreshing,
+  verified,
   refresh,
 }: ManageOrderWorkflowProps) {
   const titleId = useId()
@@ -57,7 +58,7 @@ export function ManageOrderWorkflow({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const mutation = useOrderTransition(order.id)
-  const disabled = pending || refreshing
+  const disabled = pending || refreshing || !verified
   const actions = (order.allowed_transitions ?? []).filter(actionLabel)
   const hasSucceededPayment =
     order.latest_payment_status === 'succeeded' ||
@@ -79,12 +80,27 @@ export function ManageOrderWorkflow({
     heading.current?.focus()
   }
 
+  async function verifyCurrentOrder() {
+    try {
+      return await refresh()
+    } catch {
+      return false
+    }
+  }
+
   async function checkOrder() {
     if (busy.current) return
     busy.current = true
     setPending(true)
     try {
-      await refresh()
+      const checked = await verifyCurrentOrder()
+      if (!checked) {
+        if (mounted.current) {
+          setError(copy.refreshError)
+          setSuccess('')
+        }
+        return
+      }
       if (mounted.current) {
         close()
         setError('')
@@ -97,7 +113,7 @@ export function ManageOrderWorkflow({
   }
 
   async function submit() {
-    if (!selection || busy.current || refreshing) return
+    if (!selection || busy.current || refreshing || !verified) return
     busy.current = true
     setPending(true)
     setError('')
@@ -126,7 +142,7 @@ export function ManageOrderWorkflow({
             ? copy.idempotencyConflict
             : copy.transitionConflict,
         )
-        await refresh()
+        await verifyCurrentOrder()
       } else if (status === 400) {
         setIntent(null)
         setError(copy.transitionInvalid)
@@ -227,7 +243,7 @@ export function ManageOrderWorkflow({
             {intent ? (
               <Button
                 variant="ghost"
-                disabled={disabled}
+                disabled={pending || refreshing}
                 onClick={() => {
                   void checkOrder()
                 }}

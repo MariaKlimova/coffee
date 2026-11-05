@@ -5,6 +5,8 @@ export interface ManageOrderWorkflowProps {
   order: ManageOrder
   /** Выполняется проверка актуального состояния. */
   refreshing: boolean
-  /** Повторно загружает заказ перед новым действием. */
-  refresh: () => Promise<unknown>
+  /** Последняя проверка заказа прошла успешно; новые действия разрешены. */
+  verified: boolean
+  /** Проверяет заказ; true только при успешном чтении актуального состояния. */
+  refresh: () => Promise<boolean>
 }

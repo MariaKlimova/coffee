@@ -2,7 +2,7 @@ import { isAxiosError } from 'axios'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { getOrderStatusBadgeVariant, getOrderStatusLabel } from '@entities/order'
-import { useAuthStore } from '@entities/user'
+import { selectCanManage, useAuthStore } from '@entities/user'
 import { isNotFoundError } from '@shared/api'
 import { APP_ROUTES } from '@shared/config'
 import { MANAGE_COPY, MANAGE_ORDERS_COPY } from '@shared/lib/copy'
@@ -29,9 +29,22 @@ export function ManageOrderDetail() {
   const query = useManageOrder(id)
   const generation = useAuthStore((state) => state.sessionGeneration)
   const userId = useAuthStore((state) => state.user?.id)
+  const canManage = useAuthStore(selectCanManage)
   const order = query.data
   const notFound = !id || isNotFoundError(query.error)
-  const denied = isAxiosError(query.error) && query.error.response?.status === 403
+  const errorStatus = isAxiosError(query.error)
+    ? query.error.response?.status
+    : undefined
+  const denied = errorStatus === 401 || errorStatus === 403
+  const transientError =
+    query.isError &&
+    (errorStatus === undefined ||
+      errorStatus >= 500 ||
+      errorStatus === 408 ||
+      errorStatus === 429)
+  // Временная ошибка чтения не должна уничтожать незавершённую команду этой сессии.
+  const showOrder =
+    canManage && !notFound && !denied && (!query.isError || transientError)
   let title = MANAGE_ORDERS_COPY.error as string
   let description = MANAGE_ORDERS_COPY.errorDescription as string
   if (notFound) {
@@ -69,8 +82,9 @@ export function ManageOrderDetail() {
       {!notFound && query.isPending && (
         <p role="status">{MANAGE_ORDERS_COPY.loading}</p>
       )}
-      {!notFound && !query.isError && order && (
+      {showOrder && order && (
         <>
+          {query.isError && <p role="status">{MANAGE_ORDERS_COPY.cachedOrder}</p>}
           <header className={styles['ManageOrderDetail-Header']}>
             <h1>{MANAGE_ORDERS_COPY.number(order.id)}</h1>
             <Badge variant={getOrderStatusBadgeVariant(order.status)}>
@@ -93,7 +107,8 @@ export function ManageOrderDetail() {
             key={`${generation}:${userId}:${id}`}
             order={order}
             refreshing={query.isFetching}
-            refresh={() => query.refetch()}
+            verified={!query.isError}
+            refresh={async () => (await query.refetch()).isSuccess}
           />
           <div className={styles['ManageOrderDetail-Columns']}>
             <section className={styles['ManageOrderDetail-Section']}>

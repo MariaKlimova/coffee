@@ -2,9 +2,11 @@
 
 from pathlib import Path
 
+import pytest
 import yaml
 from drf_spectacular.generators import SchemaGenerator
 from jsonschema import Draft202012Validator
+from jsonschema import ValidationError as SchemaValidationError
 
 
 def test_manage_order_endpoints_and_projection_are_documented():
@@ -95,4 +97,17 @@ def test_staff_workflow_action_and_detail_only_audit_match_the_draft():
         assert name not in listing["properties"]
     draft = contract["components"]["schemas"]["OrderTransitionRequest"]
     assert draft["additionalProperties"] is False
+    assert request["additionalProperties"] is False
     assert set(draft["properties"]) == set(request["properties"])
+    body = {
+        "expected_status": "pending",
+        "to_status": "cancelled",
+        "request_id": "00000000-0000-4000-8000-000000000061",
+    }
+    for schema in (contract, generated):
+        validator = Draft202012Validator(
+            {**schema, "$ref": "#/components/schemas/OrderTransitionRequest"}
+        )
+        validator.validate(body)
+        with pytest.raises(SchemaValidationError):
+            validator.validate({**body, "status": "paid"})

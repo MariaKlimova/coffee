@@ -18,13 +18,14 @@ import { bindAuthBridge, useAuthStore } from '@entities/user'
 import { ManageOrderDetailPage } from '@pages/ManageOrderDetailPage'
 import { ManageOrdersPage } from '@pages/ManageOrdersPage'
 import { http } from '@shared/api'
-import { MANAGE_ORDERS_COPY as copy } from '@shared/lib/copy'
+import { MANAGE_COPY, MANAGE_ORDERS_COPY as copy } from '@shared/lib/copy'
 
 import type {
   AllowedOrderTransition,
   ManageOrder,
   OrderTransitionWrite,
 } from '../../api/manageOrdersApi.typings'
+import { ManageOrderWorkflow } from './ManageOrderWorkflow'
 
 const originalAdapter = http.defaults.adapter
 const id = 'b01cab61-0000-4000-8000-000000000061'
@@ -459,6 +460,172 @@ describe('Обработка заказа сотрудником', () => {
       expect(button).toBeDisabled()
     await act(async () => release?.())
     expect(await screen.findByText(copy.transitionSuccess)).toBeVisible()
+  })
+
+  it('409 и временная ошибка GET сохраняют черновик, запрещая новые действия до успешной проверки', async () => {
+    let current = initial
+    let readFails = false
+    const posts: OrderTransitionWrite[] = []
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'post') {
+        const values = body(config)
+        posts.push(values)
+        if (posts.length === 1) {
+          current = { ...initial, status: 'processing', allowed_transitions: [shipped] }
+          readFails = true
+          throw failure(config, 409)
+        }
+        current = changed(values)
+        return response(config, { order: current, replayed: false })
+      }
+      if (readFails) throw failure(config, 503, 'unavailable')
+      return response(config, current)
+    }
+    setup()
+    const user = await choose()
+    await user.type(
+      screen.getByLabelText(copy.comment),
+      'Сохранить черновик после сбоя',
+    )
+    await user.click(screen.getByRole('button', { name: copy.confirm }))
+    expect(await screen.findByText(copy.cachedOrder)).toBeVisible()
+    expect(screen.getByRole('heading', { name: copy.number(id) })).toBeVisible()
+    expect(screen.getByRole('button', { name: copy.takeProcessing })).toBeDisabled()
+    expect(screen.getByRole('button', { name: copy.cancelOrder })).toBeDisabled()
+    expect(screen.queryByText(copy.transitionSuccess)).not.toBeInTheDocument()
+    expect(posts).toHaveLength(1)
+    readFails = false
+    await user.click(screen.getByRole('button', { name: copy.retry }))
+    await choose(copy.markShipped)
+    expect(screen.getByLabelText(copy.comment)).toHaveValue(
+      'Сохранить черновик после сбоя',
+    )
+    await user.click(screen.getByRole('button', { name: copy.confirm }))
+    await screen.findByText(copy.transitionSuccess)
+    expect(posts[1].expected_status).toBe('processing')
+    expect(posts[1].request_id).not.toBe(posts[0].request_id)
+  })
+
+  it('неопределённый POST и неудачная проверка GET сохраняют точный UUID и тело до повтора', async () => {
+    const posts: OrderTransitionWrite[] = []
+    let readFails = false
+    let current = initial
+    http.defaults.adapter = async (config) => {
+      if (config.method === 'post') {
+        posts.push(body(config))
+        if (posts.length === 1) {
+          current = changed(posts[0])
+          throw new AxiosError('synthetic lost response', 'ERR_NETWORK', config)
+        }
+        return response(config, { order: current, replayed: true })
+      }
+      if (readFails) throw failure(config, 500, 'unavailable')
+      return response(config, current)
+    }
+    setup()
+    const user = await choose()
+    await user.type(screen.getByLabelText(copy.comment), '  Сохранить точный повтор  ')
+    await user.click(screen.getByRole('button', { name: copy.confirm }))
+    await screen.findByText(copy.transitionError)
+    readFails = true
+    await user.click(screen.getByRole('button', { name: copy.checkOrder }))
+    expect(await screen.findByText(copy.refreshError)).toBeVisible()
+    expect(screen.getByRole('button', { name: copy.retryTransition })).toBeDisabled()
+    expect(screen.getByLabelText(copy.comment)).toHaveValue(
+      '  Сохранить точный повтор  ',
+    )
+    expect(screen.getByLabelText(copy.comment)).toBeDisabled()
+    expect(screen.queryByText(copy.checkedOrder)).not.toBeInTheDocument()
+    expect(posts).toHaveLength(1)
+    readFails = false
+    await user.click(screen.getByRole('button', { name: copy.retry }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: copy.retryTransition })).toBeEnabled(),
+    )
+    await user.click(screen.getByRole('button', { name: copy.retryTransition }))
+    expect(await screen.findByText(copy.transitionReplay)).toBeVisible()
+    expect(posts).toHaveLength(2)
+    expect(posts[1]).toEqual(posts[0])
+    expect(posts[1].comment).toBe('Сохранить точный повтор')
+  })
+
+  it.each([401, 403, 404])(
+    'GET %s после загруженной карточки скрывает приватные данные и сохранённый повтор',
+    async (status) => {
+      if (status === 401)
+        vi.spyOn(axios, 'post').mockRejectedValue(
+          new Error('synthetic expired refresh'),
+        )
+      let readFails = false
+      http.defaults.adapter = async (config) => {
+        if (config.method === 'post')
+          throw new AxiosError('synthetic lost response', 'ERR_NETWORK', config)
+        if (readFails) throw failure(config, status)
+        return response(config, initial)
+      }
+      setup()
+      const user = await choose()
+      await user.type(screen.getByLabelText(copy.comment), 'Приватный черновик')
+      await user.click(screen.getByRole('button', { name: copy.confirm }))
+      await screen.findByText(copy.transitionError)
+      readFails = true
+      await user.click(screen.getByRole('button', { name: copy.checkOrder }))
+      if (status === 401)
+        expect(await screen.findByText('synthetic login')).toBeVisible()
+      else
+        expect(
+          await screen.findByRole('heading', {
+            name: status === 403 ? MANAGE_COPY.deniedTitle : copy.notFound,
+          }),
+        ).toBeVisible()
+      expect(screen.queryByText(initial.customer_email!)).not.toBeInTheDocument()
+      expect(screen.queryByText(initial.delivery_address)).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('heading', { name: copy.number(id) }),
+      ).not.toBeInTheDocument()
+      expect(screen.queryByRole('form')).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: copy.retryTransition }),
+      ).not.toBeInTheDocument()
+      expect(screen.queryByText(copy.cachedOrder)).not.toBeInTheDocument()
+    },
+  )
+
+  it('отклонённый Promise проверки обрабатывается без потери неопределённой команды', async () => {
+    const posts: OrderTransitionWrite[] = []
+    http.defaults.adapter = async (config) => {
+      posts.push(body(config))
+      if (posts.length === 1)
+        throw new AxiosError('synthetic lost response', 'ERR_NETWORK', config)
+      return response(config, { order: changed(posts[0]), replayed: true })
+    }
+    const refresh = vi.fn().mockRejectedValue(new Error('synthetic rejected refresh'))
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ManageOrderWorkflow
+          order={initial}
+          refreshing={false}
+          verified
+          refresh={refresh}
+        />
+      </QueryClientProvider>,
+    )
+    const user = await choose()
+    await user.type(
+      screen.getByLabelText(copy.comment),
+      'Сохрани повтор при исключении',
+    )
+    await user.click(screen.getByRole('button', { name: copy.confirm }))
+    await screen.findByText(copy.transitionError)
+    await user.click(screen.getByRole('button', { name: copy.checkOrder }))
+    expect(await screen.findByText(copy.refreshError)).toBeVisible()
+    expect(refresh).toHaveBeenCalledOnce()
+    expect(screen.getByLabelText(copy.comment)).toHaveValue(
+      'Сохрани повтор при исключении',
+    )
+    await user.click(screen.getByRole('button', { name: copy.retryTransition }))
+    await screen.findByText(copy.transitionReplay)
+    expect(posts[1]).toEqual(posts[0])
   })
 
   it.each(['staff-a', 'staff-b'])(

@@ -1,5 +1,6 @@
 """Explicit, read-only staff projections; provider payloads never cross this API."""
 
+from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -133,6 +134,17 @@ class OrderTransitionRequestSerializer(serializers.Serializer):
                     {name: ["Unknown field."] for name in sorted(unknown)}
                 )
         return super().to_internal_value(data)
+
+
+class OrderTransitionRequestSchema(OpenApiSerializerExtension):
+    """Expose this serializer's existing unknown-field rejection to API clients."""
+
+    target_class = OrderTransitionRequestSerializer
+
+    def map_serializer(self, auto_schema, direction):
+        schema = super().map_serializer(auto_schema, direction)
+        schema["additionalProperties"] = False
+        return schema
 
 
 class OrderTransitionResponseSerializer(serializers.Serializer):
