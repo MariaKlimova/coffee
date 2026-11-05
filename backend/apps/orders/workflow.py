@@ -104,6 +104,11 @@ def transition_order(
         order = Order.objects.select_for_update().get(pk=order_id)
     except Order.DoesNotExist as exc:
         raise NotFound("Order not found.") from exc
+    if order.action_intents.filter(request_id=request_id).exists():
+        raise OrderTransitionConflict(
+            "This request ID was already used for another action.",
+            code="idempotency_conflict",
+        )
     prior = order.status_history.filter(request_id=request_id).first()
     if prior:
         if (
@@ -122,6 +127,21 @@ def transition_order(
             "The order changed. Refresh it before confirming another action.",
             code="order_status_conflict",
         )
+    _apply_locked_transition(
+        order,
+        to_status=to_status,
+        source=OrderStatusTransition.Source.STAFF,
+        actor=actor,
+        comment=comment,
+        request_id=request_id,
+    )
+    return order, False
+
+
+def _apply_locked_transition(
+    order, *, to_status, source, actor=None, comment="", request_id=None
+):
+    """Private domain core: caller owns Order lock and has authorized its actor."""
     action = next(
         (
             action
@@ -142,9 +162,8 @@ def transition_order(
     record_status_transition(
         order,
         previous_status,
-        source=OrderStatusTransition.Source.STAFF,
+        source=source,
         actor=actor,
         comment=comment,
         request_id=request_id,
     )
-    return order, False

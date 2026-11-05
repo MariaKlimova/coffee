@@ -8,7 +8,13 @@ class StockReservationExpiryMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path.startswith(
+        private_order_action = request.path.startswith("/api/orders/") and (
+            request.path.endswith(
+                ("/buyer-actions/", "/cancel/", "/cancellation-requests/")
+            )
+            or request.path == "/api/orders/checkout-recovery/"
+        )
+        if not private_order_action and request.path.startswith(
             ("/api/products/", "/api/cart/", "/api/orders/", "/api/payments/")
         ):
             expire_stock_reservations()

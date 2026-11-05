@@ -9,6 +9,7 @@ from apps.orders.models import Order, OrderItem
 class OrderCreateSerializer(serializers.Serializer):
     """Request body for POST /api/orders/."""
 
+    checkout_request_id = serializers.UUIDField(required=False)
     delivery_address = serializers.CharField(max_length=2000)
     guest_email = serializers.EmailField(required=False, allow_blank=False)
     guest_phone = serializers.CharField(
@@ -25,6 +26,10 @@ class OrderCreateSerializer(serializers.Serializer):
             and request.user.is_authenticated
         )
         if is_authenticated:
+            if "checkout_request_id" in attrs:
+                raise serializers.ValidationError(
+                    {"checkout_request_id": ["Guest checkout only."]}
+                )
             return attrs
 
         missing: dict[str, list[str]] = {}

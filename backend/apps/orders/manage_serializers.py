@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.catalog.serializers import MoneyField
+from apps.orders.buyer_serializers import PublicCancellationRequestSerializer
 from apps.orders.models import Order, OrderStatusTransition
 from apps.orders.serializers import OrderItemSerializer, OrderListSerializer
 from apps.orders.workflow import allowed_order_transitions
@@ -13,6 +14,13 @@ from apps.payments.models import Payment
 
 class ManageOrderListSerializer(OrderListSerializer):
     """Only the contact details needed to identify a customer's order."""
+
+    open_cancellation_request = serializers.SerializerMethodField()
+
+    @extend_schema_field(PublicCancellationRequestSerializer(allow_null=True))
+    def get_open_cancellation_request(self, order):
+        current = getattr(order, "_open_cancellation_request", None)
+        return PublicCancellationRequestSerializer(current).data if current else None
 
     customer_email = serializers.SerializerMethodField()
     customer_phone = serializers.SerializerMethodField()
@@ -38,6 +46,7 @@ class ManageOrderListSerializer(OrderListSerializer):
     class Meta(OrderListSerializer.Meta):
         fields = (
             *OrderListSerializer.Meta.fields,
+            "open_cancellation_request",
             "customer_email",
             "customer_phone",
             "latest_payment_status",
@@ -97,7 +106,31 @@ class OrderStatusHistorySerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class ManageCancellationRequestSerializer(PublicCancellationRequestSerializer):
+    decided_by = serializers.SerializerMethodField()
+
+    @extend_schema_field(TransitionActorSerializer(allow_null=True))
+    def get_decided_by(self, request):
+        if not request.decided_by_label:
+            return None
+        return {
+            "id": str(request.decided_by_id) if request.decided_by_id else None,
+            "label": request.decided_by_label,
+        }
+
+    class Meta(PublicCancellationRequestSerializer.Meta):
+        fields = (
+            *PublicCancellationRequestSerializer.Meta.fields,
+            "private_comment",
+            "decided_by",
+        )
+        read_only_fields = fields
+
+
 class ManageOrderSerializer(ManageOrderListSerializer):
+    cancellation_requests = ManageCancellationRequestSerializer(
+        many=True, read_only=True
+    )
     items = OrderItemSerializer(many=True, read_only=True)
     payments = ManagePaymentSerializer(many=True, read_only=True)
     allowed_transitions = serializers.SerializerMethodField()
@@ -116,6 +149,7 @@ class ManageOrderSerializer(ManageOrderListSerializer):
             "updated_at",
             "allowed_transitions",
             "status_history",
+            "cancellation_requests",
         )
         read_only_fields = fields
 

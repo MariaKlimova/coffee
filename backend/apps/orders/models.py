@@ -52,6 +52,19 @@ class Order(models.Model):
         null=True,
         blank=True,
     )
+    guest_action_digest = models.CharField(
+        max_length=64, blank=True, default="", editable=False
+    )
+    guest_action_version = models.PositiveIntegerField(default=0, editable=False)
+    checkout_proof_digest = models.CharField(
+        max_length=64, blank=True, default="", editable=False
+    )
+    checkout_request_id = models.UUIDField(
+        null=True, blank=True, unique=True, editable=False
+    )
+    checkout_body_digest = models.CharField(
+        max_length=64, blank=True, default="", editable=False
+    )
     guest_email = models.EmailField(null=True, blank=True)
     guest_phone = models.CharField(max_length=32, null=True, blank=True)
     delivery_address = models.TextField()
@@ -135,6 +148,7 @@ class OrderStatusTransition(models.Model):
 
     class Source(models.TextChoices):
         STAFF = "staff", "Staff"
+        BUYER = "buyer", "Buyer"
         PAYMENT = "payment", "Payment"
         RESERVATION_EXPIRY = "reservation_expiry", "Reservation expiry"
 
@@ -163,4 +177,63 @@ class OrderStatusTransition(models.Model):
                 condition=~models.Q(from_status=models.F("to_status")),
                 name="orders_transition_changes_status",
             ),
+        ]
+
+
+class CancellationRequest(models.Model):
+    """Buyer intent and its public result, separate from financial/order state."""
+
+    class State(models.TextChoices):
+        OPEN = "open", "Open"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+        CLOSED_UNAVAILABLE = "closed_unavailable", "Unavailable"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="cancellation_requests"
+    )
+    requester_key = models.CharField(max_length=80, editable=False)
+    reason = models.CharField(max_length=500)
+    state = models.CharField(max_length=24, choices=State.choices, default=State.OPEN)
+    public_response = models.CharField(max_length=500, blank=True, default="")
+    private_comment = models.CharField(max_length=500, blank=True, default="")
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    decided_by_label = models.CharField(max_length=64, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order"],
+                condition=models.Q(state="open"),
+                name="orders_one_open_cancellation",
+            )
+        ]
+
+
+class OrderActionIntent(models.Model):
+    """Persisted authorized buyer/staff intent, including non-transition actions."""
+
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="action_intents"
+    )
+    request_id = models.UUIDField()
+    actor_key = models.CharField(max_length=80)
+    kind = models.CharField(max_length=32)
+    body_digest = models.CharField(max_length=64)
+    cancellation_request = models.ForeignKey(
+        CancellationRequest, null=True, blank=True, on_delete=models.PROTECT
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "request_id"], name="orders_unique_action_intent"
+            )
         ]
