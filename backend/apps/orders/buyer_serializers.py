@@ -1,12 +1,12 @@
 """Explicit private buyer projection and strictly bounded action input."""
 
-from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.orders.buyer_actions import buyer_allowed_actions
 from apps.orders.models import CancellationRequest
 from apps.orders.serializers import OrderSerializer
+from config.serializers import StrictInputSerializer
 
 
 class BuyerOrderSerializer(OrderSerializer):
@@ -49,30 +49,19 @@ class BuyerActionsSerializer(serializers.Serializer):
         return buyer_allowed_actions(order)
 
 
-class StrictActionSerializer(serializers.Serializer):
-    def to_internal_value(self, data):
-        if isinstance(data, dict):
-            unknown = set(data) - self.fields.keys()
-            if unknown:
-                raise serializers.ValidationError(
-                    {name: ["Unknown field."] for name in sorted(unknown)}
-                )
-        return super().to_internal_value(data)
-
-
-class BuyerCancelRequestSerializer(StrictActionSerializer):
+class BuyerCancelRequestSerializer(StrictInputSerializer):
     request_id = serializers.UUIDField()
     expected_status = serializers.ChoiceField(choices=["pending"])
     reason = serializers.CharField(max_length=500, allow_blank=True, default="")
 
 
-class BuyerCancellationRequestSerializer(StrictActionSerializer):
+class BuyerCancellationRequestSerializer(StrictInputSerializer):
     request_id = serializers.UUIDField()
     expected_status = serializers.ChoiceField(choices=["paid", "processing"])
     reason = serializers.CharField(max_length=500)
 
 
-class CancellationDecisionSerializer(StrictActionSerializer):
+class CancellationDecisionSerializer(StrictInputSerializer):
     request_id = serializers.UUIDField()
     decision = serializers.ChoiceField(choices=["accept", "decline"])
     expected_status = serializers.ChoiceField(choices=["paid", "processing"])
@@ -82,7 +71,7 @@ class CancellationDecisionSerializer(StrictActionSerializer):
     )
 
 
-class GuestCheckoutRecoverySerializer(StrictActionSerializer):
+class GuestCheckoutRecoverySerializer(StrictInputSerializer):
     checkout_request_id = serializers.UUIDField()
 
 
@@ -109,15 +98,3 @@ class OrderCreateResponseSerializer(OrderSerializer):
             "guest_action_version",
         )
         read_only_fields = fields
-
-
-class StrictActionSchema(OpenApiSerializerExtension):
-    target_class = StrictActionSerializer
-    match_subclasses = True
-
-    def map_serializer(self, auto_schema, direction):
-        schema = auto_schema._map_serializer(
-            self.target, direction, bypass_extensions=True
-        )
-        schema["additionalProperties"] = False
-        return schema

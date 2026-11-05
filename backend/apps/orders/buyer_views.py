@@ -31,6 +31,15 @@ ACTION_PROOF_PARAM = OpenApiParameter(
 )
 
 
+BUYER_AUTH_DESCRIPTION = (
+    "Requires an active persisted account owner authenticated with JWT, or an "
+    "anonymous guest with the dedicated X-Order-Action-Token header. JWT is "
+    "optional because guest proof is supported; the anonymous security alternative "
+    "does not grant proof-free access. Public UUID/contact knowledge and staff "
+    "status alone grant no buyer authority. Wrong or missing guest proof returns 404."
+)
+
+
 def private_response(data):
     response = Response(data)
     response["Cache-Control"] = "no-store"
@@ -43,6 +52,7 @@ class BuyerActionsView(APIView):
     @extend_schema(
         tags=["Orders"],
         parameters=[ACTION_PROOF_PARAM],
+        description=BUYER_AUTH_DESCRIPTION,
         responses={
             200: BuyerActionsSerializer,
             401: OrderTransitionErrorSerializer,
@@ -68,6 +78,7 @@ class BuyerCancelView(APIView):
     @extend_schema(
         tags=["Orders"],
         parameters=[ACTION_PROOF_PARAM],
+        description=BUYER_AUTH_DESCRIPTION,
         request=BuyerCancelRequestSerializer,
         responses={
             200: BuyerActionResponseSerializer,
@@ -103,6 +114,7 @@ class BuyerCancellationRequestView(BuyerCancelView):
     @extend_schema(
         tags=["Orders"],
         parameters=[ACTION_PROOF_PARAM],
+        description=BUYER_AUTH_DESCRIPTION,
         request=BuyerCancellationRequestSerializer,
         responses={
             200: BuyerActionResponseSerializer,
@@ -121,6 +133,13 @@ class GuestCheckoutRecoveryView(APIView):
 
     @extend_schema(
         tags=["Orders"],
+        auth=[],
+        description=(
+            "Anonymous guest checkout recovery only; omit JWT. Requires the "
+            "immutable original X-Cart-Token and retained checkout_request_id. "
+            "Login never claims a guest order; an authenticated caller is "
+            "rejected with 404."
+        ),
         parameters=[
             OpenApiParameter(
                 "X-Cart-Token", str, location=OpenApiParameter.HEADER, required=True

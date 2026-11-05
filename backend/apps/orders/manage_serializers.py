@@ -1,6 +1,5 @@
 """Explicit, read-only staff projections; provider payloads never cross this API."""
 
-from drf_spectacular.extensions import OpenApiSerializerExtension
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
@@ -10,6 +9,7 @@ from apps.orders.models import Order, OrderStatusTransition
 from apps.orders.serializers import OrderItemSerializer, OrderListSerializer
 from apps.orders.workflow import allowed_order_transitions
 from apps.payments.models import Payment
+from config.serializers import StrictInputSerializer
 
 
 class ManageOrderListSerializer(OrderListSerializer):
@@ -154,31 +154,11 @@ class ManageOrderSerializer(ManageOrderListSerializer):
         read_only_fields = fields
 
 
-class OrderTransitionRequestSerializer(serializers.Serializer):
+class OrderTransitionRequestSerializer(StrictInputSerializer):
     expected_status = serializers.ChoiceField(choices=Order.Status.choices)
     to_status = serializers.ChoiceField(choices=Order.Status.choices)
     request_id = serializers.UUIDField()
     comment = serializers.CharField(max_length=500, allow_blank=True, default="")
-
-    def to_internal_value(self, data):
-        if isinstance(data, dict):
-            unknown = set(data) - self.fields.keys()
-            if unknown:
-                raise serializers.ValidationError(
-                    {name: ["Unknown field."] for name in sorted(unknown)}
-                )
-        return super().to_internal_value(data)
-
-
-class OrderTransitionRequestSchema(OpenApiSerializerExtension):
-    """Expose this serializer's existing unknown-field rejection to API clients."""
-
-    target_class = OrderTransitionRequestSerializer
-
-    def map_serializer(self, auto_schema, direction):
-        schema = super().map_serializer(auto_schema, direction)
-        schema["additionalProperties"] = False
-        return schema
 
 
 class OrderTransitionResponseSerializer(serializers.Serializer):

@@ -767,8 +767,9 @@ paths:
   /api/orders/{id}/buyer-actions/:
     get:
       tags: [Orders]
+      security: [{bearerAuth: []}, {}]
       summary: Read the current buyer-only order and cancellation result
-      description: Active persisted account owner, or anonymous guest with X-Order-Action-Token. Public UUID/contact knowledge and staff privileges alone do not grant buyer authority. No staff history, private comments, contacts or provider data. Reads never expire reservations or write business state. Response is no-store.
+      description: JWT is optional because anonymous guest proof is supported; the empty security alternative never grants proof-free access. Anonymous guests must send their dedicated X-Order-Action-Token; authenticated callers must be the active persisted owner. Active persisted account owner, or anonymous guest with X-Order-Action-Token. Public UUID/contact knowledge and staff privileges alone do not grant buyer authority. No staff history, private comments, contacts or provider data. Reads never expire reservations or write business state. Response is no-store.
       parameters:
         - $ref: "#/components/parameters/OrderId"
         - $ref: "#/components/parameters/OrderActionToken"
@@ -784,8 +785,9 @@ paths:
   /api/orders/{id}/cancel/:
     post:
       tags: [Orders]
+      security: [{bearerAuth: []}, {}]
       summary: Buyer confirms self-cancellation of an unpaid pending order
-      description: Owner/proof authorized before idempotency replay. Atomic Order-first locking and one reserve release. UUID plus normalized body and stable buyer principal persist for retries, including after token rotation or late confirmed payment. Exact replay returns current state; changed intent or stale state returns409. Never refunds or calls the provider. Response is no-store.
+      description: JWT is optional because anonymous guest proof is supported; the empty security alternative never grants proof-free access. Anonymous guests must send their dedicated X-Order-Action-Token; authenticated callers must be the active persisted owner. Owner/proof authorized before idempotency replay. Atomic Order-first locking and one reserve release. UUID plus normalized body and stable buyer principal persist for retries, including after token rotation or late confirmed payment. Exact replay returns current state; changed intent or stale state returns409. Never refunds or calls the provider. Response is no-store.
       parameters:
         - $ref: "#/components/parameters/OrderId"
         - $ref: "#/components/parameters/OrderActionToken"
@@ -808,8 +810,9 @@ paths:
   /api/orders/{id}/cancellation-requests/:
     post:
       tags: [Orders]
+      security: [{bearerAuth: []}, {}]
       summary: Buyer requests cancellation before shipment
-      description: Same private buyer authorization as self-cancellation. For paid/processing with a valid cancellation matrix. Persists only a request; no order, payment, stock or provider mutation. At most one open request. Exact UUID/body/principal replay is safe; another intent while open returns cancellation_request_open. Request does not block shipment. Monetary refund is a separate manual process.
+      description: JWT is optional because anonymous guest proof is supported; the empty security alternative never grants proof-free access. Anonymous guests must send their dedicated X-Order-Action-Token; authenticated callers must be the active persisted owner. Same private buyer authorization as self-cancellation. For paid/processing with a valid cancellation matrix. Persists only a request; no order, payment, stock or provider mutation. At most one open request. Exact UUID/body/principal replay is safe; another intent while open returns cancellation_request_open. Request does not block shipment. Monetary refund is a separate manual process.
       parameters:
         - $ref: "#/components/parameters/OrderId"
         - $ref: "#/components/parameters/OrderActionToken"

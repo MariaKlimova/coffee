@@ -895,3 +895,62 @@ def test_shipment_request_closure_rolls_back_with_failed_audit(
         and order.cancellation_requests.get().state == "open"
         and inventory(product) == (5, 0)
     )
+
+
+def test_effective_buyer_and_staff_security_preserves_guest_proof_boundary():
+    from pathlib import Path
+
+    import yaml
+    from drf_spectacular.generators import SchemaGenerator
+
+    contract = yaml.safe_load(
+        (Path(__file__).resolve().parents[2] / "docs/api/openapi.yaml").read_text()
+    )
+    generated = SchemaGenerator().get_schema(request=None, public=True)
+    buyer_paths = {
+        "/api/orders/{id}/buyer-actions/": "get",
+        "/api/orders/{id}/cancel/": "post",
+        "/api/orders/{id}/cancellation-requests/": "post",
+    }
+    staff_paths = [
+        "/api/manage/orders/{id}/transitions/",
+        (
+            "/api/manage/orders/{id}/cancellation-requests/"
+            "{cancellation_id}/decision/"
+        ),
+    ]
+    for schema, jwt in [(contract, "bearerAuth"), (generated, "jwtAuth")]:
+        for path, method in buyer_paths.items():
+            operation = schema["paths"][path][method]
+            effective = operation.get("security", schema.get("security", []))
+            assert effective == [{jwt: []}, {}]
+            assert "X-Order-Action-Token" in operation["description"]
+            assert "proof-free" in operation["description"]
+        for path in staff_paths:
+            operation = schema["paths"][path]["post"]
+            assert operation.get("security", schema.get("security", [])) == [{jwt: []}]
+        recovery = schema["paths"]["/api/orders/checkout-recovery/"]["post"]
+        assert recovery.get("security", schema.get("security", [])) == []
+        assert "Anonymous" in recovery["description"]
+
+
+@pytest.mark.parametrize("actor", ["guest", "staff"])
+def test_shared_strict_input_rejects_unknown_fields_before_mutation(
+    purchase, staff, api_client, actor
+):
+    order, product, _, token, _ = purchase
+    body = dict(request_id=str(uuid4()), expected_status="pending", status="cancelled")
+    if actor == "staff":
+        api_client.force_authenticate(staff)
+        body["to_status"] = "cancelled"
+        url = f"/api/manage/orders/{order.pk}/transitions/"
+        headers = {}
+    else:
+        url = f"/api/orders/{order.pk}/cancel/"
+        headers = {"HTTP_X_ORDER_ACTION_TOKEN": token}
+    response = api_client.post(url, body, format="json", **headers)
+    assert response.status_code == 400
+    assert response.data["errors"]["status"] == ["Unknown field."]
+    order.refresh_from_db()
+    assert order.status == "pending" and inventory(product) == (7, 2)
+    assert order.status_history.count() == 0 and order.action_intents.count() == 0
