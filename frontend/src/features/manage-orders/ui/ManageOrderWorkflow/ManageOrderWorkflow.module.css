@@ -1,0 +1,60 @@
+.ManageOrderWorkflow {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+}
+.ManageOrderWorkflow h2,
+.ManageOrderWorkflow h3,
+.ManageOrderWorkflow p {
+  margin: 0;
+}
+.ManageOrderWorkflow h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+}
+.ManageOrderWorkflow h3 {
+  font-size: var(--text-md);
+}
+.ManageOrderWorkflow-Actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.ManageOrderWorkflow-Actions > * {
+  max-width: 100%;
+}
+.ManageOrderWorkflow-Confirmation {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.ManageOrderWorkflow-Hint {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+.ManageOrderWorkflow-Warning {
+  padding: var(--space-md);
+  border: 1px solid var(--color-border-hover);
+  border-radius: var(--radius-md);
+  background: var(--color-badge-bg);
+}
+.ManageOrderWorkflow-Error {
+  color: var(--color-danger);
+}
+.ManageOrderWorkflow h2:focus,
+.ManageOrderWorkflow h3:focus {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+@media (max-width: 48rem) {
+  .ManageOrderWorkflow {
+    padding: var(--space-md);
+  }
+}

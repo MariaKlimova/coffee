@@ -1,7 +1,10 @@
+import { useCallback, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { getOrderStatusBadgeVariant, getOrderStatusLabel } from '@entities/order'
+import { selectCanManage, useAuthStore } from '@entities/user'
 import { isNotFoundError } from '@shared/api'
 import { APP_ROUTES } from '@shared/config'
 import { MANAGE_COPY, MANAGE_ORDERS_COPY } from '@shared/lib/copy'
@@ -16,6 +19,8 @@ import {
 } from '../../lib/orderDisplay'
 import { orderFilterParams, readOrderFilters } from '../../model/orderFilters'
 import { useManageOrder } from '../../model/useManageOrders'
+import { ManageOrderHistory } from '../ManageOrderHistory'
+import { ManageOrderWorkflow } from '../ManageOrderWorkflow'
 import styles from './ManageOrderDetail.module.css'
 
 export function ManageOrderDetail() {
@@ -23,10 +28,46 @@ export function ManageOrderDetail() {
   const [params] = useSearchParams()
   const backSearch = orderFilterParams(readOrderFilters(params).filters).toString()
   const backTo = `${APP_ROUTES.manageOrders}${backSearch ? `?${backSearch}` : ''}`
-  const query = useManageOrder(id)
+  const client = useQueryClient()
+  const generation = useAuthStore((state) => state.sessionGeneration)
+  const userId = useAuthStore((state) => state.user?.id)
+  const canManage = useAuthStore(selectCanManage)
+  const scope = `${generation}:${userId}:${id}`
+  const [unavailable, setUnavailable] = useState<{
+    scope: string
+    status: 401 | 403 | 404
+  } | null>(null)
+  const unavailableStatus =
+    unavailable?.scope === scope ? unavailable.status : undefined
+  const onUnavailable = useCallback(
+    (status: 401 | 403 | 404) => {
+      const actor = useAuthStore.getState()
+      if (actor.sessionGeneration !== generation || actor.user?.id !== userId) return
+      setUnavailable({ scope, status })
+      client.removeQueries({
+        queryKey: ['manage-orders', generation, userId, 'detail', id],
+        exact: true,
+      })
+    },
+    [client, generation, id, scope, userId],
+  )
+  const query = useManageOrder(id, unavailableStatus === undefined, onUnavailable)
   const order = query.data
-  const notFound = !id || isNotFoundError(query.error)
-  const denied = isAxiosError(query.error) && query.error.response?.status === 403
+  const notFound = !id || unavailableStatus === 404 || isNotFoundError(query.error)
+  const queryErrorStatus = isAxiosError(query.error)
+    ? query.error.response?.status
+    : undefined
+  const errorStatus = unavailableStatus ?? queryErrorStatus
+  const denied = errorStatus === 401 || errorStatus === 403
+  const transientError =
+    query.isError &&
+    (errorStatus === undefined ||
+      errorStatus >= 500 ||
+      errorStatus === 408 ||
+      errorStatus === 429)
+  // Временная ошибка чтения не должна уничтожать незавершённую команду этой сессии.
+  const showOrder =
+    canManage && !notFound && !denied && (!query.isError || transientError)
   let title = MANAGE_ORDERS_COPY.error as string
   let description = MANAGE_ORDERS_COPY.errorDescription as string
   if (notFound) {
@@ -43,7 +84,7 @@ export function ManageOrderDetail() {
           {MANAGE_ORDERS_COPY.back}
         </Button>
       </div>
-      {(notFound || query.isError) && (
+      {(notFound || denied || query.isError) && (
         <EmptyState
           title={title}
           description={description}
@@ -61,11 +102,12 @@ export function ManageOrderDetail() {
           }
         />
       )}
-      {!notFound && query.isPending && (
+      {!notFound && !denied && query.isPending && (
         <p role="status">{MANAGE_ORDERS_COPY.loading}</p>
       )}
-      {!notFound && !query.isError && order && (
+      {showOrder && order && (
         <>
+          {query.isError && <p role="status">{MANAGE_ORDERS_COPY.cachedOrder}</p>}
           <header className={styles['ManageOrderDetail-Header']}>
             <h1>{MANAGE_ORDERS_COPY.number(order.id)}</h1>
             <Badge variant={getOrderStatusBadgeVariant(order.status)}>
@@ -84,6 +126,14 @@ export function ManageOrderDetail() {
               </time>
             </p>
           </header>
+          <ManageOrderWorkflow
+            key={scope}
+            order={order}
+            refreshing={query.isFetching}
+            verified={!query.isError}
+            refresh={async () => (await query.refetch()).isSuccess}
+            onUnavailable={onUnavailable}
+          />
           <div className={styles['ManageOrderDetail-Columns']}>
             <section className={styles['ManageOrderDetail-Section']}>
               <h2>{MANAGE_ORDERS_COPY.items}</h2>
@@ -163,9 +213,7 @@ export function ManageOrderDetail() {
               ))}
             </ul>
           </section>
-          <p className={styles['ManageOrderDetail-Hint']}>
-            {MANAGE_ORDERS_COPY.readOnly}
-          </p>
+          <ManageOrderHistory entries={order.status_history ?? []} />
         </>
       )}
     </section>

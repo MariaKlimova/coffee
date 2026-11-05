@@ -1,4 +1,5 @@
 import { LOAD_ORDER_ERROR, ORDER_CREATED, RETRY } from './phrases'
+import { ORDER_DETAIL_COPY } from './orders'
 
 /**
  * Пользовательские строки страницы результата оплаты (product-voice).
@@ -8,10 +9,9 @@ export const ORDER_RESULT_COPY = {
   reviewTitle: 'Оплата получена, уточняем наличие',
   reviewDescription:
     'Мы уточним наличие и свяжемся с тобой. Повторно оплачивать заказ не нужно',
-  /** Неоплаченный заказ больше не удерживает товары. */
+  /** Отмена заказа не сообщает, был ли оплачен или возвращён платёж. */
   cancelledTitle: 'Заказ отменён',
-  cancelledDescription:
-    'Товары больше не зарезервированы. Чтобы купить их, оформи новый заказ',
+  cancelledDescription: ORDER_DETAIL_COPY.cancelledDescription,
 
   /** Заголовок экрана успеха. */
   successTitle: 'Заказ оплачен',

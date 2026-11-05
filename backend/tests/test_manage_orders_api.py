@@ -377,4 +377,4 @@ def test_bounded_queries_and_no_read_side_effects(staff_client, orders):
             order=orders[0], provider_payment_id=f"synthetic59-{index}", amount="1.00"
         )
     assert count_queries(LIST) == list_before <= 3
-    assert count_queries(f"{LIST}{orders[0].pk}/") == detail_before <= 4
+    assert count_queries(f"{LIST}{orders[0].pk}/") == detail_before <= 5
