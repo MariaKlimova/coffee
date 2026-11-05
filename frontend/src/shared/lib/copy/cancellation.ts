@@ -38,6 +38,9 @@ export const CANCELLATION_COPY = {
   recoveryError:
     'Не удалось восстановить доступ. Попробуй ещё раз или свяжись с магазином.',
   history: 'Запросы отмены',
+  requestedAt: 'Дата запроса',
+  publicResponse: 'Ответ магазина',
+  decidedAt: 'Дата решения',
   open: 'Запрос получен — сотрудник его рассмотрит',
   accepted: 'Отмена принята',
   declined: 'В отмене отказано',

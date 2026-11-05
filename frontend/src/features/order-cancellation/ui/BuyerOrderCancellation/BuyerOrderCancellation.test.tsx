@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { Route, Routes } from 'react-router-dom'
@@ -212,12 +212,12 @@ describe('Покупательская отмена', () => {
       expect(config.headers.get('X-Order-Action-Token')).toBe(token)
       if (config.method === 'get') return response(config, current)
       posts.push(config.data)
-      if (posts.length === 1) throw failure(config, 503)
       current = {
         ...initial,
         order: { ...initial.order, status: 'cancelled' },
         allowed_actions: [],
       }
+      if (posts.length === 1) throw failure(config, 503)
       return response(config, {
         order: current.order,
         buyer_actions: current,
@@ -239,6 +239,7 @@ describe('Покупательская отмена', () => {
     )
     await user.click(retry)
     expect(await screen.findByText(copy.successCancel)).toBeVisible()
+    expect(screen.queryByText(copy.noActions)).not.toBeInTheDocument()
     expect(posts).toHaveLength(2)
     expect(posts[1]).toBe(posts[0])
     expect(JSON.parse(posts[0]).reason).toBe('Изменились планы')
@@ -342,30 +343,49 @@ describe('Покупательская отмена', () => {
     ).not.toContain('cancelled')
   })
 
-  it('обращение оплаченного заказа показывает только публичный ответ и сохраняет оплаченный статус при отказе', async () => {
-    const data = {
-      ...initial,
-      order: { ...initial.order, status: 'paid' },
-      allowed_actions: [],
-      cancellation_requests: [
-        {
-          id: 'request-71',
-          reason: 'Не подходит доставка',
-          state: 'declined',
-          created_at: initial.order.created_at,
-          decided_at: initial.order.updated_at,
-          public_response: 'Заказ уже подготовлен, позвони нам',
-          private_comment: 'INTERNAL-DO-NOT-RENDER',
-          decided_by: { label: 'PRIVATE-STAFF' },
-        },
-      ],
-    }
-    http.defaults.adapter = async (config) => response(config, data)
-    setup()
-    expect(await screen.findByText('Заказ уже подготовлен, позвони нам')).toBeVisible()
-    expect(screen.getByText('Оплачен')).toBeVisible()
-    expect(screen.queryByText('INTERNAL-DO-NOT-RENDER')).not.toBeInTheDocument()
-    expect(screen.queryByText('PRIVATE-STAFF')).not.toBeInTheDocument()
-    expect(screen.getByText(copy.refundHint)).toBeVisible()
-  })
+  it.each([
+    { status: 'paid', state: 'declined', label: 'Оплачен' },
+    { status: 'cancelled', state: 'accepted', label: 'Отменён' },
+  ])(
+    'история $status сохраняет подписанные поля и только публичный ответ',
+    async ({ status, state, label }) => {
+      const data = {
+        ...initial,
+        order: { ...initial.order, status },
+        allowed_actions: [],
+        cancellation_requests: [
+          {
+            id: 'request-71',
+            reason: 'Не подходит доставка',
+            state,
+            created_at: initial.order.created_at,
+            decided_at: initial.order.updated_at,
+            public_response: 'Заказ уже подготовлен, позвони нам',
+            private_comment: 'INTERNAL-DO-NOT-RENDER',
+            decided_by: { label: 'PRIVATE-STAFF' },
+          },
+        ],
+      }
+      http.defaults.adapter = async (config) => response(config, data)
+      setup()
+      expect(
+        await screen.findByText('Заказ уже подготовлен, позвони нам'),
+      ).toBeVisible()
+      expect(screen.getByText(label)).toBeVisible()
+      const reason = screen.getByText(copy.reason, { selector: 'dt' })
+      expect(within(reason.parentElement!).getByRole('definition')).toHaveTextContent(
+        'Не подходит доставка',
+      )
+      const reply = screen.getByText(copy.publicResponse, { selector: 'dt' })
+      expect(within(reply.parentElement!).getByRole('definition')).toHaveTextContent(
+        'Заказ уже подготовлен, позвони нам',
+      )
+      expect(screen.getByText(copy.requestedAt, { selector: 'dt' })).toBeVisible()
+      expect(screen.getByText(copy.decidedAt, { selector: 'dt' })).toBeVisible()
+      expect(screen.queryByText(copy.noActions)).not.toBeInTheDocument()
+      expect(screen.queryByText('INTERNAL-DO-NOT-RENDER')).not.toBeInTheDocument()
+      expect(screen.queryByText('PRIVATE-STAFF')).not.toBeInTheDocument()
+      expect(screen.getByText(copy.refundHint)).toBeVisible()
+    },
+  )
 })

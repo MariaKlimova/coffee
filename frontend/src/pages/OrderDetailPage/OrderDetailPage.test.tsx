@@ -141,6 +141,10 @@ describe('OrderDetailPage', () => {
       await screen.findByText(ORDER_DETAIL_COPY.cancelledDescription),
     ).toBeInTheDocument()
     expect(screen.getByText('Отменён')).toBeInTheDocument()
+    expect(screen.queryByText(CANCELLATION_COPY.noActions)).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: CANCELLATION_COPY.title }),
+    ).not.toBeInTheDocument()
     expect(screen.getByText('Эфиопия Иргачеффе')).toBeInTheDocument()
     expect(screen.getByText(/2\s*580/)).toBeInTheDocument()
     expect(
@@ -165,6 +169,8 @@ describe('OrderDetailPage', () => {
       expect(
         Boolean(screen.queryByRole('button', { name: ORDER_DETAIL_COPY.pay })),
       ).toBe(status === 'pending')
+      if (status !== 'pending')
+        expect(screen.getByText(CANCELLATION_COPY.noActions)).toBeInTheDocument()
     },
   )
 

@@ -274,6 +274,20 @@ export function BuyerOrderActions({ id, buyer, inline }: BuyerOrderActionsProps)
       </section>
     )
 
+  if (
+    data?.order.status === 'cancelled' &&
+    !data.allowed_actions.length &&
+    !data.cancellation_requests.length &&
+    !selection &&
+    !intent &&
+    !error &&
+    !message &&
+    !pending &&
+    !buyer.isError &&
+    !buyer.isPending
+  )
+    return null
+
   return (
     <section className={className} aria-label={copy.title}>
       {error && (
@@ -284,6 +298,7 @@ export function BuyerOrderActions({ id, buyer, inline }: BuyerOrderActionsProps)
       {message && <p role="status">{message}</p>}
       {buyer.isPending && <p role="status">{copy.loading}</p>}
       {data &&
+        data.order.status !== 'cancelled' &&
         !selection &&
         !data.allowed_actions.length &&
         !data.cancellation_requests.length && <p>{copy.noActions}</p>}
@@ -369,16 +384,36 @@ export function BuyerOrderActions({ id, buyer, inline }: BuyerOrderActionsProps)
           {data?.cancellation_requests.map((request) => (
             <div key={request.id} className={styles['BuyerOrderCancellation-Request']}>
               <strong>{copy[request.state]}</strong>
-              <time dateTime={request.created_at}>
-                {formatOrderDate(request.created_at)}
-              </time>
-              <p>{request.reason}</p>
-              {request.public_response && <p>{request.public_response}</p>}
-              {request.decided_at && (
-                <time dateTime={request.decided_at}>
-                  {formatOrderDate(request.decided_at)}
-                </time>
-              )}
+              <dl className={styles['BuyerOrderCancellation-Fields']}>
+                <div>
+                  <dt>{copy.requestedAt}</dt>
+                  <dd>
+                    <time dateTime={request.created_at}>
+                      {formatOrderDate(request.created_at)}
+                    </time>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{copy.reason}</dt>
+                  <dd>{request.reason}</dd>
+                </div>
+                {request.public_response && (
+                  <div>
+                    <dt>{copy.publicResponse}</dt>
+                    <dd>{request.public_response}</dd>
+                  </div>
+                )}
+                {request.decided_at && (
+                  <div>
+                    <dt>{copy.decidedAt}</dt>
+                    <dd>
+                      <time dateTime={request.decided_at}>
+                        {formatOrderDate(request.decided_at)}
+                      </time>
+                    </dd>
+                  </div>
+                )}
+              </dl>
             </div>
           ))}
           <p className={styles['BuyerOrderCancellation-Hint']}>{copy.refundHint}</p>
