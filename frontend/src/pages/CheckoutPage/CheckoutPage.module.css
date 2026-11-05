@@ -19,6 +19,31 @@
   gap: var(--space-sm);
 }
 
+.CheckoutPage-SavedDetails {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow-wrap: anywhere;
+}
+
+.CheckoutPage-SavedDetails h2,
+.CheckoutPage-SavedDetails dl,
+.CheckoutPage-SavedDetails dd {
+  margin: 0;
+}
+
+.CheckoutPage-SavedDetails dl {
+  display: grid;
+  gap: var(--space-xs);
+}
+.CheckoutPage-SavedDetails dt {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
 .CheckoutPage-Layout {
   display: flex;
   flex-wrap: wrap;

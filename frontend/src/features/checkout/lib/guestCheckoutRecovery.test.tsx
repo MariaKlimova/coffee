@@ -70,6 +70,263 @@ afterEach(() => {
 })
 
 describe('Гостевое оформление и потерянный ответ', () => {
+  it('при замене исходной корзины оставляет recovery, но не переоформляет содержимое другой корзины', async () => {
+    const saved = {
+      checkoutRequestId: 'synthetic-original-id',
+      originalCartToken: originalCart,
+      createBody: {
+        delivery_address: values.deliveryAddress,
+        guest_email: values.email,
+        guest_phone: values.phone,
+      },
+    }
+    writeGuestCheckoutIntent(saved)
+    useCartStore.setState({ cartToken: 'synthetic-replacement-cart' })
+    let creates = 0
+    let recoveries = 0
+    http.defaults.adapter = async (config) => {
+      if (config.url === '/api/orders/') creates++
+      if (config.url === '/api/orders/checkout-recovery/') recoveries++
+      expect(config.headers.get('X-Cart-Token')).toBe(originalCart)
+      throw new AxiosError('missing', 'ERR', config, undefined, {
+        ...response(config, {}),
+        status: 404,
+      })
+    }
+    const view = renderHook(() => useCheckoutSubmit({ isGuest: true }), { wrapper })
+    await act(async () => {
+      await view.result.current.recoverCheckout()
+    })
+    expect(view.result.current.canRetryGuestCheckout).toBe(false)
+    expect(view.result.current.retryCartChanged).toBe(true)
+    await act(async () => {
+      await view.result.current.retryGuestCheckout()
+    })
+    expect(creates).toBe(0)
+    expect(recoveries).toBe(1)
+    expect(readGuestCheckoutIntent()).toEqual(saved)
+  })
+  it('после offline до API и recovery404 явно повторяет исходные UUID/тело/подтверждение, очищая временные контакты только после успеха', async () => {
+    const posts: { body: unknown; proof: unknown }[] = []
+    let recoveries = 0
+    http.defaults.adapter = async (config) => {
+      if (config.url === '/api/orders/checkout-recovery/') {
+        recoveries++
+        throw new AxiosError('not found', 'ERR', config, undefined, {
+          ...response(config, { code: 'not_found' }),
+          status: 404,
+        })
+      }
+      posts.push({
+        body: JSON.parse(config.data),
+        proof: config.headers.get('X-Cart-Token'),
+      })
+      if (posts.length === 1)
+        throw new AxiosError('offline before API', AxiosError.ERR_NETWORK, config)
+      return response(config, {
+        ...order,
+        guest_action_token: secret,
+        guest_action_version: 1,
+      })
+    }
+    const first = renderHook(() => useCheckoutSubmit({ isGuest: true }), { wrapper })
+    await act(async () => {
+      await first.result.current.handleSubmit(event(), values)
+    })
+    const saved = readGuestCheckoutIntent()!
+    expect(saved.createBody).toEqual({
+      delivery_address: values.deliveryAddress,
+      guest_email: values.email,
+      guest_phone: values.phone,
+    })
+    first.unmount()
+    const next = renderHook(() => useCheckoutSubmit({ isGuest: true }), { wrapper })
+    await act(async () => {
+      await next.result.current.retryGuestCheckout()
+    })
+    expect(posts).toHaveLength(1)
+    await act(async () => {
+      await next.result.current.recoverCheckout()
+    })
+    expect(next.result.current.canRetryGuestCheckout).toBe(true)
+    await act(async () => {
+      await next.result.current.handleSubmit(event(), {
+        deliveryAddress: 'Другой адрес',
+        email: 'changed@example.invalid',
+        phone: '999',
+      })
+    })
+    expect(posts).toHaveLength(1)
+    await act(async () => {
+      await next.result.current.retryGuestCheckout()
+    })
+    expect(posts).toHaveLength(2)
+    expect(posts[1]).toEqual(posts[0])
+    expect(recoveries).toBe(1)
+    expect(next.result.current.createdOrderId).toBe(order.id)
+    expect(readGuestCheckoutIntent()).toBeNull()
+    expect(readGuestOrderProof(order.id)?.token).toBe(secret)
+    expect(JSON.stringify(readGuestOrderProof(order.id))).not.toContain(values.email)
+    expect(JSON.stringify(readGuestOrderProof(order.id))).not.toContain(
+      values.deliveryAddress,
+    )
+  })
+
+  it('отложенный первый create может завершиться после recovery404: повтор того же UUID получает409 и восстанавливает один заказ', async () => {
+    const posts: string[] = []
+    let releaseOriginal: (() => void) | undefined
+    let committed = false
+    let recoveries = 0
+    const oldRedirect = vi.fn()
+    http.defaults.adapter = async (config) => {
+      if (config.url === '/api/orders/checkout-recovery/') {
+        recoveries++
+        if (!committed)
+          throw new AxiosError('not found yet', 'ERR', config, undefined, {
+            ...response(config, { code: 'not_found' }),
+            status: 404,
+          })
+        return response(config, {
+          order,
+          guest_action_token: 'synthetic-rotated-capability',
+          guest_action_version: 2,
+        })
+      }
+      expect(config.url).toBe('/api/orders/')
+      expect(config.headers.get('X-Cart-Token')).toBe(originalCart)
+      posts.push(config.data)
+      if (posts.length === 1) {
+        await new Promise<void>((resolve) => {
+          releaseOriginal = resolve
+        })
+        committed = true
+        return response(config, {
+          ...order,
+          guest_action_token: secret,
+          guest_action_version: 1,
+        })
+      }
+      throw new AxiosError('recovery required', 'ERR', config, undefined, {
+        ...response(config, { code: 'checkout_recovery_required' }),
+        status: 409,
+      })
+    }
+    const first = renderHook(
+      () => useCheckoutSubmit({ isGuest: true, redirectToPayment: oldRedirect }),
+      { wrapper },
+    )
+    let original: Promise<void> | undefined
+    await act(async () => {
+      original = first.result.current.handleSubmit(event(), values)
+      await Promise.resolve()
+    })
+    expect(releaseOriginal).toBeDefined()
+    first.unmount()
+    const next = renderHook(() => useCheckoutSubmit({ isGuest: true }), { wrapper })
+    await act(async () => {
+      await next.result.current.recoverCheckout()
+    })
+    expect(next.result.current.canRetryGuestCheckout).toBe(true)
+    await act(async () => {
+      releaseOriginal?.()
+      await original
+    })
+    expect(readGuestCheckoutIntent()).not.toBeNull()
+    expect(oldRedirect).not.toHaveBeenCalled()
+    await act(async () => {
+      await next.result.current.retryGuestCheckout()
+    })
+    expect(posts).toHaveLength(2)
+    expect(posts[1]).toBe(posts[0])
+    expect(recoveries).toBe(2)
+    expect(next.result.current.createdOrderId).toBe(order.id)
+    expect(readGuestOrderProof(order.id)?.version).toBe(2)
+  })
+
+  it('повтор с изменившейся или недоступной исходной корзиной не заменяет её новой корзиной и не очищает UUID', async () => {
+    const saved = {
+      checkoutRequestId: 'synthetic-original-id',
+      originalCartToken: originalCart,
+      createBody: {
+        delivery_address: values.deliveryAddress,
+        guest_email: values.email,
+        guest_phone: values.phone,
+      },
+    }
+    writeGuestCheckoutIntent(saved)
+    const posts: string[] = []
+    http.defaults.adapter = async (config) => {
+      if (config.url === '/api/orders/checkout-recovery/')
+        throw new AxiosError('missing', 'ERR', config, undefined, {
+          ...response(config, {}),
+          status: 404,
+        })
+      posts.push(config.data)
+      expect(config.headers.get('X-Cart-Token')).toBe(originalCart)
+      throw new AxiosError('original cart unavailable', 'ERR', config, undefined, {
+        ...response(config, { code: 'validation_error' }),
+        status: 400,
+      })
+    }
+    const view = renderHook(() => useCheckoutSubmit({ isGuest: true }), { wrapper })
+    await act(async () => {
+      await view.result.current.recoverCheckout()
+    })
+    await act(async () => {
+      await view.result.current.retryGuestCheckout()
+    })
+    expect(posts).toHaveLength(1)
+    expect(JSON.parse(posts[0]).checkout_request_id).toBe(saved.checkoutRequestId)
+    expect(readGuestCheckoutIntent()).toEqual(saved)
+    expect(view.result.current.createdOrderId).toBeNull()
+  })
+
+  it('старый callback явного повтора не отправляется после входа, а legacy intent без тела не переоформляет заказ', async () => {
+    writeGuestCheckoutIntent({
+      checkoutRequestId: 'synthetic-id',
+      originalCartToken: originalCart,
+      createBody: {
+        delivery_address: values.deliveryAddress,
+        guest_email: values.email,
+        guest_phone: values.phone,
+      },
+    })
+    let creates = 0
+    http.defaults.adapter = async (config) => {
+      if (config.url === '/api/orders/') creates++
+      throw new AxiosError('missing', 'ERR', config, undefined, {
+        ...response(config, {}),
+        status: 404,
+      })
+    }
+    const view = renderHook(() => useCheckoutSubmit({ isGuest: true }), { wrapper })
+    await act(async () => {
+      await view.result.current.recoverCheckout()
+    })
+    const oldRetry = view.result.current.retryGuestCheckout
+    useAuthStore.getState().setSession({
+      accessToken: 'synthetic-account',
+      refreshToken: 'synthetic-refresh',
+      user: { id: 'account-b', email: 'synthetic@example.invalid' },
+    })
+    await act(async () => {
+      await oldRetry()
+    })
+    expect(creates).toBe(0)
+    view.unmount()
+    useAuthStore.getState().clearSession()
+    writeGuestCheckoutIntent({
+      checkoutRequestId: 'synthetic-legacy-intent',
+      originalCartToken: originalCart,
+    })
+    const legacy = renderHook(() => useCheckoutSubmit({ isGuest: true }), { wrapper })
+    await act(async () => {
+      await legacy.result.current.recoverCheckout()
+      await legacy.result.current.retryGuestCheckout()
+    })
+    expect(legacy.result.current.canRetryGuestCheckout).toBe(false)
+    expect(creates).toBe(0)
+  })
   it('сохраняет исходное намерение до POST, право до оплаты, не передаёт его провайдеру и не очищает после результата', async () => {
     const redirect = vi.fn()
     http.defaults.adapter = async (config) => {

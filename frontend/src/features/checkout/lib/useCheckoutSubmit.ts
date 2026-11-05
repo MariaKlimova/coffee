@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { CanceledError, isAxiosError, isCancel } from 'axios'
 
 import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
@@ -51,23 +51,48 @@ export function useCheckoutSubmit({
   },
 }: UseCheckoutSubmitOptions) {
   const queryClient = useQueryClient()
+  const currentCartToken = useCartStore((state) => state.cartToken)
   const [fieldErrors, setFieldErrors] = useState<CheckoutFieldErrors>({})
   const [formError, setFormError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isRecovering, setIsRecovering] = useState(false)
+  const [missingCheckoutId, setMissingCheckoutId] = useState<string | null>(null)
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
   const [unresolvedGuestCheckout, setUnresolvedGuestCheckout] = useState(
     readGuestCheckoutIntent,
   )
   const submittingRef = useRef(false)
   const renderedActor = useAuthStore.getState()
+  const active = useRef(true)
+  useEffect(() => {
+    active.current = true
+    return () => {
+      active.current = false
+    }
+  }, [])
 
   function bindCustomer() {
     const session = renderedActor
     return () => {
-      if (!isSameCustomerSession(session, useAuthStore.getState()))
+      if (!active.current || !isSameCustomerSession(session, useAuthStore.getState()))
         throw new CanceledError('Сессия оформления изменилась')
     }
+  }
+
+  function rememberGuestOrder(
+    intent: GuestCheckoutIntent,
+    orderId: string,
+    token: string,
+    version: number,
+  ) {
+    writeGuestOrderProof({ ...intent, orderId, token, version })
+    clearGuestCheckoutIntent(intent.checkoutRequestId)
+    setUnresolvedGuestCheckout(null)
+    setMissingCheckoutId(null)
+    writePaymentRecoveryOrderId(orderId)
+    setCreatedOrderId(orderId)
+    onOrderCreated?.(orderId)
+    void queryClient.invalidateQueries({ queryKey: cartKeys.all })
   }
 
   async function recoverCheckout(): Promise<void> {
@@ -91,25 +116,112 @@ export function useCheckoutSubmit({
         assertActor,
       )
       assertActor()
-      writeGuestOrderProof({
-        ...intent,
-        orderId: result.order.id,
-        token: result.guest_action_token,
-        version: result.guest_action_version,
-      })
-      clearGuestCheckoutIntent(intent.checkoutRequestId)
-      setUnresolvedGuestCheckout(null)
-      writePaymentRecoveryOrderId(result.order.id)
-      setCreatedOrderId(result.order.id)
-      onOrderCreated?.(result.order.id)
-      void queryClient.invalidateQueries({ queryKey: cartKeys.all })
+      rememberGuestOrder(
+        intent,
+        result.order.id,
+        result.guest_action_token,
+        result.guest_action_version,
+      )
     } catch (error) {
       try {
         assertActor()
       } catch {
         return
       }
-      if (!isCancel(error)) setFormError(CANCELLATION_COPY.recoveryError)
+      if (!isCancel(error)) {
+        const missing = isAxiosError(error) && error.response?.status === 404
+        if (missing) void queryClient.invalidateQueries({ queryKey: cartKeys.all })
+        setMissingCheckoutId(missing ? intent.checkoutRequestId : null)
+        setFormError(
+          missing && intent.createBody
+            ? CANCELLATION_COPY.checkoutNotFound
+            : CANCELLATION_COPY.recoveryError,
+        )
+      }
+    } finally {
+      try {
+        assertActor()
+        submittingRef.current = false
+        setIsSubmitting(false)
+        setIsRecovering(false)
+      } catch {
+        /* Поздний результат не меняет новую сессию. */
+      }
+    }
+  }
+
+  /** Явный повтор использует только сохранённые UUID, доказательство и тело исходного оформления. */
+  async function retryGuestCheckout(): Promise<void> {
+    const intent = readGuestCheckoutIntent()
+    if (
+      !intent?.createBody ||
+      intent.checkoutRequestId !== missingCheckoutId ||
+      useAuthStore.getState().status !== 'guest' ||
+      submittingRef.current ||
+      useCartStore.getState().cartToken !== intent.originalCartToken
+    )
+      return
+    const assertActor = bindCustomer()
+    try {
+      assertActor()
+    } catch {
+      return
+    }
+    submittingRef.current = true
+    setIsSubmitting(true)
+    setIsRecovering(true)
+    setFormError(undefined)
+    try {
+      try {
+        const order = await createOrder(
+          { checkout_request_id: intent.checkoutRequestId, ...intent.createBody },
+          assertActor,
+          intent.originalCartToken,
+        )
+        assertActor()
+        if (!order.guest_action_token || !order.guest_action_version)
+          throw new Error(CANCELLATION_COPY.storageError)
+        rememberGuestOrder(
+          intent,
+          order.id,
+          order.guest_action_token,
+          order.guest_action_version,
+        )
+      } catch (error) {
+        assertActor()
+        if (
+          !isAxiosError(error) ||
+          error.response?.status !== 409 ||
+          error.response.data?.code !== 'checkout_recovery_required'
+        )
+          throw error
+        const recovered = await recoverGuestCheckout(
+          intent.checkoutRequestId,
+          intent.originalCartToken,
+          assertActor,
+        )
+        assertActor()
+        rememberGuestOrder(
+          intent,
+          recovered.order.id,
+          recovered.guest_action_token,
+          recovered.guest_action_version,
+        )
+      }
+    } catch (error) {
+      try {
+        assertActor()
+      } catch {
+        return
+      }
+      if (!isCancel(error)) {
+        const view = mapCheckoutApiError(error)
+        setFormError(
+          isAxiosError(error) && error.response?.status === 400
+            ? view.formError
+            : CANCELLATION_COPY.checkoutRetryError,
+        )
+      }
     } finally {
       try {
         assertActor()
@@ -172,7 +284,15 @@ export function useCheckoutSubmit({
       if (isGuest) {
         const originalCartToken = useCartStore.getState().cartToken
         if (!originalCartToken) throw new Error(CANCELLATION_COPY.storageError)
-        guestIntent = { checkoutRequestId: crypto.randomUUID(), originalCartToken }
+        guestIntent = {
+          checkoutRequestId: crypto.randomUUID(),
+          originalCartToken,
+          createBody: {
+            delivery_address: values.deliveryAddress.trim(),
+            guest_email: values.email.trim(),
+            guest_phone: values.phone.trim(),
+          },
+        }
         try {
           writeGuestCheckoutIntent(guestIntent)
         } catch {
@@ -201,22 +321,21 @@ export function useCheckoutSubmit({
         if (!order.guest_action_token || !order.guest_action_version)
           throw new Error(CANCELLATION_COPY.storageError)
         try {
-          writeGuestOrderProof({
-            ...guestIntent,
-            orderId: order.id,
-            token: order.guest_action_token,
-            version: order.guest_action_version,
-          })
-          clearGuestCheckoutIntent(guestIntent.checkoutRequestId)
+          rememberGuestOrder(
+            guestIntent,
+            order.id,
+            order.guest_action_token,
+            order.guest_action_version,
+          )
         } catch {
           throw new Error(CANCELLATION_COPY.storageError)
         }
-        setUnresolvedGuestCheckout(null)
+      } else {
+        writePaymentRecoveryOrderId(order.id)
+        setCreatedOrderId(order.id)
+        onOrderCreated?.(order.id)
+        void queryClient.invalidateQueries({ queryKey: cartKeys.all })
       }
-      writePaymentRecoveryOrderId(order.id)
-      setCreatedOrderId(order.id)
-      onOrderCreated?.(order.id)
-      void queryClient.invalidateQueries({ queryKey: cartKeys.all })
       const payment = await createPayment(order.id, assertActor)
       assertActor()
       redirectToPayment(payment.payment_url)
@@ -249,9 +368,24 @@ export function useCheckoutSubmit({
     formError,
     isSubmitting,
     isRecovering,
+    canRetryGuestCheckout:
+      isGuest &&
+      Boolean(
+        unresolvedGuestCheckout?.createBody &&
+        unresolvedGuestCheckout.checkoutRequestId === missingCheckoutId &&
+        currentCartToken === unresolvedGuestCheckout.originalCartToken,
+      ),
+    retryCartChanged:
+      isGuest &&
+      Boolean(
+        unresolvedGuestCheckout?.createBody &&
+        unresolvedGuestCheckout.checkoutRequestId === missingCheckoutId &&
+        currentCartToken !== unresolvedGuestCheckout.originalCartToken,
+      ),
     createdOrderId,
     unresolvedGuestCheckout: isGuest ? unresolvedGuestCheckout : null,
     recoverCheckout,
+    retryGuestCheckout,
     clearFieldError,
     handleSubmit,
   }

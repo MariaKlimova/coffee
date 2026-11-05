@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useSyncExternalStore } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { CanceledError, isAxiosError } from 'axios'
 
@@ -22,9 +28,16 @@ export function useBuyerOrder(id: string) {
   )
   const scope = useMemo(
     () =>
-      `${generation}:${status}:${userId ?? 'guest'}:${proofVersion}:${crypto.randomUUID()}`,
-    [generation, status, userId, proofVersion],
+      `${id}:${generation}:${status}:${userId ?? 'guest'}:${proofVersion}:${crypto.randomUUID()}`,
+    [id, generation, status, userId, proofVersion],
   )
+  const activeScope = useRef<string | null>(scope)
+  useLayoutEffect(() => {
+    activeScope.current = scope
+    return () => {
+      if (activeScope.current === scope) activeScope.current = null
+    }
+  }, [scope])
   const queryKey = ['buyer-orders', generation, userId ?? 'guest', id, scope] as const
   const actor = useAuthStore.getState()
   const proof = status === 'guest' ? readGuestOrderProof(id) : null
@@ -32,6 +45,7 @@ export function useBuyerOrder(id: string) {
     canShop && (status === 'authenticated' || (status === 'guest' && Boolean(proof)))
   const assertActor = () => {
     if (
+      activeScope.current !== scope ||
       !ready ||
       !isSameCustomerSession(actor, useAuthStore.getState()) ||
       (status === 'guest' && readGuestOrderProof(id)?.version !== proof?.version)

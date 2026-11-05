@@ -178,10 +178,15 @@ function OrderDetailPageContent() {
   )
 }
 
-/** Смена покупателя сбрасывает локальные формы и незавершённые сетевые состояния. */
+/** Смена заказа или покупателя сбрасывает формы и незавершённые сетевые состояния. */
 export function OrderDetailPage() {
+  const { id } = useParams<{ id: string }>()
   const status = useAuthStore((state) => state.status)
   const generation = useAuthStore((state) => state.sessionGeneration)
   const userId = useAuthStore((state) => state.user?.id)
-  return <OrderDetailPageContent key={`${status}:${generation}:${userId ?? 'guest'}`} />
+  return (
+    <OrderDetailPageContent
+      key={`${id}:${status}:${generation}:${userId ?? 'guest'}`}
+    />
+  )
 }

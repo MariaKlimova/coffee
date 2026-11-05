@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, renderHook } from '@testing-library/react'
+import { useSyncExternalStore } from 'react'
 
 import { clearPendingOrderId, writePendingOrderId } from '@features/checkout'
 import {
@@ -19,6 +21,28 @@ const proof = {
 beforeEach(() => localStorage.clear())
 
 describe('Гостевое подтверждение заказа', () => {
+  it('уведомляет подписанный UI о v2, даже если другой caller уже прочитал новую версию до storage event', () => {
+    writeGuestOrderProof(proof)
+    const { result } = renderHook(() =>
+      useSyncExternalStore(subscribeGuestOrderProof, () =>
+        guestOrderProofVersion(proof.orderId),
+      ),
+    )
+    expect(result.current).toBe(1)
+    const newer = { ...proof, version: 2, token: 'synthetic-proof-v2' }
+    localStorage.setItem(`coffee:guestOrder:${proof.orderId}:v2`, JSON.stringify(newer))
+    expect(readGuestOrderProof(proof.orderId)?.version).toBe(2)
+    expect(result.current).toBe(1)
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: `coffee:guestOrder:${proof.orderId}:v2`,
+          newValue: JSON.stringify(newer),
+        }),
+      )
+    })
+    expect(result.current).toBe(2)
+  })
   it('A читает пустое → B сохраняет v2 и закрывается → A сохраняет v1: durable чтение после reload выбирает v2', async () => {
     const newer = { ...proof, version: 2, token: 'synthetic-proof-v2' }
     const originalSet = localStorage.setItem.bind(localStorage)

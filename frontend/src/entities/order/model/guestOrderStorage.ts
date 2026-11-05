@@ -2,7 +2,6 @@
 const PROOF_PREFIX = 'coffee:guestOrder:'
 const CHECKOUT_INTENT_KEY = 'coffee:guestCheckoutIntent'
 const listeners = new Set<() => void>()
-const observedVersions = new Map<string, number>()
 const RETAINED_PROOF_VERSIONS = 3
 
 export interface GuestCheckoutIntent {
@@ -10,9 +9,20 @@ export interface GuestCheckoutIntent {
   checkoutRequestId: string
   /** Неизменное подтверждение исходной корзины. */
   originalCartToken: string
+  /** Исходные проверенные данные для явного повтора оформления; у старых записей отсутствуют. */
+  createBody?: GuestCheckoutBody
 }
 
-export interface GuestOrderProof extends GuestCheckoutIntent {
+export interface GuestCheckoutBody {
+  /** Сохранённый адрес доставки. */
+  delivery_address: string
+  /** Сохранённый email гостя. */
+  guest_email: string
+  /** Сохранённый телефон гостя. */
+  guest_phone: string
+}
+
+export interface GuestOrderProof extends Omit<GuestCheckoutIntent, 'createBody'> {
   /** UUID заказа. */
   orderId: string
   /** Приватный секрет действия. */
@@ -27,16 +37,13 @@ function notify() {
 
 function changed(event: StorageEvent) {
   if (event.key === null) {
-    observedVersions.clear()
     notify()
   } else if (event.key.startsWith(PROOF_PREFIX)) {
     const suffix = event.key.slice(PROOF_PREFIX.length)
     const separator = suffix.lastIndexOf(':v')
     if (separator < 0) return
-    const id = suffix.slice(0, separator)
-    const previous = observedVersions.get(id) ?? 0
-    const current = readGuestOrderProof(id)?.version ?? 0
-    if (current !== previous) notify()
+    const version = Number(suffix.slice(separator + 2))
+    if (Number.isSafeInteger(version) && version > 0) notify()
   }
 }
 
@@ -85,7 +92,6 @@ function proofEntries(orderId: string): { key: string; proof: GuestOrderProof }[
 export function readGuestOrderProof(orderId: string): GuestOrderProof | null {
   try {
     const proof = proofEntries(orderId)[0]?.proof ?? null
-    observedVersions.set(orderId, proof?.version ?? 0)
     return proof
   } catch {
     return null
@@ -98,7 +104,13 @@ export function writeGuestOrderProof(proof: GuestOrderProof): GuestOrderProof {
   if (current && current.version >= proof.version) return current
   localStorage.setItem(
     `${PROOF_PREFIX}${proof.orderId}:v${proof.version}`,
-    JSON.stringify(proof),
+    JSON.stringify({
+      orderId: proof.orderId,
+      token: proof.token,
+      version: proof.version,
+      checkoutRequestId: proof.checkoutRequestId,
+      originalCartToken: proof.originalCartToken,
+    }),
   )
   const stored = readGuestOrderProof(proof.orderId)
   if (!stored || stored.version < proof.version)
@@ -137,7 +149,29 @@ export function readGuestCheckoutIntent(): GuestCheckoutIntent | null {
       !intent.originalCartToken
     )
       return null
-    return intent as GuestCheckoutIntent
+    const body = intent.createBody
+    const validBody =
+      body &&
+      typeof body === 'object' &&
+      typeof body.delivery_address === 'string' &&
+      Boolean(body.delivery_address.trim()) &&
+      typeof body.guest_email === 'string' &&
+      Boolean(body.guest_email.trim()) &&
+      typeof body.guest_phone === 'string' &&
+      Boolean(body.guest_phone.trim())
+    return {
+      checkoutRequestId: intent.checkoutRequestId,
+      originalCartToken: intent.originalCartToken,
+      ...(validBody
+        ? {
+            createBody: {
+              delivery_address: body.delivery_address,
+              guest_email: body.guest_email,
+              guest_phone: body.guest_phone,
+            },
+          }
+        : {}),
+    }
   } catch {
     return null
   }

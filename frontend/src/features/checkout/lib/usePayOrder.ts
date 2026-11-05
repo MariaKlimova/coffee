@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CanceledError, isCancel } from 'axios'
 
 import { isSameCustomerSession, selectCanShop, useAuthStore } from '@entities/user'
@@ -31,9 +31,17 @@ export function usePayOrder({
   const [error, setError] = useState<string | undefined>()
   const payingRef = useRef(false)
   const renderedActor = useAuthStore.getState()
+  const active = useRef(true)
+  useEffect(() => {
+    active.current = true
+    return () => {
+      active.current = false
+    }
+  }, [])
 
   async function payOrder(orderId: string): Promise<void> {
     if (
+      !active.current ||
       !selectCanShop(useAuthStore.getState()) ||
       !isSameCustomerSession(renderedActor, useAuthStore.getState()) ||
       !orderId ||
@@ -48,7 +56,7 @@ export function usePayOrder({
       writePaymentRecoveryOrderId(orderId)
       const session = renderedActor
       const assertActor = () => {
-        if (!isSameCustomerSession(session, useAuthStore.getState()))
+        if (!active.current || !isSameCustomerSession(session, useAuthStore.getState()))
           throw new CanceledError('Сессия оплаты изменилась')
       }
       const payment = await createPayment(orderId, assertActor)
@@ -58,6 +66,7 @@ export function usePayOrder({
     } catch (failure) {
       if (
         isCancel(failure) ||
+        !active.current ||
         !isSameCustomerSession(renderedActor, useAuthStore.getState())
       )
         return

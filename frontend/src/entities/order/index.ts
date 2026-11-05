@@ -44,4 +44,8 @@ export {
   writeGuestCheckoutIntent,
   clearGuestCheckoutIntent,
 } from './model/guestOrderStorage'
-export type { GuestOrderProof, GuestCheckoutIntent } from './model/guestOrderStorage'
+export type {
+  GuestOrderProof,
+  GuestCheckoutIntent,
+  GuestCheckoutBody,
+} from './model/guestOrderStorage'

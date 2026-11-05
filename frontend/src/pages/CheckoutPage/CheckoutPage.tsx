@@ -44,6 +44,9 @@ function CheckoutPageContent() {
     createdOrderId,
     unresolvedGuestCheckout,
     recoverCheckout,
+    canRetryGuestCheckout,
+    retryGuestCheckout,
+    retryCartChanged,
     clearFieldError,
     handleSubmit,
   } = useCheckoutSubmit({
@@ -58,6 +61,10 @@ function CheckoutPageContent() {
   const canPay = items.some((item) => item.product.in_stock)
   const showInitialSkeleton = cartQuery.isPending && !cartQuery.data
   const isEmpty = cartQuery.isSuccess && !showInitialSkeleton && items.length === 0
+  const isRetryCartVerified =
+    cartQuery.isSuccess &&
+    !cartQuery.isFetching &&
+    cartQuery.data.cart_token === unresolvedGuestCheckout?.originalCartToken
 
   useEffect(() => {
     if (
@@ -102,7 +109,42 @@ function CheckoutPageContent() {
             </Button>
           }
         />
+        {unresolvedGuestCheckout.createBody && (
+          <div className={styles['CheckoutPage-SavedDetails']}>
+            <h2>{CANCELLATION_COPY.savedCheckoutDetails}</h2>
+            <dl>
+              <dt>{CHECKOUT_COPY.addressLabel}</dt>
+              <dd>{unresolvedGuestCheckout.createBody.delivery_address}</dd>
+              <dt>{CHECKOUT_COPY.emailLabel}</dt>
+              <dd>{unresolvedGuestCheckout.createBody.guest_email}</dd>
+              <dt>{CHECKOUT_COPY.phoneLabel}</dt>
+              <dd>{unresolvedGuestCheckout.createBody.guest_phone}</dd>
+            </dl>
+          </div>
+        )}
+        {isRetryCartVerified && (
+          <CheckoutPageSummary items={items} total={availableTotal} />
+        )}
         {formError && <p role="alert">{formError}</p>}
+        {retryCartChanged && <p>{CANCELLATION_COPY.retryCartChanged}</p>}
+        {canRetryGuestCheckout && (
+          <div className={styles['CheckoutPage-RecoveryActions']}>
+            <p>{CANCELLATION_COPY.retryCheckoutHint}</p>
+            <Button
+              variant="secondary"
+              disabled={isSubmitting || !isRetryCartVerified}
+              loading={isSubmitting}
+              onClick={() => {
+                void retryGuestCheckout()
+              }}
+            >
+              {CANCELLATION_COPY.retryCheckout}
+            </Button>
+          </div>
+        )}
+        {canRetryGuestCheckout && !isRetryCartVerified && (
+          <p>{CANCELLATION_COPY.retryCartUnverified}</p>
+        )}
         {formError && (
           <Button to={APP_ROUTES.contacts} variant="ghost">
             {CANCELLATION_COPY.contactStore}
