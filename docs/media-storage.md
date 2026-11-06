@@ -1,7 +1,8 @@
 # Постоянные изображения каталога
 
 `ImageField` хранит ключ объекта в PostgreSQL. При `MEDIA_STORAGE=s3` Django
-сохраняет файлы через `django-storages` в отдельном S3-совместимом бакете.
+сохраняет файлы через `django-storages` в отдельном S3-совместимом бакете;
+при `MEDIA_STORAGE=vercel_blob` — через официальный Python SDK Vercel Blob.
 `collectstatic` продолжает работать с локальной статикой, независимо от media.
 Контракт API не меняется: `image_url` и `images[].url` — абсолютные URL.
 
@@ -9,7 +10,10 @@
 
 | Переменная | Значение |
 |---|---|
-| `MEDIA_STORAGE` | `filesystem` по умолчанию для разработки; `s3` для хостинга |
+| `MEDIA_STORAGE` | `filesystem` по умолчанию для разработки; `s3` или `vercel_blob` для хостинга |
+| `BLOB_STORE_ID` | Для `vercel_blob`: ID конкретного публичного store |
+| `BLOB_PUBLIC_BASE_URL` | Для `vercel_blob`: точный HTTPS origin этого store, без пути и завершающего `/` |
+| `BLOB_READ_WRITE_TOKEN` | Необязательный backend-only fallback для Blob; Vercel OIDC имеет приоритет |
 | `AWS_ACCESS_KEY_ID` | Обязательный server-side ключ для S3 |
 | `AWS_SECRET_ACCESS_KEY` | Обязательный server-side секрет для S3 |
 | `AWS_STORAGE_BUCKET_NAME` | Обязательное имя бакета |
@@ -17,9 +21,9 @@
 | `AWS_S3_REGION_NAME` | Регион из настроек провайдера |
 | `AWS_S3_ADDRESSING_STYLE` | `auto` по умолчанию, либо `path` / `virtual` |
 | `AWS_S3_CUSTOM_DOMAIN` | Необязательный публичный CDN ASCII hostname без пробелов, схемы, пути и завершающего `/` |
-| `SERVE_MEDIA` | Только локальная раздача filesystem через Django; выключена при S3 |
+| `SERVE_MEDIA` | Только локальная раздача filesystem через Django; выключена для обоих постоянных backend |
 
-Неполный S3-конфиг и неизвестный `MEDIA_STORAGE` останавливают запуск.
+Неполный конфиг выбранного storage и неизвестный `MEDIA_STORAGE` останавливают запуск.
 Секреты задаются только в backend environment, не в git и не в `VITE_*`.
 Пример для локального запуска — `backend/.env.example`. `render.yaml` описывает
 исторический Render backend: его обязательные S3 secrets нужно задать до деплоя.
@@ -57,6 +61,40 @@ Credentials привязаны к ветке Neon; использовать от
 [django-storages S3](https://django-storages.readthedocs.io/en/latest/backends/amazon-S3.html),
 [Neon authentication](https://github.com/neondatabase/website/blob/main/content/docs/storage/authentication.md),
 [Neon pricing](https://neon.com/pricing).
+
+## Vercel Blob
+
+Выбранный владельцем вариант после воспроизводимого отказа Neon — публичный
+Vercel Blob store. `vercel-blob==0.5.0` — официальный Python SDK; старые версии
+одноимённого PyPI-пакета не подходят. Django использует синхронный API.
+`BLOB_PUBLIC_BASE_URL` должен в точности совпадать с публичным origin выбранного
+`BLOB_STORE_ID`. В SDK передаётся этот конкретный store: токен другого store
+не может незаметно перенаправить загрузку. В Vercel используется штатный OIDC,
+при его отсутствии — read-write token. Не публиковать token в frontend env.
+
+Новые загрузки получают UUID-имя, укладывающееся в прежний ImageField limit100.
+Перезапись запрещена также на стороне SDK; неизвестная ошибка доступа не
+считается отсутствием файла. Сохраняется только ключ, URL вычисляется без
+сетевых запросов. Файлы передаются потоково с известной длиной; SDK не владеет
+переданным stream. Чтение через `storage.open()` предназначено для изображений
+и возвращает содержимое в памяти. Локального filesystem path у Blob нет.
+
+Перед согласованным переключением 06.11.2026 координатор подтвердил нулевое
+число строк ProductImage в целевой БД. Это снимок перед переходом, не обещание
+пустого storage при любом будущем deploy. Смена `MEDIA_STORAGE` не переносит
+существующие ключи между провайдерами. Если галерея уже непустая, сначала нужен
+отдельный план переноса и проверки URL; простой env-switch ломает старые ссылки.
+Не удалять прежний bucket или объекты. После новых Blob-загрузок откат на
+S3-only также требует сохранения доступа к новым изображениям.
+
+Создание store, backend env и redeploy выполняются оператором отдельно от build.
+Build и `collectstatic` не обращаются к Blob и не создают данные. Перед выпуском
+выполнить реальную проверку ниже; SDK mocks не доказывают сохранность в облаке.
+Критерии задачи остаются прежними: загрузка через Django, публичный GET и
+сохранность после redeploy, без перезаписи данных владельца.
+
+Источники: [Vercel Python SDK](https://vercel.com/docs/vercel-blob/python-sdk-reference),
+[официальный пакет0.5.0](https://pypi.org/project/vercel-blob/0.5.0/).
 
 ## Seed и существующие изображения
 
@@ -96,3 +134,43 @@ seed отмечаются как demo; после отключения demo ко
 
 Unit-тесты с S3 Stubber проверяют storage-код и URL без обращения в облако;
 они не доказывают публичную политику бакета или сохранение после реального deploy.
+
+## Диагностика отказа S3
+
+Успешный `get_storage` и наличие `public_read` бакета в Neon Console подтверждают
+настройку управления, но не доступность S3 endpoint для приложения. При ошибке
+загрузки сначала сохранить время UTC, операцию, HTTP status, `Server`,
+`Content-Type` и наличие `x-amz-request-id`. Не сохранять `Authorization`,
+credentials, cookies или подписанные URL.
+
+1. Сверить endpoint и регион с `get_storage` для нужной ветки. Для Neon нужны
+   HTTPS, path-style и SigV4; access key — полный `token_id`, secret —
+   `s3_secret_access_key` с сохранённым префиксом. Credential должен принадлежать
+   целевой ветке или её предку. `storage:write` включает чтение, в том числе
+   `HeadObject`; добавление `storage:read` само по себе не устраняет такой отказ.
+2. Без загрузки файла выполнить анонимный GET по заведомо отсутствующему ключу
+   публичного бакета, затем GET того же ключа по download URL, подписанному
+   провайдером. Подписанный URL передавать приватно, не сохранять в выводе,
+   аргументах команды или evidence. Так можно сравнить доступ без авторизации
+   и с подписью независимо от Django и настроек его S3-клиента.
+3. Сопоставить безопасные метаданные ответа с логами Storage нужной ветки.
+   Запросы, отклонённые до допуска к ветке из-за неверной подписи, чужой ветки
+   или отсутствующего scope, не попадают в её логи. Поэтому отсутствие события
+   не доказывает ошибку маршрутизации или провайдера. `403` с HTML,
+   `Server: awselb/2.0` и без S3 request ID также не устанавливает причину.
+4. При S3 `InvalidAccessKeyId`, `SignatureDoesNotMatch` или `AccessDenied`
+   проверить конкретную причину по документации. Не менять credentials вслепую
+   и не подменять endpoint угаданным адресом. Не обходить отказ `HeadObject`
+   отключением проверки совпадений имён, перезаписью объектов или переходом
+   на эфемерный filesystem.
+
+В evidence фиксировать revision, project/branch/bucket, официальный endpoint,
+UTC и безопасные метаданные выполненных проверок. Отличать исторический отказ
+от повторной проверки текущей конфигурации; не объявлять исправление по одному
+успешному management-запросу. До успешных upload/public GET и проверки после
+redeploy storage-приёмка остаётся заблокированной.
+
+Источники диагностики:
+[Neon troubleshooting](https://neon.com/docs/storage/troubleshooting),
+[Neon authentication](https://neon.com/docs/storage/authentication),
+[Neon storage logs](https://neon.com/docs/storage/logs).

@@ -170,6 +170,27 @@ def test_vercel_requires_actual_storage_integration(vercel_environment, monkeypa
         load_vercel_settings()
 
 
+def test_vercel_accepts_actual_blob_storage(vercel_environment, monkeypatch):
+    monkeypatch.setenv("MEDIA_STORAGE", "vercel_blob")
+    monkeypatch.setattr(
+        base,
+        "STORAGES",
+        {
+            "default": {"BACKEND": "config.blob_storage.BlobStorage"},
+            "staticfiles": {
+                "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+            },
+        },
+    )
+    assert load_vercel_settings().SERVE_MEDIA is False
+
+
+def test_vercel_rejects_mismatched_blob_adapter(vercel_environment, monkeypatch):
+    monkeypatch.setenv("MEDIA_STORAGE", "vercel_blob")
+    with pytest.raises(ImproperlyConfigured, match="Integrate COFFEE-41"):
+        load_vercel_settings()
+
+
 @pytest.mark.parametrize("secret", ["YOOKASSA_SHOP_ID", "YOOKASSA_SECRET_KEY"])
 @pytest.mark.parametrize("stage", ["preview", "staging"])
 def test_nonproduction_refuses_payment_credentials(
