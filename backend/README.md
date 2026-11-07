@@ -6,7 +6,7 @@ Django + Django REST Framework API для Coffee Shop.
 
 См. корневой [README.md](../README.md) (Docker Compose или native).
 
-Постоянные изображения, S3 environment и ручной безопасный seed:
+Постоянные изображения, S3 / Vercel Blob environment и ручной безопасный seed:
 [`docs/media-storage.md`](../docs/media-storage.md).
 
 ## API-контракт
