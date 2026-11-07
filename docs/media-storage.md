@@ -93,6 +93,16 @@ Build и `collectstatic` не обращаются к Blob и не создаю�
 Критерии задачи остаются прежними: загрузка через Django, публичный GET и
 сохранность после redeploy, без перезаписи данных владельца.
 
+В проверяемой конфигурации публичную доставку Blob затрагивало правило
+Firewall проекта API. При проверке 06.11.2026 загрузка и metadata HEAD прошли,
+но публичный GET блокировало собственное правило `coffee-inventory-schema-gate`:
+его список разрешённых host включал API, но не публичный Blob hostname. В этом правиле
+нужно исключить только точный hostname из `BLOB_PUBLIC_BASE_URL`, сохранив
+блокировку прежнего API deployment и остальные ограничения. При следующих
+релизах API это исключение для media hostname должно сохраняться. После
+настройки отдельно проверить anonymous GET: успешные PUT и metadata HEAD его
+не заменяют. Причина прежнего Neon 403 этим наблюдением не установлена.
+
 Источники: [Vercel Python SDK](https://vercel.com/docs/vercel-blob/python-sdk-reference),
 [официальный пакет0.5.0](https://pypi.org/project/vercel-blob/0.5.0/).
 
