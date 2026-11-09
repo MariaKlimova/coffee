@@ -12,7 +12,7 @@ from config import urls
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("debug", [False, True])
-@pytest.mark.parametrize("storage", ["filesystem", "s3"])
+@pytest.mark.parametrize("storage", ["filesystem", "s3", "vercel_blob"])
 @pytest.mark.parametrize("serve_media", [False, True])
 def test_local_media_routes_require_filesystem(debug, storage, serve_media, tmp_path):
     (tmp_path / "probe.txt").write_text("local media probe")

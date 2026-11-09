@@ -1,4 +1,4 @@
-"""Настройки отдельного Django-проекта на Vercel с внешними PostgreSQL и S3."""
+"""Vercel Django settings with external PostgreSQL and persistent media."""
 
 import re
 from urllib.parse import urlsplit
@@ -86,16 +86,26 @@ _options.setdefault("connect_timeout", 10)
 if _options["sslmode"] not in {"require", "verify-ca", "verify-full"}:
     raise ImproperlyConfigured("The PostgreSQL connection must require TLS")
 
-# Проверяем и выбор режима, и фактическую интеграцию COFFEE-41, не имитируем S3.
-if env("MEDIA_STORAGE", default="") != "s3":  # noqa: F405
-    raise ImproperlyConfigured("Vercel requires persistent MEDIA_STORAGE=s3")
+# Require the real selected adapter, never a filesystem substitute.
+_media_backend = env("MEDIA_STORAGE", default="")  # noqa: F405
+_persistent_backends = {
+    "s3": "storages.backends.s3.S3Storage",
+    "vercel_blob": "config.blob_storage.BlobStorage",
+}
+if _media_backend not in _persistent_backends:
+    raise ImproperlyConfigured(
+        "Vercel requires persistent MEDIA_STORAGE=s3 or vercel_blob"
+    )
 if globals().get("STORAGES", {}).get("default", {}).get("BACKEND") != (
-    "storages.backends.s3.S3Storage"
+    _persistent_backends[_media_backend]
 ):
-    raise ImproperlyConfigured("Integrate COFFEE-41 S3 storage before deploying Vercel")
-_storage_endpoint = env("AWS_S3_ENDPOINT_URL", default="")  # noqa: F405
-if _storage_endpoint and urlsplit(_storage_endpoint).scheme != "https":
-    raise ImproperlyConfigured("Vercel S3 storage must use an HTTPS endpoint")
+    raise ImproperlyConfigured(
+        "Integrate COFFEE-41 persistent storage before deploying Vercel"
+    )
+if _media_backend == "s3":
+    _storage_endpoint = env("AWS_S3_ENDPOINT_URL", default="")  # noqa: F405
+    if _storage_endpoint and urlsplit(_storage_endpoint).scheme != "https":
+        raise ImproperlyConfigured("Vercel S3 storage must use an HTTPS endpoint")
 
 YOOKASSA_SHOP_ID = env("YOOKASSA_SHOP_ID", default="")  # noqa: F405
 YOOKASSA_SECRET_KEY = env("YOOKASSA_SECRET_KEY", default="")  # noqa: F405

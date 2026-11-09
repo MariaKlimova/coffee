@@ -44,7 +44,7 @@ CLI должен быть не ниже 50.38.0. Native preset сам собир
 должны наследовать Vite-команды или `backend/build.sh` от Render.
 
 Build не вызывает `migrate`, `seed_catalog`, `createsuperuser`, экспорт данных
-или запись в S3. `collectstatic` работает со staticfiles backend, не с media.
+или запись в media storage. `collectstatic` работает со staticfiles backend, не с media.
 Секреты и дампы исключены из upload и function bundle. Dependency manifest
 описывает только runtime; тестовые инструменты устанавливаются через
 `requirements/dev.txt`. В `backend/vercel.json` явно задан Install Command
@@ -74,13 +74,13 @@ application production mode.
 | `VERCEL_URL`                                    | Системный hostname конкретного deployment, добавляется к allowlist                         |
 | `CORS_ALLOWED_ORIGINS`                          | Только явные HTTPS origins согласованного frontend preview                                 |
 | `CSRF_TRUSTED_ORIGINS`                          | Явные HTTPS origins для нужных admin/form сценариев; same-origin admin не требует wildcard |
-| `MEDIA_STORAGE=s3` и S3 env COFFEE-41           | Отдельный постоянный bucket/права среды, staticfiles остаётся локальным                    |
+| `MEDIA_STORAGE=s3` или `vercel_blob` и env COFFEE-41 | Постоянный S3 bucket или публичный Blob store; см. [media storage](../media-storage.md). Staticfiles остаётся локальным |
 | `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`       | По умолчанию пустые в Preview/Staging; staging opt-in допускает только тестовый магазин    |
 | `YOOKASSA_STAGING_TEST_ENABLED=False`          | `True` только в Production target нового staging backend; Preview не допускается          |
 
 Основной пример env ведётся в `backend/.env.example` задачей COFFEE-41. Не
 создавать второй пример с расходящимися ключами. Конфигурация Vercel отказывается
-работать с filesystem media и без фактического S3 backend COFFEE-41.
+работать с filesystem media и без фактического S3 или Blob backend COFFEE-41.
 В serverless-среде S3 endpoint допускается только по HTTPS; локальный HTTP MinIO
 из контракта COFFEE-41 остаётся доступен через dev settings.
 
@@ -177,7 +177,7 @@ DATABASE_URL="$DATABASE_URL_UNPOOLED" DJANGO_SETTINGS_MODULE=config.settings.ver
    записи и не должен переписывать существующий каталог. Зафиксировать, что это
    **новые демонстрационные данные**, а не восстановленные данные Render.
 6. Через защищённую операторскую сессию отдельно создать тестового admin;
-   пароль не передавать в CLI arguments или evidence. Проверить upload в S3.
+   пароль не передавать в CLI arguments или evidence. Проверить upload в выбранный storage.
 7. Собрать **frontend preview** с `VITE_API_BASE_URL` нового API, добавить именно
    его origin в CORS и передать обе ссылки QA/пользователю. Старый frontend
    production пока использует прежнюю конфигурацию.
@@ -201,7 +201,7 @@ DATABASE_URL="$DATABASE_URL_UNPOOLED" DJANGO_SETTINGS_MODULE=config.settings.ver
   реальных платежей и production заказов в QA не создавать.
 
 Локальные pytest/settings/static tests не доказывают Vercel CDN, Neon TLS,
-фактические CORS headers или постоянство S3. До этих проверок полная приёмка
+фактические CORS headers или постоянство media storage. До этих проверок полная приёмка
 COFFEE-64 остаётся незавершённой.
 
 ## Старые данные, cutover и rollback
