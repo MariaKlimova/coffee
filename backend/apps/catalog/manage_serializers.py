@@ -3,11 +3,12 @@
 from collections.abc import Mapping
 
 from django.core.exceptions import ValidationError as ModelValidationError
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.catalog.attributes import ATTRIBUTES_BY_CATEGORY_SLUG
 from apps.catalog.models import CatalogState, Category, Product
-from apps.catalog.serializers import ProductDetailSerializer
+from apps.catalog.serializers import ProductDetailSerializer, ProductImageSerializer
 
 
 class StrictQuantityField(serializers.IntegerField):
@@ -17,10 +18,22 @@ class StrictQuantityField(serializers.IntegerField):
         return super().to_internal_value(data)
 
 
+class ManageProductImageSerializer(ProductImageSerializer):
+    class Meta(ProductImageSerializer.Meta):
+        fields = ("id", *ProductImageSerializer.Meta.fields)
+        read_only_fields = fields
+
+
 class ManageProductSerializer(ProductDetailSerializer):
     stock_quantity = serializers.IntegerField(read_only=True)
     reserved_quantity = serializers.IntegerField(read_only=True)
     hidden_reason = serializers.SerializerMethodField()
+
+    @extend_schema_field(ManageProductImageSerializer(many=True))
+    def get_images(self, obj):
+        return ManageProductImageSerializer(
+            self.product_images(obj), many=True, context=self.context
+        ).data
 
     class Meta(ProductDetailSerializer.Meta):
         fields = ProductDetailSerializer.Meta.fields + (

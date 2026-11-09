@@ -426,6 +426,109 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
 
+  /api/manage/products/{id}/images/:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+    post:
+      tags: [Manage catalog]
+      summary: Staff uploads one owner product image
+      description: >
+        One JPEG, PNG or WebP file, at most 4194304 bytes (4 MiB). The server
+        verifies image contents and derives a safe filename and Content-Type.
+        Appends to the gallery; the first real image becomes main, replacing a
+        mock main if present. A demo product must
+        first be converted using the existing product PATCH save_as_owner=true.
+        Returns the new image; refetch staff product detail for the whole gallery.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: JPEG, PNG or WebP; one file up to 4194304 bytes
+      responses:
+        "201":
+          description: Image stored and added to the gallery
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManageProductImage"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503":
+          description: Image storage unavailable; code image_storage_unavailable
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+
+  /api/manage/products/{id}/images/{image_id}/:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: image_id, in: path, required: true, schema: {type: integer, minimum: 1}}
+    patch:
+      tags: [Manage catalog]
+      summary: Staff reorders an image or selects the main image
+      description: >
+        Owner products only; demo returns 400 errors.save_as_owner until the
+        existing product conversion is confirmed. order is a zero-based gallery
+        position, smaller than the current image count; other positions shift.
+        Every successful gallery write normalizes order to 0..count-1. Setting
+        is_main=true replaces the previous main image. Setting is_main=false on
+        the current main returns 400 errors.is_main; select another main instead.
+        A nonempty gallery always has exactly one main image. Explicitly selecting
+        a mock as main returns 400 errors.is_main. Real uploaded images take
+        precedence over retained mocks when choosing the main image. Product-row locks
+        serialize concurrent staff operations. Refetch product detail after write.
+      security: [{bearerAuth: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ProductImagePatch"}
+      responses:
+        "200":
+          description: Updated image
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ManageProductImage"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      tags: [Manage catalog]
+      summary: Staff deletes an owner product image and its stored file
+      description: >
+        Deletes the file before the database row; a storage failure returns 503
+        and preserves the row and gallery state for retry. A missing file is safe
+        to delete. Deleting the main image chooses the first remaining real image
+        by order then ID, or the first mock if no real image remains.
+        Remaining positions become 0..count-1; an empty gallery
+        has no main image. Demo products require prior save_as_owner conversion.
+        Repeated DELETE returns 404 once the row is gone. Object storage and
+        PostgreSQL do not share a distributed transaction; a DB commit failure
+        after successful file deletion requires reconciliation.
+      security: [{bearerAuth: []}]
+      responses:
+        "204": {description: File and image row deleted}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "503":
+          description: Image storage unavailable; code image_storage_unavailable
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Error"}
+
   /api/manage/catalog/:
     get:
       tags: [Manage catalog]
@@ -1406,7 +1509,7 @@ components:
             images:
               type: array
               description: Includes marked mock files for management; public owner products omit mocks
-              items: {$ref: "#/components/schemas/ProductImage"}
+              items: {$ref: "#/components/schemas/ManageProductImage"}
 
     CatalogState:
       type: object
@@ -1527,6 +1630,31 @@ components:
             properties:
               attributes:
                 $ref: "#/components/schemas/MachineAttributes"
+
+    ManageProductImage:
+      allOf:
+        - $ref: "#/components/schemas/ProductImage"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              minimum: 1
+              readOnly: true
+              description: Staff-only image ID for gallery write endpoints
+
+    ProductImagePatch:
+      type: object
+      additionalProperties: false
+      properties:
+        order:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+          description: JSON integer only; target position must be smaller than gallery count
+        is_main:
+          type: boolean
+          description: Select true to replace the main image; cannot unset the current main
 
     ProductImage:
       type: object
