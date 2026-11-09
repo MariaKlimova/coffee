@@ -30,7 +30,7 @@ const product: ManageProduct = {
   is_published: true,
   hidden_reason: null,
   image_url: '/real-photo.jpg',
-  images: [{ url: '/real-photo.jpg', order: 0, is_main: true }],
+  images: [{ id: 1, url: '/real-photo.jpg', order: 0, is_main: true }],
   attributes: { country: 'Италия', intensity: 7 },
   is_favorite: false,
   created_at: '',

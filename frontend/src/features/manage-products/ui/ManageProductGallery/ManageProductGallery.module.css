@@ -1,0 +1,66 @@
+.ManageProductGallery {
+  display: grid;
+  gap: var(--space-md);
+  min-width: 0;
+  padding: var(--space-lg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.ManageProductGallery-List {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--grid-card-min)), 1fr)
+  );
+  gap: var(--space-lg);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.ManageProductGallery-Image {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.ManageProductGallery-Preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--aspect-media-card);
+  object-fit: contain;
+  background: var(--color-media-placeholder);
+  border-radius: var(--radius-md);
+}
+.ManageProductGallery-Caption,
+.ManageProductGallery-Actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+.ManageProductGallery-Actions > * {
+  white-space: normal;
+  max-width: 100%;
+}
+.ManageProductGallery-Confirmation {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+.ManageProductGallery-Upload input::file-selector-button {
+  margin-right: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+}
+.ManageProductGallery-Error {
+  color: var(--color-danger);
+}

@@ -12,6 +12,7 @@ import {
   type ManageFilters,
   type ProductChange,
 } from '../api/manageCatalogApi'
+import { invalidateManageProducts } from './invalidateManageProducts'
 
 /** Отдельный кэш каждой сессии без показа данных предыдущего владельца. */
 export function useManageCatalog(filters: ManageFilters) {
@@ -40,23 +41,12 @@ export function useManageCatalog(filters: ManageFilters) {
     enabled,
     gcTime: 0,
   })
-  async function invalidate() {
-    await Promise.all([
-      client.invalidateQueries({ queryKey: prefix }),
-      ...['products', 'cart', 'favorites'].map((key) =>
-        client.invalidateQueries({ queryKey: [key] }),
-      ),
-    ])
-  }
   const change = useMutation({
     mutationFn: ({ values, assert }: { values: ProductChange; assert: () => void }) => {
       assert()
       return changeManageProduct(values, assert)
     },
-    onSuccess: async (_, { assert }) => {
-      assert()
-      await invalidate()
-    },
+    onSuccess: (_, { assert }) => invalidateManageProducts(client, prefix, assert),
     gcTime: 0,
   })
   const cutover = useMutation({
@@ -64,10 +54,7 @@ export function useManageCatalog(filters: ManageFilters) {
       assert()
       return disableDemo(assert)
     },
-    onSuccess: async (_, { assert }) => {
-      assert()
-      await invalidate()
-    },
+    onSuccess: (_, { assert }) => invalidateManageProducts(client, prefix, assert),
     gcTime: 0,
   })
   const hide = useMutation({
@@ -75,10 +62,7 @@ export function useManageCatalog(filters: ManageFilters) {
       assert()
       return hideManageProduct(id, assert)
     },
-    onSuccess: async (_, { assert }) => {
-      assert()
-      await invalidate()
-    },
+    onSuccess: (_, { assert }) => invalidateManageProducts(client, prefix, assert),
     gcTime: 0,
   })
   return {

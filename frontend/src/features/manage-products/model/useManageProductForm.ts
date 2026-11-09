@@ -6,6 +6,7 @@ import {
   saveManageProduct,
   type ProductFormWrite,
 } from '../api/manageCatalogApi'
+import { invalidateManageProducts } from './invalidateManageProducts'
 
 export function useManageProductForm(id?: string) {
   const client = useQueryClient()
@@ -39,16 +40,8 @@ export function useManageProductForm(id?: string) {
       assertActor()
       return saveManageProduct(values, id, assertActor)
     },
-    onSuccess: async (_, { assertActor }) => {
-      assertActor()
-      await Promise.all([
-        client.invalidateQueries({ queryKey: prefix }),
-        ...['products', 'cart', 'favorites'].map((name) =>
-          client.invalidateQueries({ queryKey: [name] }),
-        ),
-      ])
-      assertActor()
-    },
+    onSuccess: (_, { assertActor }) =>
+      invalidateManageProducts(client, prefix, assertActor),
     gcTime: 0,
   })
   return {
