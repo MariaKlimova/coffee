@@ -1,7 +1,19 @@
-import type { Paginated, Product, ProductCategorySlug } from '@entities/product'
+import type {
+  Paginated,
+  Product,
+  ProductCategorySlug,
+  ProductImageDto,
+} from '@entities/product'
 import { guardRequest, http } from '@shared/api'
 
+export interface ManageProductImage extends ProductImageDto {
+  /** Серверный идентификатор фотографии для изменения и удаления. */
+  id: number
+}
+
 export interface ManageProduct extends Product {
+  /** Фотографии с идентификаторами, доступными сотруднику. */
+  images: ManageProductImage[]
   /** Физическое количество товара. */
   stock_quantity: number
   /** Количество, занятое заказами. */
