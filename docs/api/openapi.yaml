@@ -352,8 +352,10 @@ paths:
                       results:
                         type: array
                         items: {$ref: "#/components/schemas/ManageProduct"}
+        "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
     post:
       tags: [Manage catalog]
       summary: Staff creates an owner product with audited initial stock
@@ -463,6 +465,7 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+        "415": {$ref: "#/components/responses/UnsupportedMediaType"}
         "503":
           description: Image storage unavailable; code image_storage_unavailable
           content:
@@ -503,6 +506,7 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "404": {$ref: "#/components/responses/NotFound"}
+        "415": {$ref: "#/components/responses/UnsupportedMediaType"}
     delete:
       tags: [Manage catalog]
       summary: Staff deletes an owner product image and its stored file
@@ -1273,6 +1277,11 @@ components:
         format: uuid
 
   responses:
+    UnsupportedMediaType:
+      description: Unsupported request Content-Type; use the documented multipart or JSON media type
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
     OrderActionConflict:
       description: Live status/matrix conflict or persisted UUID intent conflict; refresh current private projection. Codes include order_status_conflict, transition_not_allowed, cancellation_request_open, cancellation_request_conflict, idempotency_conflict, checkout_recovery_required.
       content:

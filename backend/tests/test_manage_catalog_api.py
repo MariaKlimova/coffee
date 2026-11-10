@@ -58,6 +58,8 @@ def test_manage_requires_staff(api_client, user, products, role, expected):
     if role == "buyer":
         auth_client(api_client, user)
     product = products["cheap"]
+    before = list(Product.objects.order_by("pk").values())
+    state_before = list(CatalogState.objects.values())
     endpoints = [
         ("get", reverse("manage-product-list"), None),
         ("post", reverse("manage-product-list"), payload()),
@@ -72,7 +74,9 @@ def test_manage_requires_staff(api_client, user, products, role, expected):
         assert response.status_code == expected, response.json()
     product.refresh_from_db()
     assert product.stock_quantity == 100 and product.is_published
+    assert list(Product.objects.order_by("pk").values()) == before
     assert not StockAdjustment.objects.exists()
+    assert list(CatalogState.objects.values()) == state_before
 
 
 def test_create_unique_slugs_edit_audited_stock_and_soft_hide(
