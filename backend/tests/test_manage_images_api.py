@@ -18,7 +18,7 @@ from apps.catalog.image_services import (
     patch_product_image,
     upload_product_image,
 )
-from apps.catalog.models import Product, ProductImage
+from apps.catalog.models import Category, Product, ProductImage
 from config.blob_storage import BlobStorage
 from tests.helpers import auth_client
 from tests.test_inventory import race
@@ -73,18 +73,124 @@ def gallery(product):
 
 @pytest.mark.parametrize("role,expected", [("anonymous", 401), ("buyer", 403)])
 def test_every_image_write_requires_staff(api_client, user, products, role, expected):
+    product = products["cheap"]
+    existing = ProductImage.objects.create(
+        product=product, image=image_file(), is_main=True
+    )
+    before = list(product.images.values())
+    with existing.image.open("rb") as file:
+        original_bytes = file.read()
     if role == "buyer":
         auth_client(api_client, user)
-    product = products["cheap"]
-    assert api_client.post(upload_url(product), {}).status_code == expected
     assert (
-        api_client.patch(
-            image_url(product, 123), {"is_main": True}, format="json"
+        api_client.post(
+            upload_url(product), {"image": image_file()}, format="multipart"
         ).status_code
         == expected
     )
-    assert api_client.delete(image_url(product, 123)).status_code == expected
-    assert not ProductImage.objects.exists()
+    assert (
+        api_client.patch(
+            image_url(product, existing.pk), {"is_main": False}, format="json"
+        ).status_code
+        == expected
+    )
+    assert api_client.delete(image_url(product, existing.pk)).status_code == expected
+    assert list(product.images.values()) == before
+    assert existing.image.storage.exists(existing.image.name)
+    with existing.image.open("rb") as file:
+        assert file.read() == original_bytes
+
+
+def test_gallery_rejects_unsupported_content_types_without_changes(
+    staff_client, products
+):
+    product = products["cheap"]
+    photo = upload(staff_client, product)
+    before = list(product.images.values())
+    requests = [
+        staff_client.post(
+            upload_url(product), {"image": "not multipart"}, format="json"
+        ),
+        staff_client.patch(
+            image_url(product, photo["id"]), {"is_main": "false"}, format="multipart"
+        ),
+    ]
+    for response in requests:
+        assert response.status_code == 415
+        assert response.json()["code"] == "unsupported_media_type"
+    assert list(product.images.values()) == before
+    image = product.images.get()
+    assert image.image.storage.exists(image.image.name)
+
+
+@pytest.mark.parametrize("category_slug", ["coffee", "machines"])
+def test_owner_publication_lifecycle_is_consistent_across_public_endpoints(
+    staff_client, products, category_slug
+):
+    category, _ = Category.objects.get_or_create(
+        slug=category_slug, defaults={"name": category_slug}
+    )
+    neighbor = Product.objects.create(
+        category=category,
+        name="Published neighbor",
+        slug=f"neighbor-{category_slug}",
+        short_description="For related products",
+        price="500.00",
+    )
+    response = staff_client.post(
+        reverse("manage-product-list"),
+        {
+            "category": category_slug,
+            "name": "Owner lifecycle",
+            "short_description": "Created in manage",
+            "price": "750.00",
+            "stock_quantity": 3,
+            "is_published": False,
+        },
+        format="json",
+    )
+    assert response.status_code == 201, response.json()
+    product = Product.objects.get(pk=response.json()["id"])
+    photo = upload(staff_client, product)
+    public = APIClient()
+    detail_url = reverse("product-detail", args=[product.slug])
+    related_url = reverse("product-related", args=[neighbor.slug])
+    manage_url = reverse("manage-product-detail", args=[product.pk])
+
+    def assert_visibility(published):
+        listing = public.get(
+            reverse("product-list"), {"category": category_slug, "search": product.name}
+        )
+        assert listing.status_code == 200
+        assert listing.json()["count"] == int(published)
+        related = public.get(related_url)
+        assert related.status_code == 200
+        assert (str(product.pk) in {row["id"] for row in related.json()}) is published
+        detail_response = public.get(detail_url)
+        assert detail_response.status_code == (200 if published else 404)
+        if published:
+            assert detail_response.json()["image_url"] == photo["url"]
+            assert detail_response.json()["available_quantity"] == 3
+
+    assert_visibility(False)
+    assert (
+        public.get(reverse("product-related", args=[product.slug])).status_code == 404
+    )
+    assert (
+        staff_client.patch(
+            manage_url, {"is_published": True}, format="json"
+        ).status_code
+        == 200
+    )
+    assert_visibility(True)
+    assert staff_client.delete(manage_url).status_code == 204
+    assert_visibility(False)
+    managed = staff_client.get(manage_url)
+    assert managed.status_code == 200
+    assert managed.json()["hidden_reason"] == "unpublished"
+    assert managed.json()["images"] == [photo]
+    assert managed.json()["stock_quantity"] == 3
+    assert product.images.get().image.storage.exists(product.images.get().image.name)
 
 
 @pytest.mark.parametrize("image_format", ["JPEG", "PNG", "WEBP"])
