@@ -142,7 +142,26 @@
   }
 
   .ImageCarousel-Dot {
+    border-radius: 0;
     width: var(--size-touch-target);
     height: var(--size-touch-target);
+  }
+
+  .ImageCarousel-Arrow {
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .ImageCarousel-Arrow::before {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-circle);
+    background: var(--color-overlay-control);
+    content: '';
+    pointer-events: none;
+  }
+
+  .ImageCarousel-Arrow svg {
+    position: relative;
   }
 }

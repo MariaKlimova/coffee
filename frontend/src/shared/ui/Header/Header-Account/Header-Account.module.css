@@ -87,6 +87,10 @@
 }
 
 @media (max-width: 63.999rem), (any-pointer: coarse) {
+  .Header-AccountTrigger {
+    min-width: var(--size-touch-target);
+  }
+
   .Header-AccountItem {
     display: flex;
     align-items: center;

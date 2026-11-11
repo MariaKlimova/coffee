@@ -290,4 +290,30 @@
     align-items: center;
     min-height: var(--size-touch-target);
   }
+
+  .ExpandedProductCard-Favorite,
+  .ExpandedProductCard-Close {
+    position: relative;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .ExpandedProductCard-Favorite::before,
+  .ExpandedProductCard-Close::before {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-circle);
+    background: var(--color-badge-bg);
+    content: '';
+    pointer-events: none;
+  }
+
+  .ExpandedProductCard-Favorite svg,
+  .ExpandedProductCard-Close svg {
+    position: relative;
+  }
+
+  .ExpandedProductCard-QtyButton {
+    border-radius: 0;
+  }
 }
