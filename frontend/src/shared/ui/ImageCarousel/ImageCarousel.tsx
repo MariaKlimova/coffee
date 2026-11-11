@@ -161,78 +161,82 @@ export function ImageCarousel({
         swiped.current = false
       }}
     >
-      {imageHref ? (
-        <Link
-          to={imageHref}
-          state={imageLinkState}
-          tabIndex={-1}
-          aria-label={alt}
-          className={styles['ImageCarousel-Link']}
-          onClick={(event) => {
-            if (swiped.current) {
-              event.preventDefault()
-              swiped.current = false
-              return
-            }
-            onImageOpen?.()
-          }}
-        >
-          {slide}
-        </Link>
-      ) : (
-        slide
-      )}
+      <div className={styles['ImageCarousel-Media']}>
+        {imageHref ? (
+          <Link
+            to={imageHref}
+            state={imageLinkState}
+            tabIndex={-1}
+            aria-label={alt}
+            className={styles['ImageCarousel-Link']}
+            onClick={(event) => {
+              if (swiped.current) {
+                event.preventDefault()
+                swiped.current = false
+                return
+              }
+              onImageOpen?.()
+            }}
+          >
+            {slide}
+          </Link>
+        ) : (
+          slide
+        )}
 
+        {hasMultiple ? (
+          <>
+            <button
+              type="button"
+              className={cx(
+                styles['ImageCarousel-Arrow'],
+                styles['ImageCarousel-Arrow--prev'],
+              )}
+              aria-label="Предыдущее фото"
+              onClick={(event) => {
+                event.stopPropagation()
+                goPrev()
+              }}
+            >
+              <ChevronLeft />
+            </button>
+            <button
+              type="button"
+              className={cx(
+                styles['ImageCarousel-Arrow'],
+                styles['ImageCarousel-Arrow--next'],
+              )}
+              aria-label="Следующее фото"
+              onClick={(event) => {
+                event.stopPropagation()
+                goNext()
+              }}
+            >
+              <ChevronRight />
+            </button>
+          </>
+        ) : null}
+      </div>
       {hasMultiple ? (
-        <>
-          <button
-            type="button"
-            className={cx(
-              styles['ImageCarousel-Arrow'],
-              styles['ImageCarousel-Arrow--prev'],
-            )}
-            aria-label="Предыдущее фото"
-            onClick={(event) => {
-              event.stopPropagation()
-              goPrev()
-            }}
-          >
-            <ChevronLeft />
-          </button>
-          <button
-            type="button"
-            className={cx(
-              styles['ImageCarousel-Arrow'],
-              styles['ImageCarousel-Arrow--next'],
-            )}
-            aria-label="Следующее фото"
-            onClick={(event) => {
-              event.stopPropagation()
-              goNext()
-            }}
-          >
-            <ChevronRight />
-          </button>
-          <ul className={styles['ImageCarousel-Dots']}>
-            {images.map((src, dotIndex) => (
-              <li key={`${src}-${dotIndex}`}>
-                <button
-                  type="button"
-                  className={cx(
-                    styles['ImageCarousel-Dot'],
-                    dotIndex === safeIndex && styles['ImageCarousel-Dot--active'],
-                  )}
-                  aria-label={`Фото ${dotIndex + 1}`}
-                  aria-current={dotIndex === safeIndex || undefined}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setIndex(dotIndex)
-                  }}
-                />
-              </li>
-            ))}
-          </ul>
-        </>
+        <ul className={styles['ImageCarousel-Dots']}>
+          {images.map((src, dotIndex) => (
+            <li key={`${src}-${dotIndex}`}>
+              <button
+                type="button"
+                className={cx(
+                  styles['ImageCarousel-Dot'],
+                  dotIndex === safeIndex && styles['ImageCarousel-Dot--active'],
+                )}
+                aria-label={`Фото ${dotIndex + 1}`}
+                aria-current={dotIndex === safeIndex || undefined}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setIndex(dotIndex)
+                }}
+              />
+            </li>
+          ))}
+        </ul>
       ) : null}
     </div>
   )

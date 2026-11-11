@@ -135,6 +135,8 @@
 
 | Токен | Значение | Назначение |
 |-------|----------|------------|
+| `--size-touch-target` | `44px` | Минимальная область touch-действия |
+| `--text-field` | `var(--text-sm)`; touch/mobile: `var(--text-md)` | Текст Input, Select и Textarea без автоматического zoom iOS |
 | `--control-height-sm` | `32px` | Высота кнопки sm |
 | `--control-height-md` | `40px` | Высота кнопки md / Input / Select |
 | `--control-height-lg` | `48px` | Высота кнопки lg |
@@ -149,6 +151,12 @@
 | `--color-badge-danger-bg` | mix danger 14% + surface | Фон Badge danger |
 
 ---
+
+Для экранов до `63.999rem` или любого coarse pointer высоты `sm`/`md` и размеры
+`icon-button-sm`/`md` равны `--size-touch-target`. Размеры самих иконок не меняются.
+Точки галереи сохраняют визуальные размеры, а их touch-кнопки занимают отдельную
+строку с переносом; hit areas не накладываются на фото и соседние стрелки.
+Пользовательский pinch zoom доступен, в том числе на фотографии.
 
 ## Media & cards
 

@@ -85,3 +85,11 @@
     max-width: var(--size-header-account-mobile-max);
   }
 }
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .Header-AccountItem {
+    display: flex;
+    align-items: center;
+    min-height: var(--size-touch-target);
+  }
+}

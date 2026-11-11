@@ -283,3 +283,11 @@
 .ExpandedProductCard--page .ExpandedProductCard-MachineRow {
   grid-template-columns: var(--size-icon-md) minmax(0, 1fr) minmax(0, 1fr);
 }
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .ExpandedProductCard-Category {
+    display: flex;
+    align-items: center;
+    min-height: var(--size-touch-target);
+  }
+}
