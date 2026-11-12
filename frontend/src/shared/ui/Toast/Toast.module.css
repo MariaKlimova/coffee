@@ -58,3 +58,14 @@
   outline: none;
   box-shadow: var(--focus-ring);
 }
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .Toast-Close {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-touch-target);
+    height: var(--size-touch-target);
+  }
+}

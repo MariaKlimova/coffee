@@ -226,3 +226,29 @@
     transform: none;
   }
 }
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .ProductCard-Favorite {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .ProductCard-Favorite::before {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-circle);
+    background: var(--color-surface);
+    content: '';
+    pointer-events: none;
+  }
+
+  .ProductCard-Favorite svg {
+    position: relative;
+  }
+
+  .ProductCard-QtyButton {
+    border-radius: 0;
+  }
+}

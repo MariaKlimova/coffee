@@ -2,10 +2,15 @@
   position: relative;
   overflow: hidden;
   width: 100%;
-  aspect-ratio: var(--aspect-media-card);
   background: var(--color-media-placeholder);
   user-select: none;
-  touch-action: pan-y;
+  touch-action: pan-y pinch-zoom;
+}
+
+.ImageCarousel-Media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--aspect-media-card);
 }
 
 .ImageCarousel:focus-visible {
@@ -88,13 +93,24 @@
 }
 
 .ImageCarousel-Dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: var(--size-dot);
   height: var(--size-dot);
   padding: 0;
   border: none;
   border-radius: var(--radius-pill);
-  background: var(--color-dot);
+  background: transparent;
   cursor: pointer;
+}
+
+.ImageCarousel-Dot::after {
+  content: '';
+  width: var(--size-dot);
+  height: var(--size-dot);
+  border-radius: var(--radius-pill);
+  background: var(--color-dot);
 }
 
 .ImageCarousel-Dot:focus-visible {
@@ -104,6 +120,10 @@
 
 .ImageCarousel-Dot--active {
   width: var(--size-dot-active);
+}
+
+.ImageCarousel-Dot--active::after {
+  width: var(--size-dot-active);
   background: var(--color-primary);
 }
 
@@ -111,4 +131,37 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .ImageCarousel-Dots {
+    position: static;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: var(--space-xs);
+  }
+
+  .ImageCarousel-Dot {
+    border-radius: 0;
+    width: var(--size-touch-target);
+    height: var(--size-touch-target);
+  }
+
+  .ImageCarousel-Arrow {
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .ImageCarousel-Arrow::before {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-circle);
+    background: var(--color-overlay-control);
+    content: '';
+    pointer-events: none;
+  }
+
+  .ImageCarousel-Arrow svg {
+    position: relative;
+  }
 }

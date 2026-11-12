@@ -90,6 +90,8 @@
   --expanded-pane-basis: 380px;
 
   /* Controls */
+  --size-touch-target: 44px;
+  --text-field: var(--text-sm);
   --control-height-sm: 32px;
   --control-height-md: 40px;
   --control-height-lg: 48px;
@@ -151,4 +153,14 @@ body {
   min-height: 100vh;
   background-color: var(--color-bg);
   color: var(--color-text);
+}
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  :root {
+    --control-height-sm: var(--size-touch-target);
+    --control-height-md: var(--size-touch-target);
+    --size-icon-button-sm: var(--size-touch-target);
+    --size-icon-button-md: var(--size-touch-target);
+    --text-field: var(--text-md);
+  }
 }

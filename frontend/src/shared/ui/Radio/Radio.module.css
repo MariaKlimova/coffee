@@ -45,3 +45,15 @@
   line-height: var(--leading-normal);
   color: var(--color-text);
 }
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .Radio {
+    align-items: center;
+    min-width: var(--size-touch-target);
+    min-height: var(--size-touch-target);
+  }
+
+  .Radio-Dot {
+    margin-top: 0;
+  }
+}

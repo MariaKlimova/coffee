@@ -283,3 +283,37 @@
 .ExpandedProductCard--page .ExpandedProductCard-MachineRow {
   grid-template-columns: var(--size-icon-md) minmax(0, 1fr) minmax(0, 1fr);
 }
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .ExpandedProductCard-Category {
+    display: flex;
+    align-items: center;
+    min-height: var(--size-touch-target);
+  }
+
+  .ExpandedProductCard-Favorite,
+  .ExpandedProductCard-Close {
+    position: relative;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .ExpandedProductCard-Favorite::before,
+  .ExpandedProductCard-Close::before {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-circle);
+    background: var(--color-badge-bg);
+    content: '';
+    pointer-events: none;
+  }
+
+  .ExpandedProductCard-Favorite svg,
+  .ExpandedProductCard-Close svg {
+    position: relative;
+  }
+
+  .ExpandedProductCard-QtyButton {
+    border-radius: 0;
+  }
+}

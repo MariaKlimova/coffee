@@ -137,3 +137,9 @@
     transform: translate(-50%, -50%) rotate(360deg);
   }
 }
+
+@media (max-width: 63.999rem), (any-pointer: coarse) {
+  .Button {
+    min-width: var(--size-touch-target);
+  }
+}
