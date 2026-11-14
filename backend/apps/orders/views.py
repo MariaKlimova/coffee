@@ -1,5 +1,6 @@
 """Orders API: create from cart, list, detail."""
 
+from django.db.models import Count
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
@@ -51,7 +52,11 @@ class OrderListCreateView(APIView):
         responses={200: OrderListSerializer(many=True)},
     )
     def get(self, request: Request) -> Response:
-        qs = Order.objects.filter(user=request.user).order_by("-created_at")
+        qs = (
+            Order.objects.filter(user=request.user)
+            .annotate(_items_count=Count("items"))
+            .order_by("-created_at")
+        )
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(qs, request, view=self)
         serializer = OrderListSerializer(page, many=True)

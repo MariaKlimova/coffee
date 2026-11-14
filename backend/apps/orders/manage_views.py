@@ -1,6 +1,6 @@
 """Staff order reads and explicit audited lifecycle actions."""
 
-from django.db.models import OuterRef, Prefetch, Subquery
+from django.db.models import Count, OuterRef, Prefetch, Subquery
 from django.db.models.functions import JSONObject
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
@@ -60,6 +60,7 @@ class ManageOrderViewSet(viewsets.ReadOnlyModelViewSet):
             Order.objects.select_related("user")
             .defer("user__password", "user__last_login")
             .annotate(
+                _items_count=Count("items"),
                 _open_cancellation_request=Subquery(
                     CancellationRequest.objects.filter(
                         order_id=OuterRef("pk"), state="open"

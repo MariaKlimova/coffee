@@ -1824,11 +1824,12 @@ components:
     BuyerOrder:
       type: object
       additionalProperties: false
-      required: [id, status, total, delivery_address, items, created_at, updated_at, reservation_state, reservation_expires_at]
+      required: [id, status, total, items_count, delivery_address, items, created_at, updated_at, reservation_state, reservation_expires_at]
       properties:
         id: {type: string, format: uuid}
         status: {type: string, enum: [pending, paid, processing, shipped, delivered, cancelled, payment_review]}
         total: {$ref: "#/components/schemas/Money"}
+        items_count: {type: integer, minimum: 0, readOnly: true, description: "Number of frozen order positions, not the sum of quantities; retained when the product changes or is deleted."}
         delivery_address: {type: string}
         items: {type: array, items: {$ref: "#/components/schemas/OrderItem"}}
         created_at: {type: string, format: date-time}
@@ -1972,8 +1973,13 @@ components:
 
     OrderListItem:
       type: object
-      required: [id, status, total, created_at, reservation_state, reservation_expires_at, stock_review_reason]
+      required: [id, status, total, items_count, created_at, reservation_state, reservation_expires_at, stock_review_reason]
       properties:
+        items_count:
+          type: integer
+          minimum: 0
+          readOnly: true
+          description: Number of frozen order positions, not the sum of quantities; retained when the product changes or is deleted.
         id:
           type: string
           format: uuid
