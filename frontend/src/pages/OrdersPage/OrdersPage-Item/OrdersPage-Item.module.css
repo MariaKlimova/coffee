@@ -46,7 +46,11 @@
   white-space: nowrap;
 }
 
-.OrdersPage-Item-Date {
+.OrdersPage-Item-Meta {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-sm);
+  row-gap: var(--space-2xs);
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   line-height: var(--leading-normal);

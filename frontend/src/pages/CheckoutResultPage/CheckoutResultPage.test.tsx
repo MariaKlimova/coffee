@@ -42,6 +42,7 @@ function orderPayload(status: string) {
     id: orderId,
     status,
     total: '500.00',
+    items_count: 0,
     created_at: '2026-01-01T00:00:00Z',
     delivery_address: 'Москва',
     guest_email: 'guest@example.com',

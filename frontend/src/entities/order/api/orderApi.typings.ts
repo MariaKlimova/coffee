@@ -123,6 +123,8 @@ export interface OrderListItem {
   stock_review_reason?: string
   /** Итого — decimal-строка в рублях. */
   total: string
+  /** Число сохранённых позиций заказа, независимо от количества единиц и каталога. */
+  items_count: number
   /** Время создания (ISO). */
   created_at: string
 }

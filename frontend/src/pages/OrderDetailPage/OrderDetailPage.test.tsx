@@ -32,6 +32,7 @@ const orderPayload = {
   id: orderId,
   status: 'paid',
   total: '2580.00',
+  items_count: 1,
   created_at: '2026-09-19T10:00:00Z',
   delivery_address: 'Москва, ул. Пушкина, 1',
   guest_email: null,
@@ -39,7 +40,7 @@ const orderPayload = {
   items: [
     {
       id: 'item-1',
-      product_id: 'p1',
+      product_id: null,
       product_name: 'Эфиопия Иргачеффе',
       product_price: '1290.00',
       quantity: 2,
@@ -93,7 +94,7 @@ describe('OrderDetailPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows snapshot items, address and total', async () => {
+  it('shows a deleted product snapshot, address, total and positions rather than units', async () => {
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
       jsonResponse(config, 200, buyerPayload(orderPayload)),
     )
@@ -105,12 +106,18 @@ describe('OrderDetailPage', () => {
     ).toBeInTheDocument()
     expect(screen.getByText('Эфиопия Иргачеффе')).toBeInTheDocument()
     expect(screen.getByText('2 шт.')).toBeInTheDocument()
+    expect(screen.getByText('1 позиция')).toBeInTheDocument()
     expect(screen.getByText('Москва, ул. Пушкина, 1')).toBeInTheDocument()
     expect(screen.getByText('Оплачен')).toBeInTheDocument()
     expect(screen.getByText(/2\s*580/)).toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: ORDER_DETAIL_COPY.pay }),
     ).not.toBeInTheDocument()
+    expect(
+      adapter.mock.calls.every(
+        ([config]) => config.url === `/api/orders/${orderId}/buyer-actions/`,
+      ),
+    ).toBe(true)
   })
 
   it('shows not-found empty state on 404', async () => {

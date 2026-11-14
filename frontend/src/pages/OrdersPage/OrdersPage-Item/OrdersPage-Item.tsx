@@ -3,6 +3,7 @@ import { BuyerOrderCancellation } from '@features/order-cancellation'
 
 import {
   formatOrderDate,
+  formatOrderItemsCount,
   formatOrderNumberLabel,
   getOrderStatusBadgeVariant,
   getOrderStatusLabel,
@@ -26,9 +27,10 @@ export function OrdersPageItem({ order }: OrdersPageItemProps) {
           <span className={styles['OrdersPage-Item-Number']}>
             {formatOrderNumberLabel(ORDERS_PAGE_COPY.orderNumber, order.id)}
           </span>
-          <time className={styles['OrdersPage-Item-Date']} dateTime={order.created_at}>
-            {formatOrderDate(order.created_at)}
-          </time>
+          <div className={styles['OrdersPage-Item-Meta']}>
+            <time dateTime={order.created_at}>{formatOrderDate(order.created_at)}</time>
+            <span>{formatOrderItemsCount(order.items_count)}</span>
+          </div>
         </div>
         <span className={styles['OrdersPage-Item-Status']}>
           <Badge variant={getOrderStatusBadgeVariant(order.status)}>
