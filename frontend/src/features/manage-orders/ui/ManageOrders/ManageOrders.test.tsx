@@ -23,6 +23,7 @@ const order: ManageOrder = {
   status: 'processing',
   latest_payment_status: 'failed',
   total: '751.00',
+  items_count: 1,
   customer_email: 'buyer@example.invalid',
   customer_phone: '+7 000 000-00-00',
   delivery_address: 'Тестовый город, длинный адрес\nВторая строка',
@@ -470,6 +471,7 @@ describe('Обзор заказов сотрудника', () => {
         customer_email: null,
         customer_phone: null,
         items: [],
+        items_count: 0,
         payments: [],
         delivery_address: '',
       })

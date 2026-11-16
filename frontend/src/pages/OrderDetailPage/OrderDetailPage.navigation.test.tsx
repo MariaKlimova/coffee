@@ -21,6 +21,7 @@ function data(id: string) {
       id,
       status: 'pending',
       total: '500.00',
+      items_count: 0,
       created_at: '2026-11-05T10:00:00Z',
       updated_at: '2026-11-05T10:00:00Z',
       delivery_address: `Синтетический адрес ${id}`,

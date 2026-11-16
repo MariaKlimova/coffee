@@ -60,6 +60,7 @@ def test_auth_user_creates_order_from_cart(
     assert body["total"] == "2500.00"
     assert body["delivery_address"] == "Москва, ул. Кофейная, 1"
     assert len(body["items"]) == 2
+    assert body["items_count"] == 2  # Two positions, despite three units.
     names = {item["product_name"] for item in body["items"]}
     assert names == {"Дешёвый кофе", "Дорогой кофе"}
     prices = {item["product_name"]: item["product_price"] for item in body["items"]}
@@ -99,6 +100,7 @@ def test_guest_creates_order_from_cart(
     assert body["guest_email"] == "guest@example.com"
     assert body["guest_phone"] == "+79001234567"
     assert len(body["items"]) == 1
+    assert body["items_count"] == 1
 
     order = Order.objects.get(pk=body["id"])
     assert order.user_id is None
@@ -316,3 +318,4 @@ def test_list_orders_returns_only_current_user(
     body = listed.json()
     assert body["count"] == 1
     assert body["results"][0]["id"] == mine.json()["id"]
+    assert body["results"][0]["items_count"] == 1

@@ -23,6 +23,7 @@ const order = {
   id: 'synthetic-checkout-order',
   status: 'pending',
   total: '500.00',
+  items_count: 0,
   delivery_address: 'Синтетический адрес',
   items: [],
   created_at: '2026-11-05T10:00:00Z',

@@ -7,8 +7,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindAuthBridge, useAuthStore } from '@entities/user'
 import { http } from '@shared/api'
 
+import type { OrderListItem } from '../api/orderApi.typings'
 import { useOrders } from './orderQueries'
 import { orderKeys } from './orderQueryOptions'
+
+const order: OrderListItem = {
+  id: '11111111-1111-1111-1111-111111111111',
+  status: 'paid',
+  total: '1290.00',
+  items_count: 1,
+  created_at: '2026-09-19T10:00:00Z',
+}
 
 function jsonResponse(
   config: InternalAxiosRequestConfig,
@@ -76,14 +85,14 @@ describe('useOrders', () => {
         })
         return jsonResponse(config, 200, {
           count: 1,
-          results: [{ id: 'PRIVATE-ORDER-A' }],
+          results: [{ ...order, id: 'PRIVATE-ORDER-A' }],
           next: null,
           previous: null,
         })
       }
       return jsonResponse(config, 200, {
         count: 1,
-        results: [{ id: 'ORDER-B' }],
+        results: [{ ...order, id: 'ORDER-B' }],
         next: null,
         previous: null,
       })
@@ -126,13 +135,6 @@ describe('useOrders', () => {
         last_name: 'B',
       },
     })
-
-    const order = {
-      id: '11111111-1111-1111-1111-111111111111',
-      status: 'paid',
-      total: '1290.00',
-      created_at: '2026-09-19T10:00:00Z',
-    }
 
     adapter.mockImplementation(async (config: InternalAxiosRequestConfig) =>
       jsonResponse(config, 200, {

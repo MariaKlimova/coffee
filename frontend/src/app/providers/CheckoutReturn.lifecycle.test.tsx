@@ -43,6 +43,7 @@ function order(status = 'payment_review', address = 'Guest address') {
     id: orderId,
     status,
     total: '500.00',
+    items_count: 0,
     created_at: '2026-01-01T00:00:00Z',
     updated_at: '2026-01-01T00:00:00Z',
     delivery_address: address,

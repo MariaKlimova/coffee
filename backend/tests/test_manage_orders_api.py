@@ -317,6 +317,7 @@ def test_empty_history_missing_contacts_and_unknown_id(staff_client):
     response = staff_client.get(f"{LIST}{order.pk}/")
     assert response.status_code == 200
     assert response.data["items"] == [] and response.data["payments"] == []
+    assert response.data["items_count"] == 0
     assert (
         response.data["customer_email"] is None
         and response.data["customer_phone"] is None
@@ -377,5 +378,11 @@ def test_bounded_queries_and_no_read_side_effects(staff_client, orders):
             order=orders[0], provider_payment_id=f"synthetic59-{index}", amount="1.00"
         )
     assert count_queries(LIST) == list_before <= 3
+    counts = {
+        row["id"]: row["items_count"] for row in staff_client.get(LIST).data["results"]
+    }
+    assert counts[str(orders[0].pk)] == 12
+    assert counts[str(orders[1].pk)] == 0
     # One bounded cancellation-history prefetch is added to the existing detail.
     assert count_queries(f"{LIST}{orders[0].pk}/") == detail_before <= 6
+    assert staff_client.get(f"{LIST}{orders[0].pk}/").data["items_count"] == 12

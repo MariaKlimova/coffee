@@ -49,6 +49,7 @@ const initial: ManageOrder = {
   id,
   status: 'paid',
   total: '1200.00',
+  items_count: 0,
   latest_payment_status: 'succeeded',
   customer_email: 'synthetic@example.invalid',
   customer_phone: null,

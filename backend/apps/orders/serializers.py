@@ -1,5 +1,6 @@
 """Order API serializers."""
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from apps.catalog.serializers import MoneyField
@@ -63,6 +64,14 @@ class OrderListSerializer(serializers.ModelSerializer):
     """Order row for paginated list responses."""
 
     total = MoneyField(source="total_amount", read_only=True)
+    items_count = serializers.SerializerMethodField(
+        help_text="Number of frozen order positions, not the sum of quantities."
+    )
+
+    @extend_schema_field(serializers.IntegerField(min_value=0, read_only=True))
+    def get_items_count(self, order: Order) -> int:
+        count = getattr(order, "_items_count", None)
+        return count if count is not None else order.items.count()
 
     class Meta:
         model = Order
@@ -70,6 +79,7 @@ class OrderListSerializer(serializers.ModelSerializer):
             "id",
             "status",
             "total",
+            "items_count",
             "created_at",
             "reservation_state",
             "reservation_expires_at",
@@ -78,20 +88,19 @@ class OrderListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class OrderSerializer(OrderListSerializer):
     """Full order payload including line snapshots."""
 
-    total = MoneyField(source="total_amount", read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     guest_email = serializers.EmailField(read_only=True, allow_null=True)
     guest_phone = serializers.CharField(read_only=True, allow_null=True)
 
-    class Meta:
-        model = Order
+    class Meta(OrderListSerializer.Meta):
         fields = (
             "id",
             "status",
             "total",
+            "items_count",
             "delivery_address",
             "guest_email",
             "guest_phone",
